@@ -1,8 +1,17 @@
 package org.apache.oozie;
 
 import org.apache.oozie.client.rest.JsonHiveStatus;
+import org.apache.oozie.util.DateUtils;
+import org.apache.openjpa.persistence.jdbc.Index;
 
-import javax.persistence.*;
+import javax.persistence.Basic;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.Transient;
+import java.sql.Timestamp;
+import java.util.Date;
 
 @Entity
 @NamedQueries({
@@ -22,6 +31,15 @@ public class HiveQueryStatusBean extends JsonHiveStatus {
 
     @Transient
     boolean persisted = true;
+
+    @Basic
+    @Column(name = "start_time")
+    private java.sql.Timestamp startTimestamp = null;
+
+    @Basic
+    @Index
+    @Column(name = "end_time")
+    private java.sql.Timestamp endTimestamp = null;
 
     public void setWfId(String wfId) {
         this.wfId = wfId;
@@ -55,6 +73,36 @@ public class HiveQueryStatusBean extends JsonHiveStatus {
         this.persisted = persisted;
     }
 
+    public Timestamp getStartTimestamp() {
+        return startTimestamp;
+    }
+
+    public Timestamp getEndTimestamp() {
+        return endTimestamp;
+    }
+
+    @Override
+    public Date getStartTime() {
+        return DateUtils.toDate(startTimestamp);
+    }
+
+    @Override
+    public void setStartTime(Date startTime) {
+        super.setStartTime(startTime);
+        this.startTimestamp = DateUtils.convertDateToTimestamp(startTime);
+    }
+
+    @Override
+    public Date getEndTime() {
+        return DateUtils.toDate(endTimestamp);
+    }
+
+    @Override
+    public void setEndTime(Date endTime) {
+        super.setEndTime(endTime);
+        this.endTimestamp = DateUtils.convertDateToTimestamp(endTime);
+    }
+
     public HiveQueryStatusBean clone() {
         HiveQueryStatusBean status = new HiveQueryStatusBean();
         status.setWfId(getWfId());
@@ -64,6 +112,8 @@ public class HiveQueryStatusBean extends JsonHiveStatus {
         status.setJobId(getJobId());
         status.setStatus(getStatus());
         status.setPersisted(isPersisted());
+        status.setStartTime(getStartTime());
+        status.setEndTime(getEndTime());
         return status;
     }
 }

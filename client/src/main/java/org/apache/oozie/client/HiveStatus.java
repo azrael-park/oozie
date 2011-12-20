@@ -1,5 +1,7 @@
 package org.apache.oozie.client;
 
+import java.util.Date;
+
 public interface HiveStatus {
 
     public static enum Status {
@@ -17,4 +19,8 @@ public interface HiveStatus {
     String getJobId();
 
     String getStatus();
+
+    Date getStartTime();
+
+    Date getEndTime();
 }

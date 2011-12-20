@@ -4,7 +4,16 @@ import org.apache.oozie.client.HiveStatus;
 import org.apache.openjpa.persistence.jdbc.Index;
 import org.json.simple.JSONObject;
 
-import javax.persistence.*;
+import javax.persistence.Basic;
+import javax.persistence.Column;
+import javax.persistence.DiscriminatorColumn;
+import javax.persistence.DiscriminatorType;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.IdClass;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+import java.util.Date;
 
 @Entity
 @Table(name = "HIVE_STATUS")
@@ -46,6 +55,12 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
     @Column(name = "status")
     protected String status;
 
+    @Transient
+    private Date startTime;
+
+    @Transient
+    private Date endTime;
+
     public String getWfId() {
         return wfId;
     }
@@ -70,6 +85,22 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
         return status;
     }
 
+    public Date getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(Date startTime) {
+        this.startTime = startTime;
+    }
+
+    public Date getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(Date endTime) {
+        this.endTime = endTime;
+    }
+
     @SuppressWarnings("unchecked")
     public JSONObject toJSONObject() {
         return toJSONObject("GMT");
@@ -84,6 +115,8 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
         json.put(JsonTags.HIVE_STATUS_STAGE_ID, getStageId());
         json.put(JsonTags.HIVE_STATUS_JOB_ID, getJobId());
         json.put(JsonTags.HIVE_STATUS_JOB_STATUS, getStatus());
+        json.put(JsonTags.HIVE_STATUS_CREATED_TIME, JsonUtils.formatDateRfc822(getStartTime()));
+        json.put(JsonTags.HIVE_STATUS_END_TIME, JsonUtils.formatDateRfc822(getEndTime()));
         return json;
     }
 

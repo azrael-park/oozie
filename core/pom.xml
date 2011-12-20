@@ -380,6 +380,7 @@
                                 **/JsonSLAEvent.class,
                                 **/JsonSLARegistrationEvent.class,
                                 **/JsonBundleJob.class,
+                                **/JsonHiveStatus.class,
 
                                 **/WorkflowJobBean.class,
                                 **/WorkflowActionBean.class,
@@ -392,6 +393,7 @@
                                 **/BundleJobBean.class,
                                 **/BundleActionBean.class,
                                 **/ValidateConnectionBean.class,
+                                **/HiveQueryStatusBean.class,
                             </includes>
                             <addDefaultConstructor>true</addDefaultConstructor>
                             <enforcePropertyRestrictions>true</enforcePropertyRestrictions>

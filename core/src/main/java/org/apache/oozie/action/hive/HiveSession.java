@@ -21,6 +21,7 @@ import org.apache.thrift.TException;
 
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -218,6 +219,7 @@ public class HiveSession {
         }
         if (stage == null) {
             stage = new HiveQueryStatusBean();
+            stage.setStartTime(new Date());
             stage.setPersisted(false);
             stage.setWfId(wfID);
             stage.setActionName(actionName);
@@ -227,6 +229,9 @@ public class HiveSession {
         stage.setStageId(stageId);
         stage.setJobId(jobID);
         stage.setStatus(jobStatus);
+        if (!jobStatus.equals("NOT_STARTED")) {
+            stage.setEndTime(new Date());
+        }
         try {
             jpaService.execute(new HiveStatusInsertJPAExecutor(stage));
         } catch (JPAExecutorException e) {

@@ -171,6 +171,8 @@ public interface JsonTags {
     public static final String HIVE_STATUS_STAGE_ID = "stageId";
     public static final String HIVE_STATUS_JOB_ID = "jobId";
     public static final String HIVE_STATUS_JOB_STATUS = "status";
+    public static final String HIVE_STATUS_CREATED_TIME = "createdTime";
+    public static final String HIVE_STATUS_END_TIME = "endTime";
 
     public static final String HIVE_STATUS = "hive";
 
