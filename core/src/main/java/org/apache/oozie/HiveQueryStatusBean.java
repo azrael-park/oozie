@@ -45,6 +45,10 @@ public class HiveQueryStatusBean extends JsonHiveStatus {
         this.wfId = wfId;
     }
 
+    public void setActionId(String actionId) {
+        this.actionId = actionId;
+    }
+
     public void setActionName(String actionName) {
         this.actionName = actionName;
     }
@@ -106,6 +110,7 @@ public class HiveQueryStatusBean extends JsonHiveStatus {
     public HiveQueryStatusBean clone() {
         HiveQueryStatusBean status = new HiveQueryStatusBean();
         status.setWfId(getWfId());
+        status.setActionId(getActionId());
         status.setActionName(getActionName());
         status.setQueryId(getQueryId());
         status.setStageId(getStageId());

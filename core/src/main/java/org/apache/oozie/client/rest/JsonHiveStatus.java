@@ -30,6 +30,12 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
     @Id
     @Basic
     @Index
+    @Column(name = "action_id")
+    protected String actionId;
+
+    @Id
+    @Basic
+    @Index
     @Column(name = "action_name")
     protected String actionName;
 
@@ -63,6 +69,11 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
 
     public String getWfId() {
         return wfId;
+    }
+
+    @Override
+    public String getActionId() {
+        return actionId;
     }
 
     public String getActionName() {
@@ -110,6 +121,7 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
     public JSONObject toJSONObject(String timeZoneId) {
         JSONObject json = new JSONObject();
         json.put(JsonTags.HIVE_STATUS_WF_ID, getWfId());
+        json.put(JsonTags.HIVE_STATUS_ACTION_ID, getActionId());
         json.put(JsonTags.HIVE_STATUS_ACTION_NAME, getActionName());
         json.put(JsonTags.HIVE_STATUS_QUERY_ID, getQueryId());
         json.put(JsonTags.HIVE_STATUS_STAGE_ID, getStageId());
@@ -121,7 +133,7 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
     }
 
     public int hashCode() {
-        return wfId.hashCode() + actionName.hashCode();
+        return actionId.hashCode();
     }
 
     public boolean equals(Object obj) {
@@ -129,10 +141,10 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
             return false;
         }
         JsonHiveStatus another = (JsonHiveStatus) obj;
-        return wfId.equals(another.wfId) && actionName.equals(another.actionName) && queryId.equals(another.queryId) && stageId.equals(another.stageId);
+        return actionId.equals(another.actionId) && queryId.equals(another.queryId) && stageId.equals(another.stageId);
     }
 
     public String toString() {
-        return getWfId() + "@" + getActionName() + "#" + getQueryId() + ":" + getStageId() + " --> " + getJobId() + "[" + getStatus() + "]";
+        return getActionId() + "#" + getQueryId() + ":" + getStageId() + " --> " + getJobId() + "[" + getStatus() + "]";
     }
 }

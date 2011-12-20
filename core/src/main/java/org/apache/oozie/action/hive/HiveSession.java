@@ -37,8 +37,9 @@ public class HiveSession {
 
     private final XLog LOG = XLog.getLog(HiveSession.class);
 
-    String wfID;
-    String actionName;
+    final String wfID;
+    final String actionID;
+    final String actionName;
 
     ThriftHive.Client client;
     int timeout;
@@ -58,6 +59,7 @@ public class HiveSession {
 
     public HiveSession(String wfID, String actionName, ThriftHive.Client client, List<String> queries, int timeout) {
         this.wfID = wfID;
+        this.actionID = Services.get().get(UUIDService.class).generateChildId(wfID, actionName);
         this.actionName = actionName;
         this.client = client;
         this.queries = queries;
@@ -222,6 +224,7 @@ public class HiveSession {
             stage.setStartTime(new Date());
             stage.setPersisted(false);
             stage.setWfId(wfID);
+            stage.setActionId(actionID);
             stage.setActionName(actionName);
             stages.put(stageId, stage);
         }

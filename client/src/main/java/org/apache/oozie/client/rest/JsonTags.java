@@ -166,6 +166,7 @@ public interface JsonTags {
     public static final String SLA_SUMMARY_LAST_MODIFIED = "lastModified";
 
     public static final String HIVE_STATUS_WF_ID = "wfId";
+    public static final String HIVE_STATUS_ACTION_ID = "actionId";
     public static final String HIVE_STATUS_ACTION_NAME = "actionName";
     public static final String HIVE_STATUS_QUERY_ID = "queryId";
     public static final String HIVE_STATUS_STAGE_ID = "stageId";

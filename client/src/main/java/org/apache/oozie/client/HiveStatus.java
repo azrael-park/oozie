@@ -10,6 +10,8 @@ public interface HiveStatus {
 
     String getWfId();
 
+    String getActionId();
+
     String getActionName();
 
     String getQueryId();
