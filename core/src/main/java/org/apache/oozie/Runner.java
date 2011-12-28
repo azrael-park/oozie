@@ -3,12 +3,15 @@ package org.apache.oozie;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
-import org.apache.oozie.service.XLogService;
 
+import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.Enumeration;
+
+import static org.apache.oozie.service.XLogService.DEFAULT_LOG4J_PROPERTIES;
+import static org.apache.oozie.service.XLogService.LOG4J_FILE;
 
 public class Runner {
 
@@ -16,21 +19,24 @@ public class Runner {
 
         Configuration conf = new Configuration();
         System.out.println(Arrays.toString(((URLClassLoader) conf.getClassLoader()).getURLs()));
-        System.out.println(conf.getClassLoader().getResource("core-default.xml"));
-        System.out.println(conf.getClassLoader().getResource("core-site.xml"));
-        System.out.println(conf.getClassLoader().getResource("org/codehaus/jackson/map/JsonMappingException.class"));
+        System.out.println("core-default.xml = " + conf.getClassLoader().getResource("core-default.xml"));
+        System.out.println("core-site.xml    = " + conf.getClassLoader().getResource("core-site.xml"));
 
-        System.setProperty(XLogService.LOG4J_FILE, "oozie-log4j.properties");
+        String log4j = System.getProperty(LOG4J_FILE, DEFAULT_LOG4J_PROPERTIES);
+
         ClassLoader loader = Runner.class.getClassLoader();
-
-        Enumeration<URL> enums = loader.getResources("log4j.properties");
+        Enumeration<URL> enums = loader.getResources(log4j);
         while (enums.hasMoreElements()) {
-            System.out.println("-- [Runner/main] " + enums.nextElement());
+            System.out.println("log4j = " + enums.nextElement());
         }
 
-        System.setProperty(Services.OOZIE_HOME_DIR, "/home/navis/oozie");
-        System.setProperty(ConfigurationService.OOZIE_CONFIG_DIR, "/home/navis/oozie/conf");
-        System.setProperty(ConfigurationService.OOZIE_DATA_DIR, "/home/navis/oozie/data");
+        String path = args.length > 0 ? args[0] : "/home/navis/apache/oss-oozie";
+        if (new File(path).exists()) {
+            System.out.println("oozie.home = " + path);
+            System.setProperty(Services.OOZIE_HOME_DIR, path);
+            System.setProperty(ConfigurationService.OOZIE_CONFIG_DIR, path + "/conf");
+            System.setProperty(ConfigurationService.OOZIE_DATA_DIR, path + "/data");
+        }
 
 //        LocalOozie.start();
 //        SimpleClient client = new SimpleClient(LocalOozie.getClient());
