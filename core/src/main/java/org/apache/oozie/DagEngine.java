@@ -21,6 +21,7 @@ import org.apache.oozie.client.HiveStatus;
 import org.apache.oozie.client.OozieClientException;
 import org.apache.oozie.command.wf.ActionResumeXCommand;
 import org.apache.oozie.command.wf.ActionSuspendXCommand;
+import org.apache.oozie.command.wf.ActionUpdateXCommand;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.HiveAccessService;
 import org.apache.oozie.service.UUIDService;
@@ -246,6 +247,14 @@ public class DagEngine extends BaseEngine {
                 new SuspendXCommand(jobId).call();
             }
         }catch (CommandException e) {
+            throw new DagEngineException(e);
+        }
+    }
+
+    public void update(String actionID, Map<String, String> updates) throws DagEngineException {
+        try {
+            new ActionUpdateXCommand(actionID, updates).call();
+        } catch (CommandException e) {
             throw new DagEngineException(e);
         }
     }

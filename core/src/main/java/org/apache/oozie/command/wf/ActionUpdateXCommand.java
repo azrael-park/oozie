@@ -2,52 +2,57 @@ package org.apache.oozie.command.wf;
 
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
-import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.XException;
-import org.apache.oozie.action.hive.HiveSession;
-import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
-import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionUpdateJPAExecutor;
-import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
-import org.apache.oozie.service.HiveAccessService;
+import org.apache.oozie.service.ActionService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.LogUtils;
+import org.jdom.JDOMException;
 
-public class ActionSuspendXCommand<T> extends WorkflowXCommand<T> {
+import java.util.Map;
+
+import static org.apache.oozie.client.WorkflowAction.Status.START_MANUAL;
+
+public class ActionUpdateXCommand extends ActionXCommand<Void> {
 
     private String jobId;
     private String actionId;
 
-    private WorkflowJobBean wfJob;
+    private ActionExecutor executor;
     private WorkflowActionBean wfAction;
+
+    private Map<String, String> updates;
     private JPAService jpaService;
 
-    public ActionSuspendXCommand(String actionId) {
-        super("action.suspend", "suspend", 1);
+    public ActionUpdateXCommand(String actionId, Map<String, String> updates) {
+        super("action.update", "action.update", 0);
         this.actionId = actionId;
         this.jobId = Services.get().get(UUIDService.class).getId(actionId);
+        this.updates = updates;
     }
 
+    @Override
     protected boolean isLockRequired() {
         return true;
     }
 
+    @Override
     public String getEntityKey() {
-        return jobId;
+        return this.jobId;
     }
 
+    @Override
     protected void loadState() throws CommandException {
         try {
             jpaService = Services.get().get(JPAService.class);
             if (jpaService != null) {
-                this.wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(jobId));
                 this.wfAction = jpaService.execute(new WorkflowActionGetJPAExecutor(actionId));
-                LogUtils.setLogInfo(wfJob, logInfo);
                 LogUtils.setLogInfo(wfAction, logInfo);
             } else {
                 throw new CommandException(ErrorCode.E0610);
@@ -57,30 +62,31 @@ public class ActionSuspendXCommand<T> extends WorkflowXCommand<T> {
         }
     }
 
+    @Override
     protected void verifyPrecondition() throws CommandException, PreconditionException {
-        if (wfAction.getStatus() == WorkflowAction.Status.KILLED ||
-                wfAction.getStatus() == WorkflowAction.Status.ERROR ||
-                wfAction.getStatus() == WorkflowAction.Status.OK) {
-            throw new PreconditionException(ErrorCode.E0822, wfAction.getStatus());
+        if (wfAction == null) {
+            throw new PreconditionException(ErrorCode.E0605, actionId);
+        }
+        if (wfAction.getStatus() != START_MANUAL) {
+            throw new PreconditionException(ErrorCode.E0826, wfAction.getStatus());
+        }
+        executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
+        if (executor == null) {
+            throw new CommandException(ErrorCode.E0802, wfAction.getType());
         }
     }
 
-    protected T execute() throws CommandException {
-        wfAction.resetPendingOnly();
-        wfAction.setStatus(WorkflowAction.Status.START_MANUAL);
+    @Override
+    protected Void execute() throws CommandException {
         try {
+            executor.updateAttributes(wfAction, updates);
             jpaService.execute(new WorkflowActionUpdateJPAExecutor(wfAction));
-        } catch (JPAExecutorException e) {
+        } catch (XException e) {
             throw new CommandException(e);
-        }
-        HiveAccessService access = Services.get().get(HiveAccessService.class);
-        HiveSession session = access == null ? null : access.peekRunningStatus(actionId);
-        if (session != null) {
-            try {
-                session.kill(wfJob);
-            } catch (Exception e) {
-                LOG.info("failed to kill running hive session", e);
-            }
+        } catch (JDOMException e) {
+            throw new CommandException(ErrorCode.E0700, wfAction.getType());
+        } catch (Exception e) {
+            throw new CommandException(ErrorCode.E0829, e.toString());
         }
         return null;
     }

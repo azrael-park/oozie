@@ -60,7 +60,7 @@ public class ResumeXCommand extends WorkflowXCommand<Void> {
     private List<JsonBean> updateList = new ArrayList<JsonBean>();
 
     public ResumeXCommand(String id) {
-        super("resume", "resume", 1);
+        super("job.resume", "resume", 1);
         this.id = ParamChecker.notEmpty(id, "id");
     }
 

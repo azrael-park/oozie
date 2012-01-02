@@ -322,7 +322,7 @@ public class SignalXCommand extends WorkflowXCommand<Void> {
                         }
                         jpaService.execute(new WorkflowActionUpdateJPAExecutor(newAction));
                         if (startAction) {
-                            LOG.debug("SignalXCommand: Name: "+ newAction.getName() + ", Id: " +newAction.getId() + ", Authcode:" + newAction.getCred());
+                            LOG.info("SignalXCommand: Name: "+ newAction.getName() + ", Id: " +newAction.getId() + ", Authcode:" + newAction.getCred());
                             queue(new ActionStartXCommand(newAction.getId(), newAction.getType()));
                         }
                     }

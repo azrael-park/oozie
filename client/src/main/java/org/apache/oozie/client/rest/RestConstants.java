@@ -180,6 +180,8 @@ public interface RestConstants {
 
     public static final String ACTION_RESUME = "resume";
 
+    public static final String ACTION_UPDATE = "update";
+
     public static final String ACTION_SHOW_LOG = "log";
 
 }

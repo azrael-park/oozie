@@ -20,6 +20,7 @@ package org.apache.oozie;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.oozie.client.HiveStatus;
@@ -236,6 +237,22 @@ public class LocalOozieClient extends OozieClient {
     public void resume(String jobId) throws OozieClientException {
         try {
             dagEngine.resume(jobId);
+        }
+        catch (DagEngineException ex) {
+            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+        }
+    }
+
+    /**
+     * update action attributes.
+     *
+     * @param id action Id.
+     * @throws OozieClientException thrown if the job could not be resume.
+     */
+    @Override
+    public void update(String actionId, Map<String, String> updates) throws OozieClientException {
+        try {
+            dagEngine.update(actionId, updates);
         }
         catch (DagEngineException ex) {
             throw new OozieClientException(ex.getErrorCode().toString(), ex);

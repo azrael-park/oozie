@@ -33,7 +33,7 @@ public class ActionResumeXCommand extends WorkflowXCommand<Void> {
     private JPAService jpaService;
 
     public ActionResumeXCommand(String actionId) {
-        super("resume", "resume", 1);
+        super("action.resume", "resume", 1);
         this.actionId = actionId;
         this.jobId = Services.get().get(UUIDService.class).getId(actionId);
     }

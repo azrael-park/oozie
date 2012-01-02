@@ -12,6 +12,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ActionServlet extends JsonRestServlet {
 
@@ -29,6 +32,7 @@ public class ActionServlet extends JsonRestServlet {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String actionID = getResourceName(request);
         String action = request.getParameter(RestConstants.ACTION_PARAM);
@@ -44,6 +48,21 @@ public class ActionServlet extends JsonRestServlet {
         } else if (action.equals(RestConstants.ACTION_RESUME)) {
             try {
                 dagEngine.resume(actionID);
+            } catch (DagEngineException e) {
+                throw new XServletException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
+            }
+        } else if (action.equals(RestConstants.ACTION_UPDATE)) {
+            Map<String, String> params = new HashMap<String, String>();
+            Enumeration enums = request.getParameterNames();
+            while (enums.hasMoreElements()) {
+                String key = (String) enums.nextElement();
+                if (key.equals(RestConstants.ACTION_PARAM)) {
+                    continue;
+                }
+                params.put(key, request.getParameter(key));
+            }
+            try {
+                dagEngine.update(actionID, params);
             } catch (DagEngineException e) {
                 throw new XServletException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
             }

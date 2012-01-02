@@ -229,6 +229,7 @@ public class LiteWorkflowInstance implements Writable, WorkflowInstance {
 
             Context context = new Context(nodeDef, executionPath, signalValue);
             if (!nodeJob.started) {
+                log.debug("-- Entering node : " + nodeDef.getName());
                 try {
                     nodeHandler.loopDetection(context);
                     exiting = nodeHandler.enter(context);
@@ -241,6 +242,7 @@ public class LiteWorkflowInstance implements Writable, WorkflowInstance {
             }
 
             if (exiting) {
+                log.debug("-- Exiting node : " + nodeDef.getName());
                 List<String> pathsToStart = new ArrayList<String>();
                 List<String> fullTransitions;
                 try {

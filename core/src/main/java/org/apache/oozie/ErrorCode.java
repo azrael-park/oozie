@@ -177,6 +177,10 @@ public enum ErrorCode {
     E0823(XLog.STD, "Action can not be resumed as job is not in running state : {0}"),
     E0824(XLog.STD, "Action can not be resumed as the action is not in suspended state : {0}"),
     E0825(XLog.STD, "Action can not be resumed as the action is not head of execution"),
+    E0826(XLog.STD, "Action can not be updated as it is not in SUSPENDED state : {0}"),
+    E0827(XLog.STD, "Action type {0} does not support updating attributes"),
+    E0828(XLog.STD, "Action type {0} does not support updating attribute {1}"),
+    E0829(XLog.STD, "Action update failed by exception {0}"),
 
     E0900(XLog.OPS, "Jobtracker [{0}] not allowed, not in Oozie's whitelist"),
     E0901(XLog.OPS, "Namenode [{0}] not allowed, not in Oozie's whitelist"),

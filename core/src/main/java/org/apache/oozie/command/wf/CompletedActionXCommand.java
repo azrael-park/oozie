@@ -39,7 +39,6 @@ public class CompletedActionXCommand extends WorkflowXCommand<Void> {
     private final String actionId;
     private final String externalStatus;
     private final Properties actionData;
-    private JPAService jpaService;
     private WorkflowActionBean wfactionBean;
 
     public CompletedActionXCommand(String actionId, String externalStatus, Properties actionData, int priority) {
@@ -62,7 +61,7 @@ public class CompletedActionXCommand extends WorkflowXCommand<Void> {
     protected void eagerLoadState() throws CommandException {
         super.eagerLoadState();
         try {
-            jpaService = Services.get().get(JPAService.class);
+            JPAService jpaService = Services.get().get(JPAService.class);
             if (jpaService != null) {
                 this.wfactionBean = jpaService.execute(new WorkflowActionGetJPAExecutor(this.actionId));
             }

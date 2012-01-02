@@ -4,24 +4,35 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.service.ThriftHive;
+import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.command.wf.ActionKillXCommand;
 import org.apache.oozie.executor.jpa.HiveStatusDeleteJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.service.*;
+import org.apache.oozie.service.CallableQueueService;
+import org.apache.oozie.service.HadoopAccessorException;
+import org.apache.oozie.service.HadoopAccessorService;
+import org.apache.oozie.service.HiveAccessService;
+import org.apache.oozie.service.JPAService;
+import org.apache.oozie.service.Services;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.XLog;
+import org.apache.oozie.util.XmlUtils;
 import org.jdom.Attribute;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 
 import javax.servlet.jsp.el.ELException;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.apache.oozie.action.ActionExecutorException.ErrorType.NON_TRANSIENT;
@@ -54,6 +65,47 @@ public class HiveActionExecutor extends ActionExecutor {
     public ELEvaluator preActionEvaluator(Context context, WorkflowAction action) {
         prepare(context, action);
         return context.getELEvaluator();
+    }
+
+    @Override
+    public void updateAttributes(WorkflowActionBean wfAction, Map<String, String> updates) throws Exception {
+        Element config = XmlUtils.parseXml(wfAction.getConf());
+        for (Map.Entry<String, String> entry : updates.entrySet()) {
+            String name = entry.getKey();
+            String value = entry.getValue();
+            if (name.equals("description")) {
+                setAttribute(config, "description", value);
+            } else if (name.equals("address")) {
+                setAttribute(config, "address", value);
+            } else if (name.equals("jar")) {
+                setAttribute(config, "jar", value);
+            } else if (name.equals("file")) {
+                setAttribute(config, "file", value);
+            } else if (name.equals("archive")) {
+                setAttribute(config, "archive", value);
+            } else if (name.equals("sync-wait")) {
+                setAttribute(config, "sync-wait", value);
+            } else if (name.equals("script")) {
+                setAttribute(config, "script", value);
+            } else if (name.equals("query")) {
+                Element element = config.getChild("query", config.getNamespace());
+                element.removeContent();
+                for (String query : parseScript(null, new StringReader(value))) {
+                    element.addContent(query);
+                }
+            } else {
+                throw new IllegalArgumentException("unknown attribute " + name);
+            }
+        }
+        wfAction.setConf(XmlUtils.prettyPrint(config).toString());
+    }
+
+    private void setAttribute(Element config, String key, String value) {
+        if (value != null) {
+            config.setAttribute(key, value);
+        } else {
+            config.removeAttribute(key);
+        }
     }
 
     @Override
@@ -103,7 +155,7 @@ public class HiveActionExecutor extends ActionExecutor {
         return client;
     }
 
-    private String command(Context context, String name) throws JDOMException {
+    private String command(Context context, String name) throws JDOMException, HadoopAccessorException {
         Attribute attr = context.getActionXML().getAttribute(name);
         if (attr != null && !attr.getValue().isEmpty()) {
             return "add " + name + " " + toAbsoluteList(context, attr.getValue());
@@ -167,29 +219,7 @@ public class HiveActionExecutor extends ActionExecutor {
         try {
             Path path = toAbsolute(context, script);
             FileSystem fs = getFileSystemFor(path, context);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(path)));
-
-            List<String> result = new ArrayList<String>();
-
-            String line;
-            StringBuilder builder = new StringBuilder();
-            while ((line = reader.readLine()) != null) {
-                String trimed = line.trim();
-                if (trimed.isEmpty()) {
-                    continue;
-                }
-                if (trimed.endsWith(";")) {
-                    builder.append(line.substring(0, line.lastIndexOf(';')));
-                    result.add(evaluate(evaluator, builder.toString()));
-                    builder.setLength(0);
-                } else {
-                    builder.append(line);
-                }
-            }
-            if (builder.length() != 0) {
-                throw new ActionExecutorException(NON_TRANSIENT, "HIVE-001", "Invalid end of script");
-            }
-            return result;
+            return parseScript(evaluator, new InputStreamReader(fs.open(path)));
         } catch (ActionExecutorException e) {
             throw e;
         } catch (Throwable e) {
@@ -197,9 +227,36 @@ public class HiveActionExecutor extends ActionExecutor {
         }
     }
 
+    private List<String> parseScript(ELEvaluator evaluator, Reader input) throws IOException, ActionExecutorException {
+
+        BufferedReader reader = new BufferedReader(input);
+
+        List<String> result = new ArrayList<String>();
+
+        String line;
+        StringBuilder builder = new StringBuilder();
+        while ((line = reader.readLine()) != null) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            if (trimmed.endsWith(";")) {
+                builder.append(line.substring(0, line.lastIndexOf(';')));
+                result.add(evaluate(evaluator, builder.toString()));
+                builder.setLength(0);
+            } else {
+                builder.append(line);
+            }
+        }
+        if (builder.length() != 0) {
+            throw new ActionExecutorException(NON_TRANSIENT, "HIVE-001", "Invalid end of script");
+        }
+        return result;
+    }
+
     private String evaluate(ELEvaluator evaluator, String sql) throws ActionExecutorException {
         try {
-            return evaluator.evaluate(sql, String.class);
+            return evaluator == null ? sql : evaluator.evaluate(sql, String.class);
         } catch (Throwable e) {
             throw new ActionExecutorException(NON_TRANSIENT, "HIVE-000", "Failed to evaluate sql {0}", sql, e);
         }

@@ -50,7 +50,7 @@ public class SuspendXCommand extends WorkflowXCommand<Void> {
     private List<JsonBean> updateList = new ArrayList<JsonBean>();
 
     public SuspendXCommand(String id) {
-        super("suspend", "suspend", 1);
+        super("job.suspend", "suspend", 1);
         this.wfid = ParamChecker.notEmpty(id, "wfid");
     }
 

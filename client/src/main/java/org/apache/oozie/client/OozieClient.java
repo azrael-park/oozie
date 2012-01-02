@@ -168,7 +168,7 @@ public class OozieClient {
 
     public static enum SYSTEM_MODE {
         NORMAL, NOWEBSERVICE, SAFEMODE
-    };
+    }
 
     /**
      * debugMode =0 means no debugging. > 0 means debugging on.
@@ -499,7 +499,10 @@ public class OozieClient {
             catch (IOException ex) {
                 throw new OozieClientException(OozieClientException.IO_ERROR, ex);
             }
+        }
 
+        public void addParams(String key, String value) {
+            params.put(key, value);
         }
 
         protected abstract T call(HttpURLConnection conn) throws IOException, OozieClientException;
@@ -694,9 +697,9 @@ public class OozieClient {
     }
 
     /**
-     * Suspend a workflow job.
+     * Suspend a workflow job.action.
      *
-     * @param id job Id.
+     * @param id job or action Id.
      * @throws OozieClientException thrown if the job could not be suspended.
      */
     public void suspend(String id) throws OozieClientException {
@@ -708,9 +711,9 @@ public class OozieClient {
     }
 
     /**
-     * Resume a workflow job.
+     * Resume a workflow job/action.
      *
-     * @param id job Id.
+     * @param id job or action Id.
      * @throws OozieClientException thrown if the job could not be resume.
      */
     public void resume(String id) throws OozieClientException {
@@ -719,6 +722,20 @@ public class OozieClient {
         } else {
             new JobAction(id, RestConstants.JOB_ACTION_RESUME).call();
         }
+    }
+
+    /**
+     * update action attributes.
+     *
+     * @param actionId action Id.
+     * @throws OozieClientException thrown if the job could not be resume.
+     */
+    public void update(String actionId, Map<String, String> updates) throws OozieClientException {
+        ActionAction action = new ActionAction(actionId, RestConstants.ACTION_UPDATE);
+        for (Map.Entry<String, String> entry : updates.entrySet()) {
+            action.addParams(entry.getKey(), entry.getValue());
+        }
+        action.call();
     }
 
     /**

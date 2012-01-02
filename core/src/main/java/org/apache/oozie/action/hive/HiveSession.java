@@ -71,8 +71,8 @@ public class HiveSession {
     public List<HiveQueryStatusBean> getStatus() {
         List<HiveQueryStatusBean> result = new ArrayList<HiveQueryStatusBean>();
         for (Map<String, HiveQueryStatusBean> stages : status.values()) {
-            for (HiveQueryStatusBean staus : stages.values()) {
-                result.add(staus.clone());
+            for (HiveQueryStatusBean status : stages.values()) {
+                result.add(status.clone());
             }
         }
         return result;
@@ -82,8 +82,8 @@ public class HiveSession {
         Map<String, HiveQueryStatusBean> stages = status.get(queryID);
         if (stages != null) {
             List<HiveQueryStatusBean> result = new ArrayList<HiveQueryStatusBean>();
-            for (HiveQueryStatusBean staus : stages.values()) {
-                result.add(staus.clone());
+            for (HiveQueryStatusBean status : stages.values()) {
+                result.add(status.clone());
             }
             return result;
         }

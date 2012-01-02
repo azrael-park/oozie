@@ -13,6 +13,8 @@ import org.apache.oozie.client.WorkflowJob;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.apache.oozie.client.WorkflowJob.Status.PREP;
@@ -70,6 +72,10 @@ public class SimpleClient {
                     client.suspend(jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1]);
                 } else if (commands[0].equals("resume")) {
                     client.resume(jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1]);
+                } else if (commands[0].equals("update")) {
+                    String actionID = jobID != null ? jobID + "@" + commands[1] : commands[1];
+                    String remain = line.substring(line.indexOf(commands[1]) + commands[1].length());
+                    client.update(actionID, parseParams(remain));
                 } else if (commands[0].equals("status")) {
                     WorkflowJob wflow = client.getJobInfo(jobID != null ? jobID : commands[1]);
                     System.out.println(wflow.getId() + ":" + wflow.getStatus());
@@ -106,6 +112,18 @@ public class SimpleClient {
                 e.printStackTrace();
             }
         }
+    }
+
+    private Map<String, String> parseParams(String line) {
+        line = line.trim();
+        Map<String, String> params = new HashMap<String, String>();
+        for (String param : line.split(",[\\s]*")) {
+            int eq = param.indexOf('=');
+            String key = eq < 0 ? param : param.substring(0, eq).trim();
+            String value = eq < 0 ? null : param.substring(eq + 1).trim();
+            params.put(key, value);
+        }
+        return params;
     }
 
     private Properties jobDescription(String appPath) throws IOException {

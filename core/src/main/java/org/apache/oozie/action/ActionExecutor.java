@@ -20,8 +20,12 @@ package org.apache.oozie.action;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.oozie.ErrorCode;
+import org.apache.oozie.WorkflowActionBean;
+import org.apache.oozie.XException;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
+import org.apache.oozie.command.CommandException;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XLog;
@@ -67,6 +71,12 @@ public abstract class ActionExecutor {
 
     public boolean suspendJobForFail(WorkflowAction.Status status) {
         return true;
+    }
+
+    public void updateAttributes(WorkflowActionBean wfAction, Map<String, String> updates) throws Exception {
+        if (!updates.isEmpty()) {
+            throw new CommandException(ErrorCode.E0827, wfAction.getType());
+        }
     }
 
     private static class ErrorInfo {
