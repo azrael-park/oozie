@@ -5,7 +5,6 @@ import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.XException;
 import org.apache.oozie.client.WorkflowAction;
-import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
@@ -20,9 +19,8 @@ import org.apache.oozie.workflow.WorkflowInstance;
 import org.apache.oozie.workflow.lite.LiteWorkflowInstance;
 import org.apache.oozie.workflow.lite.NodeDef;
 
-import static org.apache.oozie.client.WorkflowAction.Status.ERROR;
-import static org.apache.oozie.client.WorkflowAction.Status.FAILED;
-import static org.apache.oozie.client.WorkflowAction.Status.KILLED;
+import static org.apache.oozie.client.WorkflowJob.Status.RUNNING;
+import static org.apache.oozie.client.WorkflowJob.Status.SUSPENDED;
 
 public class ActionResumeXCommand extends WorkflowXCommand<Void> {
 
@@ -62,7 +60,7 @@ public class ActionResumeXCommand extends WorkflowXCommand<Void> {
     }
 
     protected void verifyPrecondition() throws CommandException, PreconditionException {
-        if (wfJob.getStatus() != WorkflowJob.Status.SUSPENDED && wfJob.getStatus() != WorkflowJob.Status.RUNNING) {
+        if (wfJob.getStatus() != SUSPENDED && wfJob.getStatus() != RUNNING) {
             throw new PreconditionException(ErrorCode.E0823, wfJob.getStatus());
         }
         if (wfAction.getStatus() != WorkflowAction.Status.START_MANUAL) {
@@ -71,45 +69,37 @@ public class ActionResumeXCommand extends WorkflowXCommand<Void> {
     }
 
     protected Void execute() throws CommandException {
-        if (wfJob.getStatus() == WorkflowJob.Status.SUSPENDED) {
-            wfAction.resetPending();
-            wfAction.setStatus(WorkflowAction.Status.PREP);
-            updateActionStatus(wfAction);
-            return null;
-        }
-        NodeDef headNode = executionHead();
-        boolean start = wfAction.getName().equals(headNode.getName());
-        if (!start) {
-            String headID = Services.get().get(UUIDService.class).generateChildId(wfJob.getId(), headNode.getName());
-            try {
-                WorkflowActionBean head = jpaService.execute(new WorkflowActionGetJPAExecutor(headID));
-                start = head.getStatus() != FAILED && head.getStatus() != KILLED && head.getStatus() != ERROR && !head.isPending();
-            } catch (JPAExecutorException e) {
-                throw new CommandException(e);
-            }
-            wfAction.setStatus(WorkflowAction.Status.PREP);
-        }
-        if (start) {
-            wfAction.setPendingOnly();
-            queue(new ActionStartXCommand(wfAction.getId(), wfAction.getType()));
-        }
-        updateActionStatus(wfAction);
-        return null;
-    }
-
-    private void updateActionStatus(WorkflowActionBean action) throws CommandException {
+        ActionXCommand command = resumeAction(wfJob, wfAction);
         try {
-            jpaService.execute(new WorkflowActionUpdateJPAExecutor(action));
+            jpaService.execute(new WorkflowActionUpdateJPAExecutor(wfAction));
         } catch (JPAExecutorException e) {
             throw new CommandException(e);
         }
+        if (command != null) {
+            LOG.info("Starting Action Name: "+ wfAction.getName() + ", Id: " + wfAction.getId() +
+                    ", Authcode:" + wfAction.getCred(), ", Status:" + wfAction.getStatus());
+            queue(new ActionStartXCommand(wfAction.getId(), wfAction.getType()));
+        }
+        return null;
     }
 
-    private NodeDef executionHead() throws CommandException {
-        return executionHead(wfJob.getWorkflowInstance(), wfAction.getExecutionPath());
+    public static ActionXCommand resumeAction(WorkflowJobBean job, WorkflowActionBean action) {
+        boolean start = job.getStatus() == RUNNING && isExecutionHead(job, action);
+        if (start) {
+            action.setPendingOnly();
+        } else {
+            action.resetPending();
+            action.setStatus(WorkflowAction.Status.PREP);
+        }
+        return start? new ActionStartXCommand(action.getId(), action.getType()) : null;
     }
 
-    private NodeDef executionHead(WorkflowInstance instance, String executionPath) {
+    private static boolean isExecutionHead(WorkflowJobBean job, WorkflowActionBean action) {
+        NodeDef node = executionHead(job.getWorkflowInstance(), action.getExecutionPath());
+        return node != null && node.getName().equals(action.getName());
+    }
+
+    private static NodeDef executionHead(WorkflowInstance instance, String executionPath) {
         if (executionPath != null) {
             NodeDef node = instance.getNodeDef(executionPath);
             return node != null ? node : executionHead(instance, LiteWorkflowInstance.getParentPath(executionPath));
