@@ -111,7 +111,7 @@ public class HiveActionExecutor extends ActionExecutor {
         return null;
     }
 
-    private String toAbsoluteList(Context context, String resources) {
+    private String toAbsoluteList(Context context, String resources) throws HadoopAccessorException {
         StringBuilder builder = new StringBuilder();
         for (String resource : resources.split(",")) {
             Path absolute = toAbsolute(context, resource.trim());
@@ -120,10 +120,13 @@ public class HiveActionExecutor extends ActionExecutor {
         return builder.toString();
     }
 
-    private Path toAbsolute(Context context, String path) {
+    private Path toAbsolute(Context context, String path) throws HadoopAccessorException {
         Path absolute = new Path(path);
         if (!absolute.isAbsolute()) {
-            return new Path(context.getWorkflow().getAppPath(), absolute);
+            absolute = new Path(context.getWorkflow().getAppPath(), absolute);
+            if (!absolute.isAbsolute()) {
+                absolute = absolute.makeQualified(getFileSystemFor(absolute, context));
+            }
         }
         return absolute;
     }
@@ -161,8 +164,8 @@ public class HiveActionExecutor extends ActionExecutor {
 
         ELEvaluator evaluator = context.getELEvaluator();
 
-        Path path = toAbsolute(context, script);
         try {
+            Path path = toAbsolute(context, script);
             FileSystem fs = getFileSystemFor(path, context);
             BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(path)));
 
