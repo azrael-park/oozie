@@ -1,18 +1,19 @@
 package org.apache.oozie;
 
+import jline.ConsoleReader;
+import jline.SimpleCompletor;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.oozie.client.HiveStatus;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -38,17 +39,21 @@ public class SimpleClient {
             System.err.println("[Runner/main] submitted job " + client.getJobInfo(jobID));
         }
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        ConsoleReader reader = new ConsoleReader();
+        reader.setBellEnabled(false);
 
-        String prev = null;
+        SimpleCompletor completor = new SimpleCompletor(new String[0]);
+        for (COMMAND command : COMMAND.values()) {
+            completor.addCandidateString(command.name());
+        }
+
+        reader.addCompletor(completor);
+
         String line;
-        for (System.out.print('>');(line = reader.readLine()) != null;System.out.print('>')) {
+        while ((line = reader.readLine(">")) != null) {
             line = line.trim();
             if (line.isEmpty()) {
                 continue;
-            }
-            if (prev != null && line.equals("!")) {
-                line = prev;
             }
             try {
                 String[] commands = line.split("[\\s]+");
@@ -59,7 +64,7 @@ public class SimpleClient {
                 } else if (commands[0].equals("start")) {
                     client.start(jobID != null ? jobID : commands[1]);
                 } else if (commands[0].equals("kill")) {
-                    client.kill(jobID != null ? jobID : commands[1]);
+                    client.kill(jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1]);
                 } else if (commands[0].equals("killall")) {
                     for (WorkflowJob job : client.getJobsInfo(commands.length > 1 ? commands[1] : "")) {
                         WorkflowJob.Status status = job.getStatus();
@@ -107,11 +112,14 @@ public class SimpleClient {
                 } else {
                     System.out.println("invalid command " + line);
                 }
-                prev = line;
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    private enum COMMAND {
+        submit, start, kill, killall, suspend, resume, update, status, log, jobs, use, quit
     }
 
     private Map<String, String> parseParams(String line) {
@@ -138,8 +146,9 @@ public class SimpleClient {
                 IOUtils.closeStream(open);
             }
         }
-        props.setProperty("user.name", "navis");
-        props.setProperty("group.name", "nexr");
+        UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+        props.setProperty("user.name", ugi.getUserName());
+        props.setProperty("group.name", ugi.getGroupNames()[0]);
         props.setProperty("oozie.wf.application.path", appPath);
 
         return props;

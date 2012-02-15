@@ -187,6 +187,12 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>jline</groupId>
+            <artifactId>jline</artifactId>
+            <version>0.9.94</version>
+        </dependency>
+
         <!--
         Oozie web-app module must exclude it.
          -->
