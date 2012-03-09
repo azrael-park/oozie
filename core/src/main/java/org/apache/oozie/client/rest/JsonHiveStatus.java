@@ -30,35 +30,34 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
     @Id
     @Basic
     @Index
-    @Column(name = "action_id")
-    protected String actionId;
-
-    @Id
-    @Basic
-    @Index
-    @Column(name = "action_name")
+    @Column(name = "action_name", length = 31)
     protected String actionName;
 
     @Id
     @Basic
     @Index
-    @Column(name = "query_Id")
+    @Column(name = "query_Id", length = 63)
     protected String queryId;
 
     @Id
     @Basic
     @Index
-    @Column(name = "stage_Id")
+    @Column(name = "stage_Id", length = 15)
     protected String stageId;
 
     @Basic
     @Index
-    @Column(name = "job_Id")
+    @Column(name = "action_id")
+    protected String actionId;
+
+    @Basic
+    @Index
+    @Column(name = "job_Id", length = 31)
     protected String jobId;
 
     @Basic
     @Index
-    @Column(name = "status")
+    @Column(name = "status", length = 15)
     protected String status;
 
     @Transient
@@ -71,7 +70,6 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
         return wfId;
     }
 
-    @Override
     public String getActionId() {
         return actionId;
     }
@@ -133,7 +131,7 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
     }
 
     public int hashCode() {
-        return actionId.hashCode();
+        return wfId.hashCode() + actionName.hashCode();
     }
 
     public boolean equals(Object obj) {
@@ -141,7 +139,7 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
             return false;
         }
         JsonHiveStatus another = (JsonHiveStatus) obj;
-        return actionId.equals(another.actionId) && queryId.equals(another.queryId) && stageId.equals(another.stageId);
+        return wfId.equals(another.wfId) && actionName.equals(another.actionName) && queryId.equals(another.queryId) && stageId.equals(another.stageId);
     }
 
     public String toString() {
