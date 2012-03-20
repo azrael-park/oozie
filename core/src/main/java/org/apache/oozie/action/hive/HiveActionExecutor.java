@@ -3,6 +3,7 @@ package org.apache.oozie.action.hive;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.service.HiveServerException;
 import org.apache.hadoop.hive.service.ThriftHive;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
@@ -20,15 +21,12 @@ import org.apache.oozie.service.Services;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
+import org.apache.thrift.TException;
 import org.jdom.Attribute;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 
 import javax.servlet.jsp.el.ELException;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,9 +34,14 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.apache.oozie.action.ActionExecutorException.ErrorType.NON_TRANSIENT;
+import static org.apache.oozie.action.ActionExecutorException.ErrorType.TRANSIENT;
 
 public class HiveActionExecutor extends ActionExecutor {
 
+    public static final String THRIFT_ERROR = "THRIFT_ERROR";
+    public static final String HIVE_SERVER_ERROR = "HIVE_SERVER_ERROR";
+
+    public static final int DEFAULT_COMPILE_TIMEOUT = 3000;
     public static final String ACTION_TYPE = "hive";
 
     private final XLog LOG = XLog.getLog(HiveActionExecutor.class);
@@ -54,6 +57,8 @@ public class HiveActionExecutor extends ActionExecutor {
         registerError(ELException.class.getName(), NON_TRANSIENT, EL_ERROR);
         //FIXME : mortbay.jetty.jsp
         //registerError(javax.el.ELException.class.getName(), NON_TRANSIENT, EL_ERROR);
+        registerError(TException.class.getName(), TRANSIENT, THRIFT_ERROR);
+        registerError(HiveServerException.class.getName(), NON_TRANSIENT, HIVE_SERVER_ERROR);
     }
 
     @Override
@@ -114,7 +119,6 @@ public class HiveActionExecutor extends ActionExecutor {
 
         try {
             context.setStartData("-", "-", "-");
-
             Element actionXml = context.getActionXML();
 
             HiveAccessService service = Services.get().get(HiveAccessService.class);
@@ -131,7 +135,7 @@ public class HiveActionExecutor extends ActionExecutor {
             String wfID = context.getWorkflow().getId();
             String actionName = action.getName();
 
-            int timeout = timeoutAttr == null ? -1 : timeoutAttr.getIntValue();
+            int timeout = timeoutAttr == null ? DEFAULT_COMPILE_TIMEOUT : timeoutAttr.getIntValue();
             HiveSession session = new HiveSession(wfID, actionName, client, queries, timeout);
             service.register(action.getId(), session);
 
