@@ -359,7 +359,7 @@ public abstract class ActionExecutor {
         List<String> queries = new ArrayList<String>();
         for (Object element : actionXml.getChildren("query", actionXml.getNamespace())) {
             String sql = ((Element)element).getTextTrim();
-            queries.add(evaluate(evaluator, sql));
+            queries.add(evaluate(evaluator, sql.replaceAll("\\n", "\t")));
         }
         return queries;
     }
