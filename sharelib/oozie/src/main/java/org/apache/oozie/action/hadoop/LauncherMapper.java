@@ -41,6 +41,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
@@ -80,6 +82,9 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
     static final String ACTION_NEW_ID_PROPS = "newId.properties";
     static final String ACTION_ERROR_PROPS = "error.properties";
 
+    private static final String ACTION_OUTPUT_DUMP = "output.dump";
+    private static final String ACTION_ERROR_DUMP = "error.dump";
+
     private void setRecoveryId(Configuration launcherConf, Path actionDir, String recoveryId) throws LauncherException {
         try {
             String jobId = launcherConf.get("mapred.job.id");
@@ -111,6 +116,14 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
         catch (IOException ex) {
             failLauncher(0, "IO error", ex);
         }
+    }
+
+    public static Path getOutputDumpPath(Path actionDir) {
+        return new Path(actionDir, ACTION_OUTPUT_DUMP);
+    }
+
+    public static Path getErrorDumpPath(Path actionDir) {
+        return new Path(actionDir, ACTION_ERROR_DUMP);
     }
 
     private JobConf jobConf;
@@ -255,9 +268,13 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
                         System.out.println("<<< Invocation of Main class completed <<<");
                         System.out.println();
                         handleExternalChildIDs(reporter);
+
+                        FileSystem fs = FileSystem.get(getJobConf());
+                        uploadOutputDump(fs);
+                        uploadErrorDump(fs);
                     }
                     if (errorMessage == null) {
-                        File outputData = new File(System.getProperty("oozie.action.output.properties"));
+                        File outputData = new File(System.getProperty("oozie.action.output.dump"));
                         if (outputData.exists()) {
                             URI actionDirUri = new Path(actionDir, ACTION_OUTPUT_PROPS).toUri();
                             FileSystem fs = FileSystem.get(actionDirUri, getJobConf());
@@ -390,7 +407,11 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
         System.setProperty("oozie.job.id", getJobConf().get(OOZIE_JOB_ID));
         System.setProperty("oozie.action.id", getJobConf().get(OOZIE_ACTION_ID));
         System.setProperty("oozie.action.conf.xml", new File(ACTION_CONF_XML).getAbsolutePath());
+        System.setProperty("oozie.action.output.dump", new File(ACTION_OUTPUT_DUMP).getAbsolutePath());
+        System.setProperty("oozie.action.error.dump", new File(ACTION_ERROR_DUMP).getAbsolutePath());
         System.setProperty("oozie.action.output.properties", new File(ACTION_OUTPUT_PROPS).getAbsolutePath());
+        System.setProperty("oozie.action.error.properties", new File(ACTION_ERROR_PROPS).getAbsolutePath());
+
         System.setProperty(EXTERNAL_ACTION_STATS, new File(ACTION_STATS_PROPS).getAbsolutePath());
         System.setProperty(EXTERNAL_CHILD_IDS, new File(ACTION_EXTERNAL_CHILD_IDS_PROPS).getAbsolutePath());
         System.setProperty("oozie.action.newId.properties", new File(ACTION_NEW_ID_PROPS).getAbsolutePath());
@@ -473,6 +494,30 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
         }
         catch (IOException rex) {
             throw new RuntimeException("Error while failing launcher, " + rex.getMessage(), rex);
+        }
+    }
+
+    private void uploadOutputDump(FileSystem fs) {
+        File dumpFile = new File(System.getProperty("oozie.action.output.dump"));
+        if (dumpFile.exists()) {
+            Path dump = getOutputDumpPath(actionDir);
+            try {
+                fs.copyFromLocalFile(new Path(dumpFile.toString()), dump);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void uploadErrorDump(FileSystem fs) {
+        File dumpFile = new File(System.getProperty("oozie.action.error.dump"));
+        if (dumpFile.exists()) {
+            Path dump = getErrorDumpPath(actionDir);
+            try {
+                fs.copyFromLocalFile(new Path(dumpFile.toString()), dump);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

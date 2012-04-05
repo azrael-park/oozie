@@ -39,7 +39,7 @@ public class LauncherMainTester {
                 System.exit(1);
             }
             if (args[0].equals("out")) {
-                File file = new File(System.getProperty("oozie.action.output.properties"));
+                File file = new File(System.getProperty("oozie.action.output.dump"));
                 Properties props = new Properties();
                 props.setProperty("a", "A");
                 OutputStream os = new FileOutputStream(file);

@@ -1041,6 +1041,7 @@ public class JavaActionExecutor extends ActionExecutor {
                     if (runningJob.isSuccessful() && LauncherMapperHelper.isMainSuccessful(runningJob)) {
                         getActionData(actionFs, runningJob, action, context);
                         XLog.getLog(getClass()).info(XLog.STD, "action produced output");
+                        dumpOutput(actionFs, context);
                     }
                     else {
                         XLog log = XLog.getLog(getClass());
@@ -1075,6 +1076,7 @@ public class JavaActionExecutor extends ActionExecutor {
                         }
                         context.setExecutionData(FAILED_KILLED, null);
                         setActionCompletionData(context, actionFs);
+                        dumpError(actionFs, context);
                     }
                 }
                 else {
@@ -1137,11 +1139,57 @@ public class JavaActionExecutor extends ActionExecutor {
         context.setExecutionData(SUCCEEDED, props);
     }
 
+    private void dumpOutput(FileSystem actionFs, Context context) throws Exception {
+        if (getDumpOutput(context)) {
+            dump(actionFs, LauncherMapper.getOutputDumpPath(context.getActionDir()), "stdout");
+        }
+    }
+
+    private void dumpError(FileSystem actionFs, Context context) throws Exception {
+        if (getDumpError(context)) {
+            dump(actionFs, LauncherMapper.getErrorDumpPath(context.getActionDir()), "stderr");
+        }
+    }
+
+    private void dump(FileSystem actionFs, Path dumpPath, String prefix) throws IOException {
+        if (actionFs.exists(dumpPath)) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(actionFs.open(dumpPath)));
+            StringBuilder builder = new StringBuilder();
+            String line;
+            int counter = 0;
+            while ((line = reader.readLine()) != null) {
+                builder.append(line).append('\n');
+                if (builder.length() > 1024) {
+                    log.info(prefix + " dump-" + counter++ + "\n" + builder.toString());
+                    builder.setLength(0);
+                }
+            }
+            if (builder.length() > 0) {
+                log.info(prefix + " dump-" + counter + "\n" + builder.toString());
+            }
+            reader.close();
+        }
+    }
+
     protected boolean getCaptureOutput(WorkflowAction action) throws JDOMException {
         Element eConf = XmlUtils.parseXml(action.getConf());
         Namespace ns = eConf.getNamespace();
         Element captureOutput = eConf.getChild("capture-output", ns);
         return captureOutput != null;
+    }
+
+    protected boolean getDumpOutput(Context context) throws Exception {
+        Element eConf = context.getActionXML();
+        Namespace ns = eConf.getNamespace();
+        Element captureOutput = eConf.getChild("capture-output", ns);
+        return captureOutput != null && Boolean.valueOf(captureOutput.getAttributeValue("dump"));
+    }
+
+    protected boolean getDumpError(Context context) throws Exception {
+        Element eConf = context.getActionXML();
+        Namespace ns = eConf.getNamespace();
+        Element captureOutput = eConf.getChild("capture-error", ns);
+        return captureOutput != null && Boolean.valueOf(captureOutput.getAttributeValue("dump"));
     }
 
     @Override
