@@ -201,7 +201,7 @@ public class SimpleClient {
                     }
                 } else if (commands[0].equals("actions")) {
                     FilterParams params = new FilterParams(context.getActionProperties(), commands);
-                    for (WorkflowAction action : client.getActionsInfo(params.filter, params.start, params.length)) {
+                    for (Object action : context.getActionsInfo(client, params.filter, params.start, params.length)) {
                         System.out.println(params.toString(action));
                     }
                 } else if (commands[0].equals("use")) {
@@ -411,7 +411,9 @@ public class SimpleClient {
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
         props.setProperty(OozieClient.USER_NAME, ugi.getUserName());
         props.setProperty(OozieClient.GROUP_NAME, ugi.getGroupNames()[0]);
-        props.setProperty(context.pathKey(), appPath);
+
+        Path qualified = fs.makeQualified(new Path(appPath));
+        props.setProperty(context.pathKey(), qualified.toString());
 
         return props;
     }

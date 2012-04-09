@@ -430,4 +430,12 @@
 
     -->
 
+    <property>
+        <name>oozie.service.CoordMaterializeTriggerService.lookup.interval
+        </name>
+        <value>60</value>
+        <description> Coordinator Job Lookup trigger command is scheduled at
+            this "interval" (in seconds).</description>
+    </property>
+
 </configuration>
