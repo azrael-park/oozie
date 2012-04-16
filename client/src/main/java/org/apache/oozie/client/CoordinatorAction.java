@@ -155,10 +155,6 @@ public interface CoordinatorAction {
      */
     String getErrorMessage();
 
-    void setErrorCode(String errorCode);
-
-    void setErrorMessage(String errorMessage);
-
     String getExternalId();
 
 }

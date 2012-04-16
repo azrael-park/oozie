@@ -30,6 +30,7 @@ import org.apache.oozie.WorkflowsInfo;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowJob.Status;
 import org.apache.oozie.util.XLog;
+import org.apache.oozie.util.db.FilteredQueryGenerator;
 import org.apache.openjpa.persistence.OpenJPAPersistence;
 import org.apache.openjpa.persistence.OpenJPAQuery;
 import org.apache.openjpa.persistence.jdbc.FetchDirection;
@@ -39,13 +40,13 @@ import org.apache.openjpa.persistence.jdbc.ResultSetType;
 
 public class WorkflowsJobGetJPAExecutor implements JPAExecutor<WorkflowsInfo> {
 
-    private static final String seletStr = "Select w.id, w.appName, w.status, w.run, w.user, w.group, w.createdTimestamp, "
-        + "w.startTimestamp, w.lastModifiedTimestamp, w.endTimestamp, w.externalId from WorkflowJobBean w";
+    public static final String seletStr = "Select w.id, w.appName, w.status, w.run, w.user, w.group, w.createdTimestamp, "
+            + "w.startTimestamp, w.lastModifiedTimestamp, w.endTimestamp, w.externalId from WorkflowJobBean w";
     private static final String countStr = "Select count(w) from WorkflowJobBean w";
 
-    private final Map<String, List<String>> filter;
-    private final int start;
-    private final int len;
+    private Map<String, List<String>> filter;
+    private int start = -1;
+    private int len = -1;
 
     /**
      * This JPA Executor gets the workflows info for the range.
@@ -266,7 +267,7 @@ public class WorkflowsJobGetJPAExecutor implements JPAExecutor<WorkflowsInfo> {
         return "WorkflowsJobGetJPAExecutor";
     }
 
-    private WorkflowJobBean getBeanForWorkflowFromArray(Object[] arr) {
+    static WorkflowJobBean getBeanForWorkflowFromArray(Object[] arr) {
 
         WorkflowJobBean wfBean = new WorkflowJobBean();
         wfBean.setId((String) arr[0]);

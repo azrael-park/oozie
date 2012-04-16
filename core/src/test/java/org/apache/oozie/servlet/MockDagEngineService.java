@@ -206,7 +206,7 @@ public class MockDagEngineService extends DagEngineService {
         @Override
         @SuppressWarnings("unchecked")
         public WorkflowActionInfo getActions(String filter, int start, int len) throws DagEngineException {
-            FilterResolver.parseForAction(filter);
+            FilterResolver.parseForWFAction(filter);
             did = RestConstants.JOBS_FILTER_PARAM;
             return new WorkflowActionInfo((List) actions, start, len, actions.size());
         }

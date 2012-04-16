@@ -3,9 +3,11 @@ package org.apache.oozie.command;
 import org.apache.oozie.DagEngineException;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
+import org.apache.oozie.WorkflowActionInfo;
 import org.apache.oozie.WorkflowsInfo;
 import org.apache.oozie.XException;
 import org.apache.oozie.client.BundleJob;
+import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
@@ -43,7 +45,7 @@ public class FilterResolver {
         public String validate(String value) { return value; }
     }
 
-    private static enum ACTIONS_FILTER implements FilterSet {
+    private static enum WF_ACTIONS_FILTER implements FilterSet {
         id,
         name,
         type,
@@ -53,9 +55,19 @@ public class FilterResolver {
         public String validate(String value) { return value; }
     }
 
+    private static enum COORD_ACTIONS_FILTER implements FilterSet {
+        id,
+        jobId,
+        status { public String validate(String value) { return CoordinatorAction.Status.valueOf(value.toUpperCase()).name(); } },
+        externalId;
+
+        public String field() { return name(); }
+        public String validate(String value) { return value; }
+    }
+
     private static enum COORD_FILTER implements FilterSet {
         user,
-        name,
+        name { public String field() { return "appName"; } },
         group,
         status { public String validate(String value) { return CoordinatorJob.Status.valueOf(value.toUpperCase()).name(); } },
         id,
@@ -66,7 +78,9 @@ public class FilterResolver {
                 return null;
             }
         } },
-        unit { public String validate(String value) {
+        unit {
+            public String field() { return "timeUnitStr"; }
+            public String validate(String value) {
             if (!value.equalsIgnoreCase("months") && !value.equalsIgnoreCase("days")
                     && !value.equalsIgnoreCase("hours") && !value.equalsIgnoreCase("minutes")) {
                 return null;
@@ -80,7 +94,7 @@ public class FilterResolver {
 
     private static enum BUNDLE_FILTER implements FilterSet {
         user,
-        name,
+        name { public String field() { return "appName"; } },
         group,
         status { public String validate(String value) { return BundleJob.Status.valueOf(value.toUpperCase()).name(); } },
         id;
@@ -92,13 +106,14 @@ public class FilterResolver {
     // actionName=hive, startedRecent=1D, status=SUCCESS
     public static boolean actionExists(String conditions, boolean precondition) {
         try {
-            Map<String, List<String>> filter = parseForAction(conditions);
+            Map<String, List<String>> filter = parseForWFAction(conditions);
             if (precondition && !filter.containsKey(OozieClient.FILTER_STATUS)) {
                 filter.put(OozieClient.FILTER_STATUS, Arrays.asList("OK"));    // default
             }
             JPAService jpa = Services.get().get(JPAService.class);
-            List<WorkflowActionBean> actions = jpa.execute(new WorkflowActionsGetJPAExecutor(filter));
-            return !actions.isEmpty();
+            WorkflowActionInfo actions = jpa.execute(new WorkflowActionsGetJPAExecutor(filter, 1, 1));
+            List<WorkflowActionBean> beans = actions.getActions();
+            return !beans.isEmpty();
         } catch (XException e) {
             LOG.warn(e);
         }
@@ -120,8 +135,12 @@ public class FilterResolver {
         return false;
     }
 
-    public static Map<String, List<String>> parseForAction(String conditions) throws DagEngineException {
-        return parseFilter(ACTIONS_FILTER.class, conditions);
+    public static Map<String, List<String>> parseForWFAction(String conditions) throws DagEngineException {
+        return parseFilter(WF_ACTIONS_FILTER.class, conditions);
+    }
+
+    public static Map<String, List<String>> parseForCoordAction(String conditions) throws DagEngineException {
+        return parseFilter(COORD_ACTIONS_FILTER.class, conditions);
     }
 
     public static Map<String, List<String>> parseForJobs(String conditions) throws DagEngineException {
@@ -130,12 +149,12 @@ public class FilterResolver {
 
     public static Map<String, List<String>> parseForCoords(String conditions) throws DagEngineException {
         Map<String, List<String>> result = parseFilter(COORD_FILTER.class, conditions);
-        if (!result.containsKey("frequency") && result.containsKey("unit")) {
+        if (!result.containsKey("frequency") && result.containsKey("timeUnitStr")) {
             throw new DagEngineException(ErrorCode.E0420, conditions, "time unit should be added only when "
                     + "frequency is specified. Either specify frequency also or else remove the time unit");
         }
-        if (result.containsKey("frequency") && !result.containsKey("unit")) {
-            result.put("unit", Arrays.asList("MINUTE"));
+        if (result.containsKey("frequency") && !result.containsKey("timeUnitStr")) {
+            result.put("timeUnitStr", Arrays.asList("MINUTE"));
         }
         return result;
     }

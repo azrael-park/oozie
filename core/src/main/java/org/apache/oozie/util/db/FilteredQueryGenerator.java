@@ -14,21 +14,21 @@ import java.util.Map;
 
 public class FilteredQueryGenerator {
 
-    private Map<String, List<String>> filter;
-    private int start;
-    private int len;
+    String select;
+    String count;
+    int fetchSize;
 
-    public FilteredQueryGenerator(Map<String, List<String>> filter) {
-        this(filter, 1, 1);
+    public FilteredQueryGenerator(String select, String count, int fetchSize) {
+        this.select = select;
+        this.count = count;
+        this.fetchSize = fetchSize;
     }
 
-    public FilteredQueryGenerator(Map<String, List<String>> filter, int start, int len) {
-        this.filter = filter;
-        this.start = start;
-        this.len = len;
+    public Query[] generate(EntityManager em, Map<String, List<String>> filter) {
+        return generate(em, filter, 1, 1);
     }
 
-    public Query[] generate(EntityManager em, String select, String count, int fetchSize) {
+    public Query[] generate(EntityManager em, Map<String, List<String>> filter, int start, int len) {
 
         PredicateGenerator generator = new PredicateGenerator();
         String[] queries = generator.generate(filter, select, count);

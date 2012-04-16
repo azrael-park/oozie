@@ -500,7 +500,7 @@ public class DagEngine extends BaseEngine {
     }
 
     public WorkflowActionInfo getActions(String filterStr, int start, int len) throws DagEngineException {
-        Map<String, List<String>> filter = FilterResolver.parseForAction(filterStr);
+        Map<String, List<String>> filter = FilterResolver.parseForWFAction(filterStr);
         try {
             return new ActionsXCommand(filter, start, len).call();
         } catch (CommandException e) {

@@ -1,7 +1,9 @@
 package org.apache.oozie.executor.jpa;
 
 import org.apache.oozie.WorkflowActionBean;
+import org.apache.oozie.WorkflowActionInfo;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.util.db.FilteredQueryGenerator;
 import org.apache.oozie.util.db.PredicateGenerator;
 
 import javax.persistence.EntityManager;
@@ -11,11 +13,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class WorkflowActionsGetJPAExecutor implements JPAExecutor<List<WorkflowActionBean>> {
+public class WorkflowActionsGetJPAExecutor implements JPAExecutor<WorkflowActionInfo> {
 
-    private static final String selectStr = "select w.id, w.name, w.status, w.type, w.startTimestamp, w.endTimestamp, " +
-            "w.lamaUserId, w.lamaWorkingSet, w.lamaProjectId, w.lamaApplicationId from WorkflowActionBean w";
-    private static final String countStr = "select count(w) from WorkflowActionBean w";
+    private static final String SELECT = "select w.id, w.name, w.status, w.type, w.startTimestamp, w.endTimestamp, " +
+            "from WorkflowActionBean w";
+    private static final String COUNT = "select count(w) from WorkflowActionBean w";
+    private static final int DEFAULT_FETCH = 20;
+
+    private static final FilteredQueryGenerator GENERATOR = new FilteredQueryGenerator(SELECT, COUNT, DEFAULT_FETCH);
 
     private final Map<String, List<String>> filter;
     private final int start;
@@ -32,22 +37,18 @@ public class WorkflowActionsGetJPAExecutor implements JPAExecutor<List<WorkflowA
     }
 
     @SuppressWarnings("unchecked")
-    public List<WorkflowActionBean> execute(EntityManager em) throws JPAExecutorException {
+    public WorkflowActionInfo execute(EntityManager em) throws JPAExecutorException {
 
-        PredicateGenerator generator = new PredicateGenerator();
-        String[] queries = generator.generate(filter, selectStr, countStr);
-        Query q = em.createQuery(queries[0]);
-        q.setFirstResult(start - 1);
-        q.setMaxResults(len);
-        generator.setParams(q);
+        Query[] result = GENERATOR.generate(em, filter, start, len);
+        Query query = result[0];
+        Query count = result[1];
 
-        List<Object[]> results = (List<Object[]>) q.getResultList();
         List<WorkflowActionBean> actions = new ArrayList<WorkflowActionBean>();
-
-        for (Object[] arr : results) {
-            actions.add(getBeanForActionFromArray(arr));
+        for (Object arr : query.getResultList()) {
+            actions.add(getBeanForActionFromArray((Object[]) arr));
         }
-        return actions;
+        int realLen = ((Long) count.getSingleResult()).intValue();
+        return new WorkflowActionInfo(actions, start, len, realLen);
     }
 
     private WorkflowActionBean getBeanForActionFromArray(Object[] arr) {
@@ -68,7 +69,7 @@ public class WorkflowActionsGetJPAExecutor implements JPAExecutor<List<WorkflowA
         if (arr[5] != null) {
             action.setEndTime((Timestamp) arr[5]);
         }
-
+        
         return action;
     }
 
