@@ -17,6 +17,7 @@
  */
 package org.apache.oozie.workflow.lite;
 
+import org.apache.oozie.command.wf.ReRunXCommand;
 import org.apache.oozie.service.XLogService;
 import org.apache.oozie.service.DagXLogInfoService;
 import org.apache.oozie.client.OozieClient;
@@ -170,24 +171,33 @@ public class LiteWorkflowInstance implements Writable, WorkflowInstance {
     public void prepare() throws WorkflowException {
         log.debug(XLog.STD, "Preparing job");
         try {
-            prepare(ROOT, StartNodeDef.START, new HashSet<String>());
+            prepare(ROOT, StartNodeDef.START, new HashMap<String, String>());
         } catch (WorkflowException e) {
             status = Status.FAILED;
             throw e;
         }
     }
 
-    private void prepare(String executionPath, String nodeName, Set<String> visited) throws WorkflowException {
+    private void prepare(String executionPath, String nodeName, Map<String, String> visited) throws WorkflowException {
         log.debug(XLog.STD, "Preparing node " + nodeName + " in execution path " + executionPath);
         NodeDef nodeDef = def.getNode(nodeName);
+        String prev = visited.put(nodeName, executionPath);
+        if (prev != null) {
+            if (!prev.equals(executionPath) &&
+                    !(nodeDef instanceof EndNodeDef || nodeDef instanceof KillNodeDef || nodeDef instanceof JoinNodeDef)) {
+                throw new WorkflowException(ErrorCode.E0709, nodeName);
+            }
+            return;
+        }
         NodeHandler nodeHandler = nodeDef.newHanldler();
         Context context = new Context(nodeDef, executionPath, null);
-        for (String fullTransition : nodeHandler.prepare(context)) {
+
+        boolean skip = Boolean.valueOf(getVar(nodeName + NODE_VAR_SEPARATOR + ReRunXCommand.TO_SKIP));
+        List<String> transitions = nodeHandler.prepare(context);
+        for (String fullTransition : transitions) {
             String childExecutionPath = getExecutionPath(fullTransition);
             String childTransition = getTransitionNode(fullTransition);
-            if (visited.add(childTransition)) {
-                prepare(childExecutionPath, childTransition, visited);
-            }
+            prepare(childExecutionPath, childTransition, visited);
         }
     }
 
