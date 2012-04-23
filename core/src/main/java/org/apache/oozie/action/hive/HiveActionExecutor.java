@@ -41,7 +41,8 @@ public class HiveActionExecutor extends ActionExecutor {
     public static final String THRIFT_ERROR = "THRIFT_ERROR";
     public static final String HIVE_SERVER_ERROR = "HIVE_SERVER_ERROR";
 
-    public static final int DEFAULT_COMPILE_TIMEOUT = 3000;
+    public static final int DEFAULT_COMPILE_TIMEOUT = 10000;
+    public static final int DEFAULT_MAX_FETCH = 20;
     public static final String ACTION_TYPE = "hive";
 
     private final XLog LOG = XLog.getLog(HiveActionExecutor.class);
@@ -125,18 +126,20 @@ public class HiveActionExecutor extends ActionExecutor {
 
             Attribute addressAttr = actionXml.getAttribute("address");
             Attribute timeoutAttr = actionXml.getAttribute("compile-timeout");
+            Attribute maxFetchAttr = actionXml.getAttribute("max-fetch");
 
             ThriftHive.Client client = initialize(context, service.clientFor(addressAttr.getValue()));
 
             List<String> queries = getQueries(actionXml, context);
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Executing queries " + queries);
+                LOG.debug("On executing queries : " + queries);
             }
             String wfID = context.getWorkflow().getId();
             String actionName = action.getName();
 
             int timeout = timeoutAttr == null ? DEFAULT_COMPILE_TIMEOUT : timeoutAttr.getIntValue();
-            HiveSession session = new HiveSession(wfID, actionName, client, queries, timeout);
+            int maxPatch = maxFetchAttr == null ? DEFAULT_MAX_FETCH : maxFetchAttr.getIntValue();
+            HiveSession session = new HiveSession(wfID, actionName, client, queries, timeout, maxPatch);
             service.register(action.getId(), session);
 
             session.execute(context, action);
@@ -152,7 +155,7 @@ public class HiveActionExecutor extends ActionExecutor {
         for (String prefix : new String[] {"jar", "file", "archive"}) {
             String command = command(context, prefix);
             if (command != null) {
-                LOG.debug("executing : " + command);
+                LOG.debug("Executing initialization command : " + command);
                 client.execute(command);
             }
         }
@@ -185,19 +188,19 @@ public class HiveActionExecutor extends ActionExecutor {
 
     @Override
     public void end(Context context, WorkflowAction action) throws ActionExecutorException {
-        LOG.debug("end called " + action.getId());
+        LOG.info("Action end requested for " + action.getId());
         if (action.getExternalStatus().equals("OK")) {
             context.setEndData(WorkflowAction.Status.OK, "OK");
         } else if (action.getExternalStatus().equals("ERROR")) {
             context.setEndData(WorkflowAction.Status.ERROR, "ERROR");
         } else {
-            throw new IllegalStateException("Invalid external status [" + action.getExternalStatus() + "] for Fs Node");
+            throw new IllegalStateException("Invalid external status [" + action.getExternalStatus() + "] for Hive Node");
         }
     }
 
     @Override
     public void check(Context context, WorkflowAction action) throws ActionExecutorException {
-        LOG.debug("check called for " + action.getId());
+        LOG.info("Action check requested for " + action.getId());
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveSession session = service.getRunningSession(action.getId());
         session.check(context, action);
@@ -205,7 +208,7 @@ public class HiveActionExecutor extends ActionExecutor {
 
     @Override
     public void kill(Context context, WorkflowAction action) throws ActionExecutorException {
-        LOG.info("kill called for " + action.getId());
+        LOG.info("Action kill requested for " + action.getId());
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveSession session = service.peekRunningStatus(action.getId());
         if (session == null) {
@@ -218,17 +221,17 @@ public class HiveActionExecutor extends ActionExecutor {
                 callables.queue(new ActionKillXCommand(action.getId(), action.getType()), 30000);
             }
         } catch (Exception e) {
-            LOG.info("failed to kill external jobs", e);
+            LOG.info("Failed to kill external jobs", e);
         }
     }
 
     @Override
     public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
-        LOG.info("external callback for " + actionID + " = " + externalStatus + ", " + actionData);
+        LOG.info("Action callback arrived for " + actionID + " = " + externalStatus + ", " + actionData);
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveSession session = service.peekRunningStatus(actionID);
         if (session == null) {
-            LOG.info("external callback called but action " + actionID + " is not running");
+            LOG.info("Action callback arrived but the action " + actionID + " is not running");
         } else {
             String queryId = actionData.getProperty("queryId");
             String stageId = actionData.getProperty("stageId");

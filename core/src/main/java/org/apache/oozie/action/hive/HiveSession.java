@@ -43,6 +43,7 @@ public class HiveSession {
 
     ThriftHive.Client client;
     int timeout;
+    int maxFetch;
 
     List<String> queries;
     Map<String, Map<String, HiveQueryStatusBean>> status; // queryID#stageID --> StatusBean
@@ -57,13 +58,14 @@ public class HiveSession {
 
     JPAService jpaService;
 
-    public HiveSession(String wfID, String actionName, ThriftHive.Client client, List<String> queries, int timeout) {
+    public HiveSession(String wfID, String actionName, ThriftHive.Client client, List<String> queries, int timeout, int maxFetch) {
         this.wfID = wfID;
         this.actionID = Services.get().get(UUIDService.class).generateChildId(wfID, actionName);
         this.actionName = actionName;
         this.client = client;
         this.queries = queries;
         this.timeout = timeout;
+        this.maxFetch = maxFetch;
         this.jpaService = Services.get().get(JPAService.class);
         this.status = new LinkedHashMap<String, Map<String, HiveQueryStatusBean>>();
     }
@@ -163,7 +165,7 @@ public class HiveSession {
                         try {
                             client = killJob(workflow, client, stage);
                         } catch (Throwable e) {
-                            LOG.warn("failed to kill stage " + stage.toString(), e);
+                            LOG.warn("Failed to kill stage " + stage.toString(), e);
                         }
                     }
                 }
@@ -173,7 +175,7 @@ public class HiveSession {
                 try {
                     client.close();
                 } catch (Exception e) {
-                    LOG.debug("failed to close job client", e);
+                    LOG.debug("Failed to close job client", e);
                 }
             }
         }
@@ -184,18 +186,18 @@ public class HiveSession {
         client = client == null ? createJobClient(workflow, new JobConf()) : client;
         RunningJob runningJob = client.getJob(JobID.forName(stage.getJobId()));
         if (runningJob != null && !runningJob.isComplete()) {
-            LOG.info("killing job " + runningJob.getID());
+            LOG.info("Killing MapReduce job " + runningJob.getID());
             try {
                 runningJob.killJob();
             } catch (Exception e) {
-                LOG.info("failed to kill job " + runningJob.getID(), e);
+                LOG.info("Failed to kill MapReduce job " + runningJob.getID(), e);
             }
         }
         return client;
     }
 
     private void cleanup(Context context, WorkflowAction action) {
-        LOG.debug("clean up called for action " + action.getId());
+        LOG.debug("Cleaning up called for action " + action.getId());
         context.setExecutionData("OK", null);   // induce ActionEndXCommand
         if (killed) {
             try {
@@ -244,14 +246,14 @@ public class HiveSession {
 
     private Executor compile(Context context, WorkflowAction action, final String sql) throws ActionExecutorException {
 
-        LOG.info("-- compiling " + sql);
+        LOG.debug("Compiling SQL " + sql);
 
         try {
             QueryPlan plan = execute(new Callable<QueryPlan>() {
                 public QueryPlan call() throws Exception { return client.compile(sql); }
             }, timeout);
             if (plan.getQueriesSize() == 0) {
-                LOG.info("-- " + sql + " is non-hive query");
+                LOG.debug(sql + " is non-hive query");
                 return null;
             }
             Query query = plan.getQueries().get(0);
@@ -279,7 +281,7 @@ public class HiveSession {
                 }
                 // excute directly for EXPLAIN or simple DDL tasks etc.
             }
-            LOG.info("-- " + sql + " is non-MR query");
+            LOG.debug(sql + " is non-MR query");
             executor.execute();
 
             if (stages != null && !stages.isEmpty()) {
@@ -394,14 +396,14 @@ public class HiveSession {
 
         @Override
         public void run() {
-            LOG.debug("-- executing hive query : " + query.getQueryId());
+            LOG.debug("Executing hive query : " + query.getQueryId());
             try {
                 execute();
             } catch (Exception e) {
                 LOG.warn("Failed to execute query {0}", query.getQueryId(), e);
                 this.ex = e;
             } finally {
-                LOG.debug("-- executed " + query.getQueryId() + " with " + resultCode());
+                LOG.debug("Executed " + query.getQueryId() + " with " + resultCode());
                 completed = true;
                 CallableQueueService service = Services.get().get(CallableQueueService.class);
                 service.queue(new ActionCheckXCommand(actionID));
@@ -415,14 +417,14 @@ public class HiveSession {
         private void execute() throws HiveServerException, TException {
             try {
                 client.run();
-                for (String result : client.fetchAll()) {
-                    LOG.warn(result);
+                for (String result : client.fetchN(maxFetch)) {
+                    LOG.info(result);
                 }
             } finally {
                 try {
                     client.clean();
                 } catch (Exception e) {
-                    LOG.info("failed to clean hive connection", e);
+                    LOG.info("Failed to cleanup hive connection", e);
                 }
             }
         }
