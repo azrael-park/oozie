@@ -1,7 +1,9 @@
 package org.apache.oozie.service;
 
+import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
+import org.apache.oozie.XException;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
@@ -36,9 +38,9 @@ public class JobRecoveryService implements Service {
                         jpa.execute(new WorkflowActionUpdateJPAExecutor(action));
                     }
                 }
-            } catch (JPAExecutorException e) {
+            } catch (Throwable e) {
                 manager.getTransaction().rollback();
-                throw new ServiceException(e);
+                convert(e);
             }
             manager.getTransaction().commit();
         } finally {
@@ -53,5 +55,15 @@ public class JobRecoveryService implements Service {
     @Override
     public Class<? extends Service> getInterface() {
         return JobRecoveryService.class;
+    }
+
+    protected ServiceException convert(Throwable t) {
+        if (t instanceof ServiceException) {
+            return (ServiceException) t;
+        }
+        if (t instanceof XException) {
+            return new ServiceException((XException) t);
+        }
+        return new ServiceException(ErrorCode.E9999, t);
     }
 }

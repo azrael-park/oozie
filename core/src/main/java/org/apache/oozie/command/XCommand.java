@@ -307,17 +307,12 @@ public abstract class XCommand<T> implements XCallable<T> {
         catch (XException ex) {
             LOG.error("XException, ", ex);
             instrumentation.incr(INSTRUMENTATION_GROUP, getName() + ".xexceptions", 1);
-            if (ex instanceof CommandException) {
-                throw (CommandException) ex;
-            }
-            else {
-                throw new CommandException(ex);
-            }
+            throw convert(ex);
         }
         catch (Exception ex) {
             LOG.error("Exception, ", ex);
             instrumentation.incr(INSTRUMENTATION_GROUP, getName() + ".exceptions", 1);
-            throw new CommandException(ErrorCode.E0607, getName(), ex.getMessage(), ex);
+            throw convert(ex);
         }
         catch (Error er) {
             LOG.error("Error, ", er);
@@ -521,4 +516,13 @@ public abstract class XCommand<T> implements XCallable<T> {
         return LOG;
     }
 
+    protected CommandException convert(Throwable t) {
+        if (t instanceof CommandException) {
+            return (CommandException) t;
+        }
+        if (t instanceof XException) {
+            return new CommandException((XException) t);
+        }
+        return new CommandException(ErrorCode.E9999, t);
+    }
 }
