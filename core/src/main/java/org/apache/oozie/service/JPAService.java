@@ -71,6 +71,7 @@ public class JPAService implements Service, Instrumentable {
     public static final String CONF_MAX_ACTIVE_CONN = CONF_PREFIX + "pool.max.active.conn";
     public static final String CONF_CREATE_DB_SCHEMA = CONF_PREFIX + "create.db.schema";
     public static final String CONF_VALIDATE_DB_CONN = CONF_PREFIX + "validate.db.connection";
+    public static final String CONF_VALIDATE_DB_CONN_QUERY = CONF_PREFIX + "validate.db.connection.query";
     public static final String CONF_VALIDATE_DB_CONN_EVICTION_INTERVAL = CONF_PREFIX + "validate.db.connection.eviction.interval";
     public static final String CONF_VALIDATE_DB_CONN_EVICTION_NUM = CONF_PREFIX + "validate.db.connection.eviction.num";
 
@@ -138,16 +139,16 @@ public class JPAService implements Service, Instrumentable {
         connProps = MessageFormat.format(connProps, driver, url, user, password, maxConn);
         Properties props = new Properties();
         if (autoSchemaCreation) {
-            connProps += ",TestOnBorrow=false,TestOnReturn=false,TestWhileIdle=false";
             props.setProperty("openjpa.jdbc.SynchronizeMappings", "buildSchema(ForeignKeys=true)");
         }
-        else if (validateDbConn) {
+        if (validateDbConn) {
+            String testQuery = conf.get(CONF_VALIDATE_DB_CONN_QUERY, "SELECT 1 + 1 FROM DUAL");
             // validation can be done only if the schema already exist, else a
             // connection cannot be obtained to create the schema.
             String interval = "timeBetweenEvictionRunsMillis=" + evictionInterval;
             String num = "numTestsPerEvictionRun=" + evictionNum;
-            connProps += ",TestOnBorrow=true,TestOnReturn=true,TestWhileIdle=true," + interval + "," + num;
-            connProps += ",ValidationQuery=select count(*) from VALIDATE_CONN";
+            connProps += ",TestOnBorrow=true,TestOnReturn=false,TestWhileIdle=true," + interval + "," + num;
+            connProps += ",ValidationQuery=" + testQuery;
             connProps = MessageFormat.format(connProps, dbSchema);
         }
         else {
