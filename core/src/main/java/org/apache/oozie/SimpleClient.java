@@ -47,12 +47,12 @@ public class SimpleClient {
             }
             String getJobId(Object job) { return ((WorkflowJob)job).getId();}
             String getJobConf(Object job) { return ((WorkflowJob)job).getConf();}
-            String getActionConf(Object action) { return ((WorkflowAction)action).getConf();}
             List getActions(Object job) { return ((WorkflowJob)job).getActions();}
             boolean isJobTerminal(Object job) {
                 WorkflowJob.Status status = ((WorkflowJob)job).getStatus();
                 return status == WorkflowJob.Status.KILLED || status == WorkflowJob.Status.FAILED || status == WorkflowJob.Status.SUCCEEDED;
             }
+            String getActionConf(Object action) { return ((WorkflowAction)action).getConf();}
         },
         COORD{
             String pathKey() { return OozieClient.COORDINATOR_APP_PATH; }
@@ -69,12 +69,12 @@ public class SimpleClient {
             }
             String getJobId(Object job) { return ((CoordinatorJob)job).getId();}
             String getJobConf(Object job) { return ((CoordinatorJob)job).getConf();}
-            String getActionConf(Object action) { return ((CoordinatorAction)action).getCreatedConf();}
             List getActions(Object job) { return ((CoordinatorJob)job).getActions();}
             boolean isJobTerminal(Object job) {
                 CoordinatorJob.Status status = ((CoordinatorJob)job).getStatus();
                 return status == CoordinatorJob.Status.KILLED || status == CoordinatorJob.Status.FAILED || status == CoordinatorJob.Status.SUCCEEDED;
             }
+            String getActionConf(Object action) { return ((CoordinatorAction)action).getCreatedConf();}
         },
         BUNDLE{
             String pathKey() { return OozieClient.BUNDLE_APP_PATH; }
@@ -91,13 +91,13 @@ public class SimpleClient {
             }
             String getJobId(Object job) { return ((BundleJob)job).getId();}
             String getJobConf(Object job) { return ((BundleJob)job).getConf();}
-            String getActionConf(Object job) { return "";}
             List getActions(Object job) { return Collections.emptyList();}
 
             boolean isJobTerminal(Object job) {
                 BundleJob.Status status = ((BundleJob)job).getStatus();
                 return status == BundleJob.Status.KILLED || status == BundleJob.Status.FAILED || status == BundleJob.Status.SUCCEEDED;
             }
+            String getActionConf(Object action) { return "";}
         };
 
         abstract String pathKey();
