@@ -145,7 +145,7 @@ public class SchedulerService implements Service {
             }
         };
         if (!scheduler.isShutdown()) {
-            scheduler.scheduleWithFixedDelay(r, delay * unit.getMillis(), interval * unit.getMillis(),
+            scheduler.scheduleAtFixedRate(r, delay * unit.getMillis(), interval * unit.getMillis(),
                                              TimeUnit.MILLISECONDS);
         }
         else {
@@ -180,7 +180,7 @@ public class SchedulerService implements Service {
             }
         };
         if (!scheduler.isShutdown()) {
-            scheduler.scheduleWithFixedDelay(r, delay * unit.getMillis(), interval * unit.getMillis(),
+            scheduler.scheduleAtFixedRate(r, delay * unit.getMillis(), interval * unit.getMillis(),
                                                  TimeUnit.MILLISECONDS);
         }
         else {
