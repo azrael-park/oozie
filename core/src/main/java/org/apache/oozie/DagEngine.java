@@ -410,12 +410,14 @@ public class DagEngine extends BaseEngine {
         XLogStreamer.Filter filter = new XLogStreamer.Filter();
         String jobId;
         if (id.contains("@")) {
-            filter.setParameter(DagXLogInfoService.ACTION, id);
+            String name = Services.get().get(UUIDService.class).getChildName(id);
             jobId = Services.get().get(UUIDService.class).getId(id);
+            filter.setParameter(DagXLogInfoService.ACTION, name);
         } else {
-            filter.setParameter(DagXLogInfoService.JOB, id);
             jobId = id;
         }
+        filter.setParameter(DagXLogInfoService.JOB, jobId);
+
         WorkflowJob job = getJob(jobId);
         Date lastTime = job.getEndTime();
         if (lastTime == null) {
