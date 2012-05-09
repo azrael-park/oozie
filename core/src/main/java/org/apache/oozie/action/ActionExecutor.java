@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,6 +85,21 @@ public abstract class ActionExecutor {
     public void updateAttributes(WorkflowActionBean wfAction, Map<String, String> updates) throws Exception {
         if (!updates.isEmpty()) {
             throw new CommandException(ErrorCode.E0827, wfAction.getType());
+        }
+    }
+
+    protected void setAttribute(Element config, String key, String value) {
+        if (value != null) {
+            config.setAttribute(key, value);
+        } else {
+            config.removeAttribute(key);
+        }
+    }
+
+    protected void setElement(Element config, String key, String... values) {
+        config.removeChildren(key, config.getNamespace());
+        for (String value : values) {
+            config.addContent(new Element(key, config.getNamespace()).setText(value));
         }
     }
 
@@ -346,7 +362,7 @@ public abstract class ActionExecutor {
         return absolute;
     }
 
-    protected List<String> getQueries(Element actionXml, Context context) throws ActionExecutorException {
+    protected String[] getQueries(Element actionXml, Context context) throws ActionExecutorException {
         Element script = actionXml.getChild("script", actionXml.getNamespace());
         if (script != null) {
             return loadScript(script.getTextTrim(), context);
@@ -354,17 +370,17 @@ public abstract class ActionExecutor {
         return extractQueries(actionXml, context);
     }
 
-    protected List<String> extractQueries(Element actionXml, Context context) throws ActionExecutorException {
+    protected String[] extractQueries(Element actionXml, Context context) throws ActionExecutorException {
         ELEvaluator evaluator = context.getELEvaluator();
         List<String> queries = new ArrayList<String>();
         for (Object element : actionXml.getChildren("query", actionXml.getNamespace())) {
             String sql = ((Element)element).getTextTrim();
             queries.add(evaluate(evaluator, sql.replaceAll("\\n", "\t")));
         }
-        return queries;
+        return queries.toArray(new String[queries.size()]);
     }
 
-    protected List<String> loadScript(String script, Context context) throws ActionExecutorException {
+    protected String[] loadScript(String script, Context context) throws ActionExecutorException {
 
         ELEvaluator evaluator = context.getELEvaluator();
 
@@ -379,7 +395,11 @@ public abstract class ActionExecutor {
         }
     }
 
-    protected List<String> parseScript(ELEvaluator evaluator, Reader input) throws IOException, ActionExecutorException {
+    protected String[] parseScript(ELEvaluator evaluator, String input) throws IOException, ActionExecutorException {
+        return parseScript(evaluator, new StringReader(input));
+    }
+
+    protected String[] parseScript(ELEvaluator evaluator, Reader input) throws IOException, ActionExecutorException {
 
         BufferedReader reader = new BufferedReader(input);
 
@@ -403,7 +423,7 @@ public abstract class ActionExecutor {
         if (builder.length() != 0) {
             throw new ActionExecutorException(NON_TRANSIENT, "ACTION-001", "Invalid end of script");
         }
-        return result;
+        return result.toArray(new String[result.size()]);
     }
 
     protected String evaluate(ELEvaluator evaluator, String sql) throws ActionExecutorException {

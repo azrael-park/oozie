@@ -17,9 +17,12 @@
  */
 package org.apache.oozie.action.decision;
 
+import org.apache.oozie.ErrorCode;
+import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
+import org.apache.oozie.command.CommandException;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
@@ -29,6 +32,7 @@ import org.jdom.Namespace;
 
 import javax.servlet.jsp.el.ELException;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.apache.oozie.action.ActionExecutorException.ErrorType.NON_TRANSIENT;
@@ -59,6 +63,24 @@ public class DecisionActionExecutor extends ActionExecutor {
     @Override
     public ELEvaluator preActionEvaluator(Context context, WorkflowAction action) {
         return null;
+    }
+
+    @Override
+    public void updateAttributes(WorkflowActionBean wfAction, Map<String, String> updates) throws Exception {
+        String transition = updates.remove("default");
+        if (transition == null || transition.isEmpty()) {
+            throw new CommandException(ErrorCode.E0830, wfAction.getType(), "default");
+        }
+        Element config = XmlUtils.parseXml(wfAction.getConf());
+        config.getChild("default").setAttribute("to", transition, config.getNamespace());
+
+        config.removeChildren("case");
+        for (Map.Entry<String, String> entry : updates.entrySet()) {
+            Element element = new Element("case", config.getNamespace());
+            element.setAttribute("to", entry.getKey(), config.getNamespace()).setText(entry.getValue());
+            config.addContent(element);
+        }
+        wfAction.setConf(XmlUtils.prettyPrint(config).toString());
     }
 
     @SuppressWarnings("unchecked")

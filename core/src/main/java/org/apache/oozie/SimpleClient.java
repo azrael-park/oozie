@@ -553,7 +553,7 @@ public class SimpleClient {
             int eq = param.indexOf('=');
             String key = eq < 0 ? param : param.substring(0, eq).trim();
             String value = eq < 0 ? null : param.substring(eq + 1).trim();
-            params.put(key, value);
+            params.put(key, value == null ? value : value.replaceAll(";", ";\n"));
         }
         return params;
     }

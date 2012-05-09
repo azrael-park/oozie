@@ -5,10 +5,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.service.HiveServerException;
 import org.apache.hadoop.hive.service.ThriftHive;
+import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.wf.ActionKillXCommand;
 import org.apache.oozie.executor.jpa.HiveStatusDeleteJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
@@ -28,7 +30,7 @@ import org.jdom.JDOMException;
 
 import javax.servlet.jsp.el.ELException;
 import java.io.StringReader;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -79,9 +81,7 @@ public class HiveActionExecutor extends ActionExecutor {
         for (Map.Entry<String, String> entry : updates.entrySet()) {
             String name = entry.getKey();
             String value = entry.getValue();
-            if (name.equals("description")) {
-                setAttribute(config, "description", value);
-            } else if (name.equals("address")) {
+            if (name.equals("address")) {
                 setAttribute(config, "address", value);
             } else if (name.equals("jar")) {
                 setAttribute(config, "jar", value);
@@ -94,24 +94,12 @@ public class HiveActionExecutor extends ActionExecutor {
             } else if (name.equals("script")) {
                 setAttribute(config, "script", value);
             } else if (name.equals("query")) {
-                Element element = config.getChild("query", config.getNamespace());
-                element.removeContent();
-                for (String query : parseScript(null, new StringReader(value))) {
-                    element.addContent(query);
-                }
+                setElement(config, "query", parseScript(null, value));
             } else {
-                throw new IllegalArgumentException("unknown attribute " + name);
+                throw new CommandException(ErrorCode.E0828, wfAction.getType(), name);
             }
         }
         wfAction.setConf(XmlUtils.prettyPrint(config).toString());
-    }
-
-    private void setAttribute(Element config, String key, String value) {
-        if (value != null) {
-            config.setAttribute(key, value);
-        } else {
-            config.removeAttribute(key);
-        }
     }
 
     @Override
@@ -130,9 +118,9 @@ public class HiveActionExecutor extends ActionExecutor {
 
             ThriftHive.Client client = initialize(context, service.clientFor(addressAttr.getValue()));
 
-            List<String> queries = getQueries(actionXml, context);
+            String[] queries = getQueries(actionXml, context);
             if (LOG.isDebugEnabled()) {
-                LOG.debug("On executing queries : " + queries);
+                LOG.debug("On executing queries : " + Arrays.toString(queries));
             }
             String wfID = context.getWorkflow().getId();
             String actionName = action.getName();

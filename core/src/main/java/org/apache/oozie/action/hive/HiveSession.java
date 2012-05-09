@@ -45,7 +45,7 @@ public class HiveSession {
     int timeout;
     int maxFetch;
 
-    List<String> queries;
+    String[] queries;
     Map<String, Map<String, HiveQueryStatusBean>> status; // queryID#stageID --> StatusBean
 
     boolean killed;
@@ -58,7 +58,7 @@ public class HiveSession {
 
     JPAService jpaService;
 
-    public HiveSession(String wfID, String actionName, ThriftHive.Client client, List<String> queries, int timeout, int maxFetch) {
+    public HiveSession(String wfID, String actionName, ThriftHive.Client client, String[] queries, int timeout, int maxFetch) {
         this.wfID = wfID;
         this.actionID = Services.get().get(UUIDService.class).generateChildId(wfID, actionName);
         this.actionName = actionName;
@@ -101,13 +101,13 @@ public class HiveSession {
     }
 
     public boolean isCompleted() {
-        return killed || index == queries.size();
+        return killed || index == queries.length;
     }
 
     public synchronized void execute(Context context, WorkflowAction action) throws ActionExecutorException {
-        LOG.info("executing " + index + "/" + queries.size());
-        for (; !killed && index < queries.size(); index++) {
-            Executor executor = compile(context, action, queries.get(index));
+        LOG.info("executing " + index + "/" + queries.length);
+        for (; !killed && index < queries.length; index++) {
+            Executor executor = compile(context, action, queries[index]);
             if (executor != null) {
                 this.executor = executor;
                 Services.get().get(CallableQueueService.class).queue(executor);
@@ -118,13 +118,13 @@ public class HiveSession {
     }
 
     public synchronized void check(Context context, WorkflowAction action) throws ActionExecutorException {
-        LOG.debug("check called " + index + "/" + queries.size());
+        LOG.debug("check called " + index + "/" + queries.length);
         if (isCompleted()) {
             cleanup(context, action);
         } else {
             if (executor != null && executor.completed) {
                 if (executor.ex != null) {
-                    throw new ActionExecutorException(FAILED, "HIVE-002", "failed to execute query {0}", queries.get(index), executor.ex);
+                    throw new ActionExecutorException(FAILED, "HIVE-002", "failed to execute query {0}", queries[index], executor.ex);
                 }
                 executor = null;
                 index++;

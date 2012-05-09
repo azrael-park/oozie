@@ -182,6 +182,7 @@ public enum ErrorCode {
     E0827(XLog.STD, "Action type {0} does not support updating attributes"),
     E0828(XLog.STD, "Action type {0} does not support updating attribute {1}"),
     E0829(XLog.STD, "Action update failed by exception {0}"),
+    E0830(XLog.STD, "Action type {0} mandates attribute {1}"),
 
     E0900(XLog.OPS, "Jobtracker [{0}] not allowed, not in Oozie's whitelist"),
     E0901(XLog.OPS, "Namenode [{0}] not allowed, not in Oozie's whitelist"),
