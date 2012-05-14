@@ -315,6 +315,49 @@
         </description>
     </property>
 
+<property>
+        <name>oozie.service.ELService.ext.functions.workflow</name>
+        <value>
+            date:current=org.apache.oozie.util.DateELFunctions#current,
+            date:current_format=org.apache.oozie.util.DateELFunctions#current_format,
+            date:current_by=org.apache.oozie.util.DateELFunctions#current_by,
+            date:add=org.apache.oozie.util.DateELFunctions#add,
+            date:add_basedate=org.apache.oozie.util.DateELFunctions#add_basedate,
+            date:add_format=org.apache.oozie.util.DateELFunctions#add_format,
+            date:add_format_basedate=org.apache.oozie.util.DateELFunctions#add_format_basedate,
+            date:add_by=org.apache.oozie.util.DateELFunctions#add_by
+        </value>
+    </property>
+    <property>
+        <name>oozie.service.ELService.ext.functions.coord-job-submit-data</name>
+        <value>
+            date:current=org.apache.oozie.util.DateELFunctions#current,
+            date:current_format=org.apache.oozie.util.DateELFunctions#current_format,
+            date:current_by=org.apache.oozie.util.DateELFunctions#current_by,
+            date:add=org.apache.oozie.util.DateELFunctions#add,
+            date:add_basedate=org.apache.oozie.util.DateELFunctions#add_basedate,
+            date:add_format=org.apache.oozie.util.DateELFunctions#add_format,
+            date:add_format_basedate=org.apache.oozie.util.DateELFunctions#add_format_basedate,
+            date:add_coord=org.apache.oozie.util.DateELFunctions#add_coord_echo,
+            date:add_by=org.apache.oozie.util.DateELFunctions#add_by
+        </value>
+    </property>
+    <property>
+        <name>oozie.service.ELService.ext.functions.coord-action-start</name>
+        <value>
+            date:current=org.apache.oozie.util.DateELFunctions#current,
+            date:current_format=org.apache.oozie.util.DateELFunctions#current_format,
+            date:current_by=org.apache.oozie.util.DateELFunctions#current_by,
+            date:add=org.apache.oozie.util.DateELFunctions#add,
+            date:add_basedate=org.apache.oozie.util.DateELFunctions#add_basedate,
+            date:add_format=org.apache.oozie.util.DateELFunctions#add_format,
+            date:add_format_basedate=org.apache.oozie.util.DateELFunctions#add_format_basedate,
+            date:add_coord=org.apache.oozie.util.DateELFunctions#add_coord,
+            date:add_by=org.apache.oozie.util.DateELFunctions#add_by
+        </value>
+    </property>
+
+
     <property>
         <name>oozie.authentication.type</name>
         <value>simple</value>
