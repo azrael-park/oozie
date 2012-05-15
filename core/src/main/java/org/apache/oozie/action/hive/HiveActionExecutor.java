@@ -43,7 +43,7 @@ public class HiveActionExecutor extends ActionExecutor {
     public static final String THRIFT_ERROR = "THRIFT_ERROR";
     public static final String HIVE_SERVER_ERROR = "HIVE_SERVER_ERROR";
 
-    public static final int DEFAULT_COMPILE_TIMEOUT = 10000;
+    public static final int DEFAULT_COMPILE_TIMEOUT = 60000;
     public static final int DEFAULT_MAX_FETCH = 20;
     public static final String ACTION_TYPE = "hive";
 

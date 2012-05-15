@@ -286,7 +286,7 @@
         <xs:attribute name="file" type="xs:string" use="optional"/>
         <xs:attribute name="archive" type="xs:string" use="optional"/>
         <xs:attribute name="max-fetch" type="xs:integer" use="optional" default="20"/>
-        <xs:attribute name="monitoring" type="xs:boolean" use="optional" default="true"/>
+        <xs:attribute name="compile-timeout" type="xs:integer" use="optional" default="60000"/>
     </xs:complexType>
 
     <xs:complexType name="EL">
