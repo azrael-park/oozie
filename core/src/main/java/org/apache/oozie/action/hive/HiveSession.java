@@ -74,7 +74,7 @@ public class HiveSession {
         List<HiveQueryStatusBean> result = new ArrayList<HiveQueryStatusBean>();
         for (Map<String, HiveQueryStatusBean> stages : status.values()) {
             for (HiveQueryStatusBean status : stages.values()) {
-                result.add(status.clone());
+                result.add(status.duplicate());
             }
         }
         return result;
@@ -85,7 +85,7 @@ public class HiveSession {
         if (stages != null) {
             List<HiveQueryStatusBean> result = new ArrayList<HiveQueryStatusBean>();
             for (HiveQueryStatusBean status : stages.values()) {
-                result.add(status.clone());
+                result.add(status.duplicate());
             }
             return result;
         }
@@ -224,7 +224,6 @@ public class HiveSession {
         if (stage == null) {
             stage = new HiveQueryStatusBean();
             stage.setStartTime(new Date());
-            stage.setPersisted(false);
             stage.setWfId(wfID);
             stage.setActionId(actionID);
             stage.setActionName(actionName);

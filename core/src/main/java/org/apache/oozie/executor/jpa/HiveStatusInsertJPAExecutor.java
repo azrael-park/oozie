@@ -5,7 +5,7 @@ import org.apache.oozie.util.ParamChecker;
 
 import javax.persistence.EntityManager;
 
-public class HiveStatusInsertJPAExecutor implements JPAExecutor<String> {
+public class HiveStatusInsertJPAExecutor implements JPAExecutor<Void> {
 
     private HiveQueryStatusBean hiveAction;
 
@@ -25,13 +25,8 @@ public class HiveStatusInsertJPAExecutor implements JPAExecutor<String> {
      * @see org.apache.oozie.executor.jpa.JPAExecutor#execute(javax.persistence.EntityManager)
      */
     @Override
-    public String execute(EntityManager em) throws JPAExecutorException {
-        if (hiveAction.isPersisted()) {
-            em.merge(hiveAction);
-        } else {
-            em.persist(hiveAction);
-            hiveAction.setPersisted(true);
-        }
+    public Void execute(EntityManager em) throws JPAExecutorException {
+        em.merge(hiveAction);
         return null;
     }
 }

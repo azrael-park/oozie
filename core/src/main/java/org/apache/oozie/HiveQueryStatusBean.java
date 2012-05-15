@@ -29,9 +29,6 @@ import java.util.Date;
         })
 public class HiveQueryStatusBean extends JsonHiveStatus {
 
-    @Transient
-    boolean persisted = true;
-
     @Basic
     @Column(name = "start_time")
     private java.sql.Timestamp startTimestamp = null;
@@ -69,14 +66,6 @@ public class HiveQueryStatusBean extends JsonHiveStatus {
         this.status = status;
     }
 
-    public boolean isPersisted() {
-        return persisted;
-    }
-
-    public void setPersisted(boolean persisted) {
-        this.persisted = persisted;
-    }
-
     public Timestamp getStartTimestamp() {
         return startTimestamp;
     }
@@ -107,7 +96,7 @@ public class HiveQueryStatusBean extends JsonHiveStatus {
         this.endTimestamp = DateUtils.convertDateToTimestamp(endTime);
     }
 
-    public HiveQueryStatusBean clone() {
+    public HiveQueryStatusBean duplicate() {
         HiveQueryStatusBean status = new HiveQueryStatusBean();
         status.setWfId(getWfId());
         status.setActionId(getActionId());
@@ -116,7 +105,6 @@ public class HiveQueryStatusBean extends JsonHiveStatus {
         status.setStageId(getStageId());
         status.setJobId(getJobId());
         status.setStatus(getStatus());
-        status.setPersisted(isPersisted());
         status.setStartTime(getStartTime());
         status.setEndTime(getEndTime());
         return status;
