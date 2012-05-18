@@ -47,6 +47,7 @@
             org.apache.oozie.service.CallbackService,
             org.apache.oozie.service.ActionService,
             org.apache.oozie.service.ActionCheckerService,
+            <!-- Fix pending coordinator actions after oozie reboot: Disable RecoveryService -->
             <!--org.apache.oozie.service.RecoveryService, -->
             <!--org.apache.oozie.service.PurgeService, -->
             org.apache.oozie.service.CoordinatorEngineService,
