@@ -134,6 +134,11 @@ public class TestSshActionExecutor extends XFsTestCase {
         }
 
         @Override
+        public String getActionName() {
+            return action.getName();
+        }
+
+        @Override
         public String getCallbackUrl(String externalStatusVar) {
             return Services.get().get(CallbackService.class).createCallBackUrl(action.getId(), externalStatusVar);
         }

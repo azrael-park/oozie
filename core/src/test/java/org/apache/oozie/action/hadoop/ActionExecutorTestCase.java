@@ -90,6 +90,10 @@ public abstract class ActionExecutorTestCase extends XFsTestCase {
             this.action = action;
         }
 
+        public String getActionName() {
+            return action.getName();
+        }
+
         public String getCallbackUrl(String externalStatusVar) {
             return Services.get().get(CallbackService.class).createCallBackUrl(action.getId(), externalStatusVar);
         }

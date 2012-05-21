@@ -123,6 +123,9 @@ public abstract class ActionExecutor {
      */
     public interface Context {
 
+        public String getActionName();
+
+
         /**
          * Create the callback URL for the action.
          *

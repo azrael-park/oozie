@@ -294,6 +294,10 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
             }
         }
 
+        public String getActionName() {
+            return action.getName();
+        }
+
         /*
          * (non-Javadoc)
          * @see org.apache.oozie.action.ActionExecutor.Context#getCallbackUrl(java.lang.String)
