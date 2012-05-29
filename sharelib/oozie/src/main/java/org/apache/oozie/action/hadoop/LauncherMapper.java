@@ -54,6 +54,8 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
 
     public static final String CONF_OOZIE_ACTION_MAX_OUTPUT_DATA = "oozie.action.max.output.data";
 
+    private static final int DEFAULT_ACTION_MAX_OUTPUT_DATA = 1024 << 5;
+
     static final String CONF_OOZIE_ACTION_MAIN_ARG_COUNT = "oozie.action.main.arg.count";
     static final String CONF_OOZIE_ACTION_MAIN_ARG_PREFIX = "oozie.action.main.arg.";
     static final String CONF_OOZIE_EXTERNAL_STATS_MAX_SIZE = "oozie.external.stats.max.size";
@@ -212,7 +214,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
                     System.out.println("Main class        : " + mainClass);
                     System.out.println();
                     System.out.println("Maximum output    : "
-                            + getJobConf().getInt(CONF_OOZIE_ACTION_MAX_OUTPUT_DATA, 2 * 1024));
+                            + getJobConf().getInt(CONF_OOZIE_ACTION_MAX_OUTPUT_DATA, DEFAULT_ACTION_MAX_OUTPUT_DATA));
                     System.out.println();
                     System.out.println("Arguments         :");
                     for (String arg : args) {
@@ -282,7 +284,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
                                                                                            ACTION_OUTPUT_PROPS));
                             reporter.incrCounter(COUNTER_GROUP, COUNTER_OUTPUT_DATA, 1);
 
-                            int maxOutputData = getJobConf().getInt(CONF_OOZIE_ACTION_MAX_OUTPUT_DATA, 2 * 1024);
+                            int maxOutputData = getJobConf().getInt(CONF_OOZIE_ACTION_MAX_OUTPUT_DATA, DEFAULT_ACTION_MAX_OUTPUT_DATA);
                             if (outputData.length() > maxOutputData) {
                                 String msg = MessageFormat.format("Output data size [{0}] exceeds maximum [{1}]",
                                                                   outputData.length(), maxOutputData);
