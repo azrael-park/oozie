@@ -29,6 +29,7 @@ public class OozieClientException extends Exception {
     public static final String AUTHENTICATION = "AUTHENTICATION";
 
     private String errorCode;
+    private String detail;
 
     /**
      * Create an exception.
@@ -39,6 +40,19 @@ public class OozieClientException extends Exception {
     public OozieClientException(String errorCode, String message) {
         super(message);
         this.errorCode = errorCode;
+    }
+
+    /**
+     * Create an exception.
+     *
+     * @param errorCode error code.
+     * @param message error message.
+     * @param detail error stack trace
+     */
+    public OozieClientException(String errorCode, String message, String detail) {
+        super(message);
+        this.errorCode = errorCode;
+        this.detail = detail;
     }
 
     /**
@@ -71,6 +85,13 @@ public class OozieClientException extends Exception {
      */
     public String getErrorCode() {
         return errorCode;
+    }
+
+    /**
+     * Return the stack trace of caused exception
+     */
+    public String getDetail() {
+        return detail;
     }
 
     /**

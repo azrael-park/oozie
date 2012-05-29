@@ -144,6 +144,8 @@ public interface RestConstants {
 
     public static final String OOZIE_ERROR_MESSAGE = "oozie-error-message";
 
+    public static final String OOZIE_ERROR_DETAIL = "oozie-error-detail";
+
     public static final String JOBTYPE_PARAM = "jobtype";
 
     public static final String SLA_GT_SEQUENCE_ID = "gt-sequence-id";

@@ -17,6 +17,7 @@
  */
 package org.apache.oozie.servlet;
 
+import org.apache.hadoop.util.StringUtils;
 import org.apache.oozie.client.OozieClient.SYSTEM_MODE;
 import org.apache.oozie.client.rest.JsonBean;
 import org.apache.oozie.client.rest.RestConstants;
@@ -361,6 +362,21 @@ public abstract class JsonRestServlet extends HttpServlet {
         JSONObject json = bean.toJSONObject(timeZoneId);
         response.setContentType(JSTON_UTF8);
         json.writeJSONString(response.getWriter());
+    }
+
+    /**
+     * Sends a error response.
+     *
+     * @param response servlet response.
+     * @param ex exception caused this error.
+     */
+    protected void sendErrorResponse(HttpServletResponse response, XServletException ex) throws IOException {
+        response.setHeader(RestConstants.OOZIE_ERROR_CODE, ex.getErrorCode().toString());
+        response.setHeader(RestConstants.OOZIE_ERROR_MESSAGE, ex.getLocalizedMessage());
+        if (ex.getCause() != null) {
+            response.setHeader(RestConstants.OOZIE_ERROR_DETAIL, StringUtils.stringifyException(ex.getCause()));
+        }
+        response.sendError(ex.getHttpStatusCode());
     }
 
     /**

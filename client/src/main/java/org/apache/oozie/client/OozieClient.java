@@ -512,15 +512,15 @@ public class OozieClient {
         int status = conn.getResponseCode();
         String error = conn.getHeaderField(RestConstants.OOZIE_ERROR_CODE);
         String message = conn.getHeaderField(RestConstants.OOZIE_ERROR_MESSAGE);
+        String detail = conn.getHeaderField(RestConstants.OOZIE_ERROR_DETAIL);
 
         if (error == null) {
             error = "HTTP error code: " + status;
         }
-
         if (message == null) {
             message = conn.getResponseMessage();
         }
-        throw new OozieClientException(error, message);
+        throw new OozieClientException(error, message, detail);
     }
 
     static Map<String, String> prepareParams(String... params) {
