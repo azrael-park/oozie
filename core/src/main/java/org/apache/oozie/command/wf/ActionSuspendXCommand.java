@@ -6,6 +6,7 @@ import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.XException;
 import org.apache.oozie.action.hive.HiveSession;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
@@ -58,7 +59,13 @@ public class ActionSuspendXCommand<T> extends WorkflowXCommand<T> {
     }
 
     protected void verifyPrecondition() throws CommandException, PreconditionException {
+        if (wfJob.getStatus() == WorkflowJob.Status.KILLED ||
+                wfJob.getStatus() == WorkflowJob.Status.FAILED ||
+                wfJob.getStatus() == WorkflowJob.Status.SUCCEEDED) {
+            throw new PreconditionException(ErrorCode.E0831, wfJob.getStatus());
+        }
         if (wfAction.getStatus() == WorkflowAction.Status.KILLED ||
+                wfAction.getStatus() == WorkflowAction.Status.FAILED ||
                 wfAction.getStatus() == WorkflowAction.Status.ERROR ||
                 wfAction.getStatus() == WorkflowAction.Status.OK) {
             throw new PreconditionException(ErrorCode.E0822, wfAction.getStatus());

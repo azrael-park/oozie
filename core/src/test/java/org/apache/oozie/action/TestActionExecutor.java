@@ -44,6 +44,11 @@ public class TestActionExecutor extends XTestCase {
             registerError("foo.Exception", ActionExecutorException.ErrorType.TRANSIENT, "FO");
         }
 
+        @Override
+        public boolean suspendJobForNonTransients(WorkflowAction.Status status) {
+            return true;
+        }
+
         protected MyActionExecutor(int maxRetries, int retryInterval) {
             super("type", retryInterval);
             super.setMaxRetries(maxRetries);

@@ -175,6 +175,8 @@ public enum ErrorCode {
 
     E0821(XLog.STD, "Action suspend issued by admin"),
     E0822(XLog.STD, "Action can not be suspended as it is already in finished state : {0}"),
+    E0831(XLog.STD, "Action can not be suspended as job is already in finished state : {0}"),
+
     E0823(XLog.STD, "Action can not be resumed as job is not in running state : {0}"),
     E0824(XLog.STD, "Action can not be resumed as the action is not in suspended state : {0}"),
     E0825(XLog.STD, "Action can not be resumed as the action is not head of execution"),

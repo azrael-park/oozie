@@ -34,6 +34,12 @@ public class ForTestingActionExecutor extends ActionExecutor {
         super("test");
     }
 
+    @Override
+    public boolean suspendJobForNonTransients(WorkflowAction.Status status) {
+        return true;
+    }
+
+    @Override
     public void initActionType() {
     }
 

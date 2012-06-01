@@ -51,6 +51,11 @@ public class TestLiteWorkflowAppService extends XTestCase {
             super("test");
         }
 
+        @Override
+        public boolean suspendJobForNonTransients(WorkflowAction.Status status) {
+            return true;
+        }
+
         public void start(Context context, WorkflowAction action) throws ActionExecutorException {
         }
 
