@@ -89,6 +89,8 @@ public class HiveActionExecutor extends ActionExecutor {
             } else if (name.equals("script")) {
                 setAttribute(config, "script", value);
             } else if (name.equals("query")) {
+                setElement(config, "query", value);
+            } else if (name.equals("queries")) {
                 setElement(config, "query", parseScript(null, value));
             } else {
                 throw new CommandException(ErrorCode.E0828, wfAction.getType(), name);

@@ -78,6 +78,7 @@ public class ActionUpdateXCommand extends ActionXCommand<Void> {
 
     @Override
     protected Void execute() throws CommandException {
+        LOG.info("updating action with " + updates);
         try {
             executor.updateAttributes(wfAction, updates);
             jpaService.execute(new WorkflowActionUpdateJPAExecutor(wfAction));
@@ -88,6 +89,7 @@ public class ActionUpdateXCommand extends ActionXCommand<Void> {
         } catch (Exception e) {
             throw new CommandException(ErrorCode.E0829, e.toString());
         }
+        LOG.info("Action update successfully");
         return null;
     }
 }
