@@ -126,7 +126,7 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
         action.resetPendingOnly();
         LOG.warn("Suspending Workflow Job id=" + id);
         try {
-            if (executor.suspendJobForFail(status)) {
+            if (executor.suspendJobForNonTransients(status)) {
                 LOG.warn("Suspending Workflow Job id=" + id);
                 SuspendXCommand.suspendJob(Services.get().get(JPAService.class), workflow, id, action.getId(), null);
             }

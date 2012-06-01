@@ -65,11 +65,6 @@ public class HiveActionExecutor extends ActionExecutor {
     }
 
     @Override
-    public boolean suspendJobForFail(WorkflowAction.Status status) {
-        return false;
-    }
-
-    @Override
     public ELEvaluator preActionEvaluator(Context context, WorkflowAction action) {
         prepare(context, action);
         return context.getELEvaluator();

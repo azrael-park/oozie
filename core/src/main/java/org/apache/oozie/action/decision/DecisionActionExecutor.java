@@ -56,11 +56,6 @@ public class DecisionActionExecutor extends ActionExecutor {
     }
 
     @Override
-    public boolean suspendJobForFail(WorkflowAction.Status status) {
-        return false;
-    }
-
-    @Override
     public ELEvaluator preActionEvaluator(Context context, WorkflowAction action) {
         return null;
     }

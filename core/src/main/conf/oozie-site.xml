@@ -316,7 +316,16 @@
         </description>
     </property>
 
-<property>
+    <property>
+        <name>oozie.service.ActionService.exception.override</name>
+        <value>*=java.lang.Exception[NON_TRANSIENT|?]</value>
+        <description>List of overrides which would be applied to exceptions thrown in action.
+            action-class-glob-pattern=exception-class-name[error-type or ?|error-code or ?]
+            eg)*=java.lang.Exception[NON_TRANSIENT|?]
+        </description>
+    </property>
+
+    <property>
         <name>oozie.service.ELService.ext.functions.workflow</name>
         <value>
             date:current=org.apache.oozie.util.DateELFunctions#current,

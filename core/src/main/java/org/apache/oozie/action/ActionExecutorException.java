@@ -95,6 +95,10 @@ public class ActionExecutorException extends Exception {
         return errorType;
     }
 
+    public void setErrorType(ErrorType errorType) {
+        this.errorType = errorType;
+    }
+
     /**
      * Return the error code of the exception.
      *
@@ -102,5 +106,9 @@ public class ActionExecutorException extends Exception {
      */
     public String getErrorCode() {
         return errorCode;
+    }
+
+    public void setErrorCode(String errorCode) {
+        this.errorCode = errorCode;
     }
 }

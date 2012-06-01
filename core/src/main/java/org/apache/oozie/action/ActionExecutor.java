@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.LinkedHashMap;
+import java.util.regex.Pattern;
 
 import static org.apache.oozie.action.ActionExecutorException.ErrorType.NON_TRANSIENT;
 
@@ -78,8 +79,8 @@ public abstract class ActionExecutor {
         return context.getELEvaluator();
     }
 
-    public boolean suspendJobForFail(WorkflowAction.Status status) {
-        return true;
+    public boolean suspendJobForNonTransients(WorkflowAction.Status status) {
+        return false;
     }
 
     public void updateAttributes(WorkflowActionBean wfAction, Map<String, String> updates) throws Exception {
@@ -117,7 +118,7 @@ public abstract class ActionExecutor {
 
     private static boolean initMode = false;
     private static Map<String, Map<String, ErrorInfo>> ERROR_INFOS = new HashMap<String, Map<String, ErrorInfo>>();
-
+    private static Map<String, Map<String, ErrorInfo>> OVERRIDING_INFOS = new HashMap<String, Map<String, ErrorInfo>>();
     /**
      * Context information passed to the ActionExecutor methods.
      */
@@ -282,7 +283,6 @@ public abstract class ActionExecutor {
      * Create an action executor.
      *
      * @param type action executor type.
-     * @param retryAttempts retry attempts.
      * @param retryInterval retry interval, in seconds.
      */
     protected ActionExecutor(String type, long retryInterval) {
@@ -458,18 +458,33 @@ public abstract class ActionExecutor {
     /**
      * Register error handling information for an exception.
      *
-     * @param exClass excpetion class name (to work in case of a particular exception not being in the classpath, needed
+     * @param exClass exception class name (to work in case of a particular exception not being in the classpath, needed
      * to be able to handle multiple version of Hadoop  or other JARs used by executors with the same codebase).
      * @param errorType error type for the exception.
      * @param errorCode error code for the exception.
      */
     protected void registerError(String exClass, ActionExecutorException.ErrorType errorType, String errorCode) {
+        registerHandler(ERROR_INFOS, exClass, errorType, errorCode);
+    }
+
+    /**
+     * Register error handling overriding information for an exception
+     */
+    public void registerOverride(String exClass, ActionExecutorException.ErrorType errorType, String errorCode) {
+        registerHandler(OVERRIDING_INFOS, exClass, errorType, errorCode);
+    }
+
+    private void registerHandler(Map<String, Map<String, ErrorInfo>> target,
+            String exClass, ActionExecutorException.ErrorType errorType, String errorCode) {
         if (!initMode) {
             throw new IllegalStateException("Error, action type info locked");
         }
         try {
             Class errorClass = Thread.currentThread().getContextClassLoader().loadClass(exClass);
-            Map<String, ErrorInfo> executorErrorInfo = ERROR_INFOS.get(getType());
+            Map<String, ErrorInfo> executorErrorInfo = target.get(getType());
+            if (executorErrorInfo == null) {
+                target.put(getType(), executorErrorInfo = new LinkedHashMap<String, ErrorInfo>());
+            }
             executorErrorInfo.put(exClass, new ErrorInfo(errorType, errorCode, errorClass));
         }
         catch (ClassNotFoundException cnfe) {
@@ -538,6 +553,10 @@ public abstract class ActionExecutor {
      */
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     protected ActionExecutorException convertException(Throwable ex) {
+        return override(ex, convert(ex));
+    }
+
+    private ActionExecutorException convert(Throwable ex) {
         if (ex instanceof ActionExecutorException) {
             return (ActionExecutorException) ex;
         }
@@ -572,6 +591,29 @@ public abstract class ActionExecutor {
             for (ErrorInfo errorInfo : executorErrorInfo.values()) {
                 if (errorInfo.errorClass.isInstance(ex)) {
                     return new ActionExecutorException(errorInfo.errorType, errorInfo.errorCode, "{0}", ex.getMessage(), ex);
+                }
+            }
+        }
+        return null;
+    }
+
+    private ActionExecutorException override(Throwable ex, ActionExecutorException converted) {
+        if (OVERRIDING_INFOS.isEmpty()) {
+            return converted;
+        }
+        Map<String, ErrorInfo> executorErrorInfo = OVERRIDING_INFOS.get(getType());
+        // Check if we have registered ex
+        ErrorInfo classErrorInfo = executorErrorInfo.get(ex.getClass().getName());
+        if (classErrorInfo != null) {
+            return new ActionExecutorException(classErrorInfo.errorType, classErrorInfo.errorCode, "{0}", ex.getMessage(), ex);
+        }
+        // Else, check if a parent class of ex is registered
+        else {
+            for (ErrorInfo errorInfo : executorErrorInfo.values()) {
+                if (errorInfo.errorClass.isInstance(ex)) {
+                    ActionExecutorException.ErrorType eType = errorInfo.errorType != null ? errorInfo.errorType : converted.getErrorType();
+                    String eCode = errorInfo.errorCode != null ? errorInfo.errorCode : converted.getErrorCode();
+                    return new ActionExecutorException(eType, eCode, "{0}", ex.getMessage(), ex);
                 }
             }
         }

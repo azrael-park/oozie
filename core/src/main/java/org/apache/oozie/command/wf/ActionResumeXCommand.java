@@ -63,7 +63,8 @@ public class ActionResumeXCommand extends WorkflowXCommand<Void> {
         if (wfJob.getStatus() != SUSPENDED && wfJob.getStatus() != RUNNING) {
             throw new PreconditionException(ErrorCode.E0823, wfJob.getStatus());
         }
-        if (wfAction.getStatus() != WorkflowAction.Status.START_MANUAL) {
+        if (wfAction.getStatus() != WorkflowAction.Status.START_MANUAL &&
+                wfAction.getStatus() != WorkflowAction.Status.END_MANUAL) {
             throw new PreconditionException(ErrorCode.E0824, wfAction.getStatus());
         }
     }
@@ -78,20 +79,28 @@ public class ActionResumeXCommand extends WorkflowXCommand<Void> {
         if (command != null) {
             LOG.info("Starting Action Name: "+ wfAction.getName() + ", Id: " + wfAction.getId() +
                     ", Authcode:" + wfAction.getCred(), ", Status:" + wfAction.getStatus());
-            queue(new ActionStartXCommand(wfAction.getId(), wfAction.getType()));
+            queue(command);
         }
         return null;
     }
 
-    public static ActionXCommand resumeAction(WorkflowJobBean job, WorkflowActionBean action) {
-        boolean start = job.getStatus() == RUNNING && isExecutionHead(job, action);
-        if (start) {
+    // also used by ResumeXCommand
+    static ActionXCommand resumeAction(WorkflowJobBean job, WorkflowActionBean action) {
+        boolean executable = job.getStatus() == RUNNING && isExecutionHead(job, action);
+        if (executable) {
             action.setPendingOnly();
         } else {
             action.resetPending();
             action.setStatus(WorkflowAction.Status.PREP);
         }
-        return start? new ActionStartXCommand(action.getId(), action.getType()) : null;
+        if (executable && action.getStatus() == WorkflowAction.Status.START_MANUAL ||
+                action.getStatus() == WorkflowAction.Status.PREP) {
+            return new ActionStartXCommand(action.getId(), action.getType());
+        }
+        if (executable && action.getStatus() == WorkflowAction.Status.END_MANUAL) {
+            return new ActionEndXCommand(action.getId(), action.getType());
+        }
+        return null;
     }
 
     private static boolean isExecutionHead(WorkflowJobBean job, WorkflowActionBean action) {
