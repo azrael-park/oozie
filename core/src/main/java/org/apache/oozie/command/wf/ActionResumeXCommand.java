@@ -15,6 +15,7 @@ import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.LogUtils;
+import org.apache.oozie.util.XLog;
 import org.apache.oozie.workflow.WorkflowInstance;
 import org.apache.oozie.workflow.lite.LiteWorkflowInstance;
 import org.apache.oozie.workflow.lite.NodeDef;
@@ -84,20 +85,20 @@ public class ActionResumeXCommand extends WorkflowXCommand<Void> {
         return null;
     }
 
-    // also used by ResumeXCommand
+    // job should be in RUNNING or SUSPENDED status (also used by ResumeXCommand)
     static ActionXCommand resumeAction(WorkflowJobBean job, WorkflowActionBean action) {
-        boolean executable = job.getStatus() == RUNNING && isExecutionHead(job, action);
-        if (executable) {
-            action.setPendingOnly();
-        } else {
+        if (job.getStatus() != RUNNING || !isExecutionHead(job, action)) {
             action.resetPending();
             action.setStatus(WorkflowAction.Status.PREP);
+            return null;
         }
-        if (executable && action.getStatus() == WorkflowAction.Status.START_MANUAL ||
+        if (action.getStatus() == WorkflowAction.Status.START_MANUAL ||
                 action.getStatus() == WorkflowAction.Status.PREP) {
+            action.setPendingOnly();
             return new ActionStartXCommand(action.getId(), action.getType());
         }
-        if (executable && action.getStatus() == WorkflowAction.Status.END_MANUAL) {
+        if (action.getStatus() == WorkflowAction.Status.END_MANUAL) {
+            action.setPendingOnly();
             return new ActionEndXCommand(action.getId(), action.getType());
         }
         return null;
@@ -105,7 +106,12 @@ public class ActionResumeXCommand extends WorkflowXCommand<Void> {
 
     private static boolean isExecutionHead(WorkflowJobBean job, WorkflowActionBean action) {
         NodeDef node = executionHead(job.getWorkflowInstance(), action.getExecutionPath());
-        return node != null && node.getName().equals(action.getName());
+        boolean executable = node != null && node.getName().equals(action.getName());
+        if (executable) {
+            XLog.getLog(ActionResumeXCommand.class).info(action.getName() +
+                    " in path " + action.getExecutionPath() + " is head of execution");
+        }
+        return executable;
     }
 
     private static NodeDef executionHead(WorkflowInstance instance, String executionPath) {
