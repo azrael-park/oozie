@@ -173,7 +173,7 @@ public class HiveActionExecutor extends ActionExecutor {
 
     @Override
     public void end(Context context, WorkflowAction action) throws ActionExecutorException {
-        LOG.info("Action end requested for " + action.getId());
+        LOG.debug("Action end requested");
         if (action.getExternalStatus().equals("OK")) {
             context.setEndData(WorkflowAction.Status.OK, "OK");
         } else if (action.getExternalStatus().equals("ERROR")) {
@@ -185,7 +185,7 @@ public class HiveActionExecutor extends ActionExecutor {
 
     @Override
     public void check(Context context, WorkflowAction action) throws ActionExecutorException {
-        LOG.info("Action check requested for " + action.getId());
+        LOG.debug("Action check requested");
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveSession session = service.getRunningSession(action.getId());
         session.check(context, action);
@@ -193,7 +193,7 @@ public class HiveActionExecutor extends ActionExecutor {
 
     @Override
     public void kill(Context context, WorkflowAction action) throws ActionExecutorException {
-        LOG.info("Action kill requested for " + action.getId());
+        LOG.debug("Action kill requested");
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveSession session = service.peekRunningStatus(action.getId());
         if (session == null) {
@@ -212,11 +212,11 @@ public class HiveActionExecutor extends ActionExecutor {
 
     @Override
     public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
-        LOG.info("Action callback arrived for " + actionID + " = " + externalStatus + ", " + actionData);
+        LOG.debug("Action callback with status = " + externalStatus + ", data = " + actionData);
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveSession session = service.peekRunningStatus(actionID);
         if (session == null) {
-            LOG.info("Action callback arrived but the action " + actionID + " is not running");
+            LOG.info("Action callback arrived for not existing action");
         } else {
             String queryId = actionData.getProperty("queryId");
             String stageId = actionData.getProperty("stageId");

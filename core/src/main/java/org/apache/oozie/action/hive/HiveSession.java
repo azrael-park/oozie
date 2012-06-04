@@ -15,7 +15,12 @@ import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.wf.ActionCheckXCommand;
 import org.apache.oozie.executor.jpa.HiveStatusInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.service.*;
+import org.apache.oozie.service.CallableQueueService;
+import org.apache.oozie.service.HadoopAccessorException;
+import org.apache.oozie.service.HadoopAccessorService;
+import org.apache.oozie.service.JPAService;
+import org.apache.oozie.service.Services;
+import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.XLog;
 import org.apache.thrift.TException;
 
@@ -29,8 +34,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
 
 import static org.apache.oozie.action.ActionExecutorException.ErrorType.FAILED;
+import static org.apache.oozie.action.ActionExecutorException.ErrorType.NON_TRANSIENT;
+
 
 // created per action
 public class HiveSession {
@@ -101,15 +109,14 @@ public class HiveSession {
     }
 
     public boolean isCompleted() {
-        return killed || index == queries.length;
+        return killed || index >= queries.length;
     }
 
     public synchronized void execute(Context context, WorkflowAction action) throws ActionExecutorException {
-        LOG.info("executing " + index + "/" + queries.length);
-        for (; !killed && index < queries.length; index++) {
-            Executor executor = compile(context, action, queries[index]);
+        LOG.debug("Executing " + index + "/" + queries.length);
+        while (!isCompleted()) {
+            executor = compile(context, action, queries[index++]);
             if (executor != null) {
-                this.executor = executor;
                 Services.get().get(CallableQueueService.class).queue(executor);
                 return;
             }
@@ -118,9 +125,9 @@ public class HiveSession {
     }
 
     public synchronized void check(Context context, WorkflowAction action) throws ActionExecutorException {
-        LOG.debug("check called " + index + "/" + queries.length);
+        LOG.debug("Checking " + index + "/" + queries.length);
         if (isCompleted()) {
-            cleanup(context, action);
+            cleanup(context);
         } else {
             if (executor != null && executor.completed) {
                 if (executor.ex != null) {
@@ -196,8 +203,8 @@ public class HiveSession {
         return client;
     }
 
-    private void cleanup(Context context, WorkflowAction action) {
-        LOG.debug("Cleaning up called for action " + action.getId());
+    private void cleanup(Context context) {
+        LOG.info("Cleaning up hive session");
         context.setExecutionData("OK", null);   // induce ActionEndXCommand
         if (killed) {
             try {
@@ -273,21 +280,31 @@ public class HiveSession {
                     containsMR |= mapreduce;
                 }
                 if (containsMR) {
-                    String callback = context.getCallbackUrl("$jobStatus") + "jobId=$jobId&stageId=$stageId&queryId=" + query.getQueryId();
+                    final String callback = context.getCallbackUrl("$jobStatus") +
+                            "jobId=$jobId&stageId=$stageId&queryId=" + query.getQueryId();
                     LOG.debug("-- callback = " + callback);
-                    client.executeTransient("set hiveconf:task.notification.url=" + callback);
+                    execute(new Callable<String>() {
+                        public String call() throws Exception {
+                            client.executeTransient("set hiveconf:task.notification.url=" + callback);
+                            return "callback";
+                        }
+                    }, timeout);
                     return executor;
                 }
-                // excute directly for EXPLAIN or simple DDL tasks etc.
+                // execute directly for EXPLAIN or simple DDL tasks etc.
             }
             LOG.debug(sql + " is non-MR query");
             executor.execute();
 
             if (stages != null && !stages.isEmpty()) {
                 for (Stage stage : stages) {
-                    updateStatus(query.getQueryId(), stage.getStageId(), null, "SUCCESS");
+                    updateStatus(query.getQueryId(), stage.getStageId(), null, "SUCCEEDED");
                 }
             }
+        } catch (TimeoutException te) {
+            throw new ActionExecutorException(NON_TRANSIENT, "HIVE-001", "compile timeout for query {0}", sql);
+        } catch (ActionExecutorException ae) {
+            throw ae;
         } catch (Throwable e) {
             throw new ActionExecutorException(FAILED, "HIVE-002", "failed to execute query {0}", sql, e);
         }
@@ -339,6 +356,7 @@ public class HiveSession {
 
         private T result;
         private Exception exception;
+        private boolean arrived;
         private boolean canceled;
 
         public synchronized boolean runner(Thread runner) {
@@ -348,11 +366,13 @@ public class HiveSession {
 
         public synchronized void result(T result) {
             this.result = result;
+            this.arrived = true;
             notifyAll();
         }
 
         public synchronized void exception(Exception exception) {
             this.exception = exception;
+            this.arrived = true;
             notifyAll();
         }
 
@@ -360,15 +380,18 @@ public class HiveSession {
             long remain = timeout;
             long prev = System.currentTimeMillis();
             try {
-                for (;remain > 0 && result == null && exception == null; prev = System.currentTimeMillis()) {
+                for (;remain > 0 && !arrived; prev = System.currentTimeMillis()) {
                     wait(remain);
                     remain -= System.currentTimeMillis() - prev;
                 }
                 if (exception != null) {
                     throw exception;
                 }
-                if (result == null && runner != null) {
-                    runner.interrupt();
+                if (!arrived) {
+                    if (runner != null) {
+                      runner.interrupt();
+                    }
+                    throw new TimeoutException();
                 }
                 return result;
             } finally {
@@ -406,11 +429,14 @@ public class HiveSession {
                 completed = true;
                 CallableQueueService service = Services.get().get(CallableQueueService.class);
                 service.queue(new ActionCheckXCommand(actionID));
+                if (Thread.currentThread().isInterrupted()) {
+                  LOG.debug("Thread is interrupted");
+                }
             }
         }
 
         public String resultCode() {
-            return ex == null ? "SUCCESS" : "FAIL";
+            return ex == null ? "SUCCEEDED" : "FAILED";
         }
 
         private void execute() throws HiveServerException, TException {
