@@ -562,9 +562,12 @@ public class CallableQueueService implements Service, Instrumentable {
         return true;
     }
 
-    private static class RunnableWrapper extends PriorityDelayQueue.QueueElement<Runnable> implements Runnable {
+    private class RunnableWrapper extends PriorityDelayQueue.QueueElement<Runnable> implements Runnable {
         public RunnableWrapper(Runnable element) { super(element); }
-        public void run() { getElement().run(); }
+        public void run() {
+            getElement().run();
+            incrCounter(INSTR_EXECUTED_COUNTER, 1);
+        }
     }
 
     private synchronized boolean queue(CallableWrapper wrapper, boolean ignoreQueueSize) {
