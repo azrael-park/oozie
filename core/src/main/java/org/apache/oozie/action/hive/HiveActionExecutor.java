@@ -188,7 +188,11 @@ public class HiveActionExecutor extends ActionExecutor {
         LOG.debug("Action check requested");
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveSession session = service.getRunningSession(action.getId());
-        session.check(context, action);
+        try {
+            session.check(context);
+        } catch (Exception e) {
+            throw convertException(e);
+        }
     }
 
     @Override
@@ -201,7 +205,7 @@ public class HiveActionExecutor extends ActionExecutor {
             return;
         }
         try {
-            if (session.kill(context)) {
+            if (session.kill(context.getWorkflow())) {
                 CallableQueueService callables = Services.get().get(CallableQueueService.class);
                 callables.queue(new ActionKillXCommand(action.getId(), action.getType()), 30000);
             }

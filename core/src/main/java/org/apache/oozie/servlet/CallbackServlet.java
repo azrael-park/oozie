@@ -55,7 +55,7 @@ public class CallbackServlet extends JsonRestServlet {
 
     @Override
     public void init() {
-        maxDataLen = Services.get().getConf().getInt(CONF_MAX_DATA_LEN, 2 * 1024);
+        maxDataLen = Services.get().getConf().getInt(CONF_MAX_DATA_LEN, 32 * 1024);
     }
 
     /**
@@ -88,8 +88,10 @@ public class CallbackServlet extends JsonRestServlet {
 
         DagEngine dagEngine = Services.get().get(DagEngineService.class).getSystemDagEngine();
         try {
-            log.info(XLog.STD, "callback for action [{0}]", actionId);
-            dagEngine.processCallback(actionId, callbackService.getExternalStatus(queryString), null);
+            String status = callbackService.getExternalStatus(queryString);
+            Properties actionData = callbackService.loadProperties(queryString);
+            log.info(XLog.STD, "Callback arrived with status={0}, data={1}", status, actionData);
+            dagEngine.processCallback(actionId, status, actionData);
         }
         catch (DagEngineException ex) {
             throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ex);
@@ -126,12 +128,13 @@ public class CallbackServlet extends JsonRestServlet {
         log.debug("Received a CallbackServlet.doPost() with query string " + queryString);
 
         validateContentType(request, RestConstants.TEXT_CONTENT_TYPE);
+        DagEngine dagEngine = Services.get().get(DagEngineService.class).getSystemDagEngine();
         try {
-            log.info(XLog.STD, "callback for action [{0}]", actionId);
+            String status = callbackService.getExternalStatus(queryString);
             String data = IOUtils.getReaderAsString(request.getReader(), maxDataLen);
-            Properties props = PropertiesUtils.stringToProperties(data);
-            DagEngine dagEngine = Services.get().get(DagEngineService.class).getSystemDagEngine();
-            dagEngine.processCallback(actionId, callbackService.getExternalStatus(queryString), props);
+            Properties actionData = PropertiesUtils.stringToProperties(data);
+            log.info(XLog.STD, "Callback arrived with status={0}, data={1}", status, actionData);
+            dagEngine.processCallback(actionId, callbackService.getExternalStatus(queryString), actionData);
         }
         catch (IOException ex) {
             if (ex.getMessage().startsWith("stream exceeds limit")) {
