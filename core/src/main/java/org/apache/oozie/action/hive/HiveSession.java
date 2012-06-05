@@ -21,6 +21,7 @@ import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.XLog;
+import org.apache.thrift.TException;
 
 
 import java.util.ArrayList;
@@ -167,6 +168,14 @@ public class HiveSession {
             }
         }
         return executor != null;
+    }
+
+    public synchronized void shutdown() {
+        try {
+            client.shutdown();
+        } catch (TException e) {
+            LOG.info("Failed to shutdown hive connection", e);
+        }
     }
 
     private JobClient killJob(WorkflowJob workflow, JobClient client, HiveQueryStatusBean stage) throws Exception {

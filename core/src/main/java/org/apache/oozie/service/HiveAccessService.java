@@ -32,7 +32,14 @@ public class HiveAccessService implements Service {
     }
 
     @Override
-    public void destroy() {
+    public synchronized void destroy() {
+        if (hiveStatus != null) {
+            for (Map<String, HiveSession> value : hiveStatus.values()) {
+                for (HiveSession session : value.values()) {
+                    session.shutdown();
+                }
+            }
+        }
     }
 
     @Override
@@ -40,7 +47,7 @@ public class HiveAccessService implements Service {
         return HiveAccessService.class;
     }
 
-    public void register(String actionID, HiveSession session) throws ActionExecutorException {
+    public synchronized void register(String actionID, HiveSession session) throws ActionExecutorException {
         String wfID = uuid.getId(actionID);
         String action = uuid.getChildName(actionID);
         Map<String, HiveSession> map = hiveStatus.get(wfID);
@@ -50,7 +57,7 @@ public class HiveAccessService implements Service {
         map.put(action, session);
     }
 
-    public void unregister(String wfID) {
+    public synchronized void unregister(String wfID) {
         hiveStatus.remove(wfID);
     }
 
