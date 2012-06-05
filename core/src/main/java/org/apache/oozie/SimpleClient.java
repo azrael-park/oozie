@@ -157,6 +157,7 @@ public class SimpleClient {
     List<Polling> pollings = new ArrayList<Polling>();
 
     String jobID = null;
+    List<String> jobIDs = new ArrayList<String>();
 
     SimpleClient(OozieClient client) {
         this.client = client;
@@ -287,8 +288,12 @@ public class SimpleClient {
                 if (params.jobID != null) {
                     params.appendFilter("id=" + params.jobID);
                 }
+                jobIDs.clear();
+
+                int index = 0;
                 for (Object job : context.getJobsInfo(client, params.filter, params.start, params.length)) {
-                    System.out.println(params.toString(job));
+                    System.out.printf("[%1$2d] %2$s\n", index++, params.toString(job));
+                    jobIDs.add(context.getJobId(job));
                     if (params.dumpXML) {
                         System.out.println(XmlUtils.prettyPrint(context.getJobConf(job)).toString());
                     }
@@ -314,7 +319,13 @@ public class SimpleClient {
                     this.context = context;
                 } else {
                     int index = Integer.parseInt(commands[1]);
-                    newJobID = context.getJobId(context.getJobsInfo(client, "", 1, index + 1).get(index));
+                    if (jobIDs.size() <= index) {
+                        jobIDs.clear();
+                        for (Object job: context.getJobsInfo(client, "", 1, index + 1)) {
+                            jobIDs.add(context.getJobId(job));
+                        }
+                    }
+                    newJobID = jobIDs.get(index);
                 }
                 System.out.println("set default job : " + newJobID + (jobID == null ? "" : ", replacing " + jobID));
                 jobID = newJobID;
@@ -387,19 +398,19 @@ public class SimpleClient {
                     jobID = command[i];
                 } else if (isActionID(command[i])) {
                     actionID = command[i];
-                } else if (!isNumeric(command[i])) {
-                    if (filter.isEmpty() && command[i].contains("=")) {
-                        filter = command[i];
-                    } else {
-                        break;
-                    }
-                } else {
+                } else if (isNumeric(command[i])) {
                     if (start < 0) {
                         start = Integer.valueOf(command[i]);
                     } else if (length < 0) {
                         length = Integer.valueOf(command[i]);
                     } else {
-                        break;
+                        throw new IllegalArgumentException("what is this for ? " + command[i]);
+                    }
+                } else {
+                    if (command[i].contains("=")) {
+                        appendFilter(command[i]);
+                    } else {
+                        throw new IllegalArgumentException("what is this for ? " + command[i]);
                     }
                 }
             }

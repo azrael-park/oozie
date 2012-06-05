@@ -182,13 +182,12 @@ public class FilterResolver {
                 throw new DagEngineException(ErrorCode.E0420, conditions, "elements must be name=value pairs");
             }
             FilterSet key = valueOf(filter, keyValue[0].trim());
-            for (String split : keyValue[1].split(",")) {
-                String value = validate(key, split.trim());
-                List<String> list = result.get(key.field());
-                if (list == null) {
-                    result.put(key.field(), list = new ArrayList<String>());
-                }
-                list.add(value);
+            List<String> list = result.get(key.field());
+            if (list == null) {
+                result.put(key.field(), list = new ArrayList<String>());
+            }
+            for (String split : keyValue[1].split("\\|")) {
+                list.add(validate(key, split.trim()));
             }
         }
         return result;
