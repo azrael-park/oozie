@@ -227,9 +227,9 @@ public class SimpleClient {
                     }
                 }
             } else if (commands[0].equals("suspend")) {
-                client.suspend(jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1]);
+                client.suspend(getID(commands));
             } else if (commands[0].equals("resume")) {
-                client.resume(jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1]);
+                client.resume(getID(commands));
             } else if (commands[0].equals("update")) {
                 String actionID = jobID != null ? jobID + "@" + commands[1] : commands[1];
                 String remain = line.substring(line.indexOf(commands[1]) + commands[1].length());
@@ -244,12 +244,9 @@ public class SimpleClient {
                     pollings.get(0).join();
                 }
             } else if (commands[0].equals("log")) {
-                String ID = commands.length == 2 && commands[1].contains("@") ? commands[1] :
-                        jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1];
-                client.getLog(ID, System.out);
+                client.getLog(getID(commands), System.out);
             } else if (commands[0].equals("xml")) {
-                String ID = commands.length == 2 && commands[1].contains("@") ? commands[1] :
-                        jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1];
+                String ID = getID(commands);
                 int index = ID.indexOf('@');
                 if (index >= 0) {
                     if (ID.substring(index + 1).equals(ACTION_ALL)) {
@@ -267,8 +264,7 @@ public class SimpleClient {
                     System.out.println(XmlUtils.prettyPrint(context.getJobConf(context.getJobInfo(client, ID))));
                 }
             } else if (commands[0].equals("data")) {
-                String ID = commands.length == 2 && commands[1].contains("@") ? commands[1] :
-                        jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1];
+                String ID = getID(commands);
                 int index = ID.indexOf('@');
                 if (index >= 0 && !ID.substring(index + 1).equals(ACTION_ALL)) {
                     WorkflowAction action = client.getWorkflowActionInfo(ID);
@@ -300,12 +296,10 @@ public class SimpleClient {
             } else if (commands[0].equals("actions")) {
                 FilterParams params = new FilterParams(context.getActionProperties(), commands);
                 CONTEXT context = params.getContext();
-                List actions;
-                if (params.jobID != null) {
-                    actions = context.getActions(context.getJobInfo(client, params.jobID));
-                } else {
-                    actions = context.getActionsInfo(client, params.filter, params.start, params.length);
+                if (params.jobID != null || jobID != null) {
+                    params.appendFilter("wfId=" + (params.jobID != null ? params.jobID : jobID));
                 }
+                List actions = context.getActionsInfo(client, params.filter, params.start, params.length);
                 for (Object action : actions) {
                     System.out.println(params.toString(action));
                     if (params.dumpXML) {
@@ -341,6 +335,11 @@ public class SimpleClient {
         return true;
     }
 
+    private String getID(String[] commands) {
+        return commands.length >= 2 && commands[1].contains("@") ? commands[1] :
+                jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1];
+    }
+
     private static Pattern JOB_ID_PATTERN = Pattern.compile("\\d{7}-\\d{15}-\\S+-\\S+-[WCB]");
     private static Pattern ACTION_ID_PATTERN = Pattern.compile(JOB_ID_PATTERN + "@\\S+");
 
@@ -352,11 +351,11 @@ public class SimpleClient {
         return ACTION_ID_PATTERN.matcher(string).matches();
     }
 
-    private CONTEXT getContext(String command) {
-        if (command.contains("@")) {
-            command = command.substring(0, command.indexOf("@"));
+    private CONTEXT getContext(String id) {
+        if (id.contains("@")) {
+            id = id.substring(0, id.indexOf("@"));
         }
-        char type = command.charAt(command.length() - 1);
+        char type = id.charAt(id.length() - 1);
         switch (type) {
             case 'W':
                 return CONTEXT.WF;
@@ -365,7 +364,7 @@ public class SimpleClient {
             case 'B':
                 return CONTEXT.BUNDLE;
             default:
-                throw new IllegalArgumentException("invalid job id");
+                throw new IllegalArgumentException("invalid job id " + id);
         }
     }
 
@@ -466,7 +465,7 @@ public class SimpleClient {
 
     private String getStatus(String jobId) throws OozieClientException {
         StringBuilder builder = new StringBuilder();
-        switch (context) {
+        switch (getContext(jobId)) {
             case WF:
                 WorkflowJob workflow = client.getJobInfo(jobId);
                 builder.append(workflow.getId()).append(":").append(workflow.getStatus()).append('\n');

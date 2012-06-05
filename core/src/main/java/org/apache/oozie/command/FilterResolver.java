@@ -47,6 +47,7 @@ public class FilterResolver {
 
     private static enum WF_ACTIONS_FILTER implements FilterSet {
         id,
+        wfId,
         name,
         type,
         status { public String validate(String value) { return WorkflowAction.Status.valueOf(value.toUpperCase()).name(); } };
