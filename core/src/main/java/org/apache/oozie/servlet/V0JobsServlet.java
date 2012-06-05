@@ -89,6 +89,11 @@ public class V0JobsServlet extends BaseJobsServlet {
         return json;
     }
 
+    @Override
+    JSONObject getJobsForCoordinatorId(HttpServletRequest request, String coordId) throws XServletException, IOException {
+        throw new UnsupportedOperationException("getJobsForCoordinatorId");
+    }
+
     /**
      * v0 service implementation to get a list of workflows, with filtering or interested windows embedded in the
      * request object

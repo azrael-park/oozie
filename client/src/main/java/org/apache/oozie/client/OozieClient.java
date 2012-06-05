@@ -1242,6 +1242,32 @@ public class OozieClient {
         }
     }
 
+    private class JobsForCoordStatus extends ClientCallable<List<WorkflowJob>> {
+
+        JobsForCoordStatus(String coordId) {
+            super("GET", RestConstants.JOBS, "", prepareParams(RestConstants.JOBS_COORD_ID_PARAM, coordId));
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        protected List<WorkflowJob> call(HttpURLConnection conn) throws IOException, OozieClientException {
+            conn.setRequestProperty("content-type", RestConstants.XML_CONTENT_TYPE);
+            if ((conn.getResponseCode() == HttpURLConnection.HTTP_OK)) {
+                Reader reader = new InputStreamReader(conn.getInputStream());
+                JSONObject json = (JSONObject) JSONValue.parse(reader);
+                JSONArray workflows = (JSONArray) json.get(JsonTags.WORKFLOWS_JOBS);
+                if (workflows == null) {
+                    workflows = new JSONArray();
+                }
+                return JsonToBean.createWorkflowJobList(workflows);
+            }
+            else {
+                handleError(conn);
+            }
+            return null;
+        }
+    }
+
     private class CoordJobsStatus extends ClientCallable<List<CoordinatorJob>> {
 
         CoordJobsStatus(String filter, int start, int len) {
@@ -1440,6 +1466,17 @@ public class OozieClient {
      */
     public List<WorkflowJob> getJobsInfo(String filter, int start, int len) throws OozieClientException {
         return new JobsStatus(filter, start, len).call();
+    }
+
+    /**
+     * Return the info of the workflow jobs that originated from a coordinator job
+     *
+     * @param coordId originating coordinator id
+     * @return a list with the workflow jobs info, without node details.
+     * @throws OozieClientException thrown if the jobs info could not be retrieved.
+     */
+    public List<WorkflowJob> getJobsForCoord(String coordId) throws OozieClientException {
+        return new JobsForCoordStatus(coordId).call();
     }
 
     /**

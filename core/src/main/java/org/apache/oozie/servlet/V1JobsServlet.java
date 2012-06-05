@@ -133,6 +133,11 @@ public class V1JobsServlet extends BaseJobsServlet {
         return json;
     }
 
+    @Override
+    JSONObject getJobsForCoordinatorId(HttpServletRequest request, String coordId) throws XServletException, IOException {
+        return getWorkflowJobsForCoord(request, coordId);
+    }
+
     /**
      * v1 service implementation to get a list of workflows, coordinators, or bundles, with filtering or interested
      * windows embedded in the request object
@@ -301,6 +306,22 @@ public class V1JobsServlet extends BaseJobsServlet {
     private JSONObject getCoordinatorJobIdForExternalId(HttpServletRequest request, String externalId)
             throws XServletException {
         JSONObject json = new JSONObject();
+        return json;
+    }
+
+    private JSONObject getWorkflowJobsForCoord(HttpServletRequest request, String coordId) throws XServletException {
+        JSONObject json = new JSONObject();
+        try {
+            String timeZoneId = request.getParameter(RestConstants.TIME_ZONE_PARAM) == null
+                    ? "GMT" : request.getParameter(RestConstants.TIME_ZONE_PARAM);
+            DagEngine dagEngine = Services.get().get(DagEngineService.class).getDagEngine(getUser(request));
+            List<WorkflowJobBean> jobs = dagEngine.getJobsForCoord(coordId);
+            json.put(JsonTags.WORKFLOWS_JOBS, WorkflowJobBean.toJSONArray(jobs, timeZoneId));
+        }
+        catch (DagEngineException ex) {
+            throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ex);
+        }
+
         return json;
     }
 

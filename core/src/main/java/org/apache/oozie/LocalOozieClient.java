@@ -329,6 +329,24 @@ public class LocalOozieClient extends OozieClient {
     }
 
     /**
+     * Return the info of the workflow jobs that originated from a coordinator job
+     *
+     * @param coordId originating coordinator id
+     * @return a list with the workflow jobs info, without node details.
+     * @throws OozieClientException thrown if the jobs info could not be retrieved.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<WorkflowJob> getJobsForCoord(String coordId) throws OozieClientException {
+        try {
+            return (List) dagEngine.getJobsForCoord(coordId);
+        }
+        catch (DagEngineException ex) {
+            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+        }
+    }
+
+    /**
      * Return the info of the workflow jobs that match the filter. <p/> It returns the first 100 jobs that match the
      * filter.
      *

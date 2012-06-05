@@ -120,6 +120,8 @@ public interface RestConstants {
 
     public static final String JOBS_EXTERNAL_ID_PARAM = "external-id";
 
+    public static final String JOBS_COORD_ID_PARAM = "coord-id";
+
     public static final String ADMIN_STATUS_RESOURCE = "status";
 
     public static final String ADMIN_SAFE_MODE_PARAM = "safemode";

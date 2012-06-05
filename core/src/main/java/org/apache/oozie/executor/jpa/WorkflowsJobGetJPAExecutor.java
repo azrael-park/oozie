@@ -267,6 +267,14 @@ public class WorkflowsJobGetJPAExecutor implements JPAExecutor<WorkflowsInfo> {
         return "WorkflowsJobGetJPAExecutor";
     }
 
+    static List<WorkflowJobBean> getBeansForWorkflowFromArray(List<Object[]> arrs) {
+        List<WorkflowJobBean> wfBeansList = new ArrayList<WorkflowJobBean>();
+        for (Object[] arr : arrs) {
+            wfBeansList.add(getBeanForWorkflowFromArray(arr));
+        }
+        return wfBeansList;
+    }
+
     static WorkflowJobBean getBeanForWorkflowFromArray(Object[] arr) {
 
         WorkflowJobBean wfBean = new WorkflowJobBean();

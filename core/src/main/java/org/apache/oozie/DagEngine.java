@@ -24,6 +24,7 @@ import org.apache.oozie.command.wf.ActionResumeXCommand;
 import org.apache.oozie.command.wf.ActionSuspendXCommand;
 import org.apache.oozie.command.wf.ActionUpdateXCommand;
 import org.apache.oozie.command.wf.ActionsXCommand;
+import org.apache.oozie.command.wf.JobsForCoordXCommand;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.HiveAccessService;
 import org.apache.oozie.service.UUIDService;
@@ -498,6 +499,14 @@ public class DagEngine extends BaseEngine {
         }
         catch (CommandException dce) {
             throw new DagEngineException(dce);
+        }
+    }
+
+    public List<WorkflowJobBean> getJobsForCoord(String coordId) throws DagEngineException {
+        try {
+            return new JobsForCoordXCommand(coordId).call();
+        } catch (CommandException e) {
+            throw new DagEngineException(e);
         }
     }
 

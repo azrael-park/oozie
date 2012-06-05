@@ -107,11 +107,16 @@ public abstract class BaseJobsServlet extends JsonRestServlet {
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException {
-        String externalId = request
-        .getParameter(RestConstants.JOBS_EXTERNAL_ID_PARAM);
+        String coordId = request.getParameter(RestConstants.JOBS_COORD_ID_PARAM);
+        String externalId = request.getParameter(RestConstants.JOBS_EXTERNAL_ID_PARAM);
         if (externalId != null) {
             stopCron();
             JSONObject json = getJobIdForExternalId(request, externalId);
+            startCron();
+            sendJsonResponse(response, HttpServletResponse.SC_OK, json);
+        } else if (coordId != null) {
+            stopCron();
+            JSONObject json = getJobsForCoordinatorId(request, externalId);
             startCron();
             sendJsonResponse(response, HttpServletResponse.SC_OK, json);
         }
@@ -147,6 +152,17 @@ public abstract class BaseJobsServlet extends JsonRestServlet {
      */
     abstract JSONObject getJobIdForExternalId(HttpServletRequest request,
             String externalId) throws XServletException, IOException;
+
+    /**
+     * abstract method to get a list of workflow jobs originated from a coordinator
+     *
+     * @param request
+     * @return JSONObject of the requested jobs
+     * @throws XServletException
+     * @throws IOException
+     */
+    abstract JSONObject getJobsForCoordinatorId(HttpServletRequest request,
+            String coordId) throws XServletException, IOException;
 
     /**
      * abstract method to get a list of workflow jobs
