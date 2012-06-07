@@ -227,7 +227,9 @@ public class HiveSession {
         }
         stage.setQueryId(queryID);
         stage.setStageId(stageId);
-        stage.setJobId(jobID);
+        if (jobID != null) {
+            stage.setJobId(jobID);
+        }
         stage.setStatus(jobStatus);
         if (!jobStatus.equals("NOT_STARTED")) {
             stage.setEndTime(new Date());
@@ -303,13 +305,13 @@ public class HiveSession {
             List<Stage> stages = query.getStageList();
             if (stages != null && !stages.isEmpty()) {
                 for (Stage stage : stages) {
-                    boolean mapreduce = stage.getStageType() == StageType.MAPRED
-                            || stage.getStageType() == StageType.MAPREDLOCAL;
+                    StageType stageType = stage.getStageType();
+                    boolean mapreduce = stageType == StageType.MAPRED || stageType == StageType.MAPREDLOCAL;
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(stage.toString());
                     }
-                    LOG.info("Preparing for query " + query.getQueryId() + " in stage " + stage.getStageId() + " type " + stage.getStageType());
-                    updateStatus(query.getQueryId(), stage.getStageId(), null, mapreduce ? "NOT_STARTED" : "NONE_MR");
+                    LOG.info("Preparing for query " + query.getQueryId() + " in stage " + stage.getStageId() + " type " + stageType);
+                    updateStatus(query.getQueryId(), stage.getStageId(), "NOT_ASSIGNED", mapreduce ? "NOT_STARTED" : stageType.name());
                     containsMR |= mapreduce;
                 }
                 if (containsMR) {
