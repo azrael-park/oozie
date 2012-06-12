@@ -20,7 +20,6 @@ import org.apache.oozie.util.XLog;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -172,10 +171,10 @@ public class FilterResolver {
      * @throws org.apache.oozie.DagEngineException thrown if the conditions is invalid.
      */
     private static <T extends Enum<T> & FilterSet> Map<String, List<String>> parseFilter(Class<T> filter, String conditions) throws DagEngineException {
-        if (conditions == null || conditions.isEmpty()) {
-            return Collections.emptyMap();
-        }
         Map<String, List<String>> result = new HashMap<String, List<String>>();
+        if (conditions == null || conditions.isEmpty()) {
+            return result;
+        }
         for (String condition : conditions.split(";")) {
             String[] keyValue = condition.split("=");
             if (keyValue.length != 2) {
