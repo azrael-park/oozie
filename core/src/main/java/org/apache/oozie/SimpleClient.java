@@ -539,6 +539,7 @@ public class SimpleClient {
         Polling(String jobId, long interval) {
             this.jobId = jobId;
             this.interval = interval;
+            setDaemon(true);
         }
 
         public void run() {
