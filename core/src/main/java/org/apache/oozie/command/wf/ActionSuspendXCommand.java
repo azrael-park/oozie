@@ -84,7 +84,7 @@ public class ActionSuspendXCommand<T> extends WorkflowXCommand<T> {
         HiveSession session = access == null ? null : access.peekRunningStatus(actionId);
         if (session != null) {
             try {
-                session.kill(wfJob);
+                session.kill();
             } catch (Exception e) {
                 LOG.info("failed to kill running hive session", e);
             }

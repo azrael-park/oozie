@@ -66,6 +66,18 @@ public class HiveQueryStatusBean extends JsonHiveStatus {
         this.status = status;
     }
 
+    public void setFailedTasks(String failedTasks) {
+        this.failedTasks = failedTasks;
+    }
+
+    public void appendFailedTask(String failedTask) {
+        if (failedTasks == null || failedTasks.isEmpty()) {
+            failedTasks = failedTask;
+        } else {
+            failedTasks += ";" + failedTask;
+        }
+    }
+
     public Timestamp getStartTimestamp() {
         return startTimestamp;
     }

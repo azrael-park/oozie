@@ -562,6 +562,38 @@ public class CallableQueueService implements Service, Instrumentable {
         return true;
     }
 
+    public synchronized boolean queue(final Runnable runnable, final String name, final String key, long delay) {
+        final long createdTime = System.currentTimeMillis();
+        XCallable callable = new XCallable() {
+            public String getName() { return name; }
+            public String getType() { return name; }
+            public int getPriority() { return 0; }
+            public long getCreatedTime() { return createdTime; }
+            public String getKey() { return key; }
+
+            @Override
+            public String getEntityKey() {
+                return null;  //To change body of implemented methods use File | Settings | File Templates.
+            }
+
+            @Override
+            public void setInterruptMode(boolean mode) {
+                //To change body of implemented methods use File | Settings | File Templates.
+            }
+
+            @Override
+            public boolean inInterruptMode() {
+                return false;  //To change body of implemented methods use File | Settings | File Templates.
+            }
+
+            public Object call() throws Exception {
+                runnable.run();
+                return null;
+            }
+        };
+        return queue(callable, delay);
+    }
+
     private class RunnableWrapper extends PriorityDelayQueue.QueueElement<Runnable> implements Runnable {
         public RunnableWrapper(Runnable element) { super(element); }
         public void run() {

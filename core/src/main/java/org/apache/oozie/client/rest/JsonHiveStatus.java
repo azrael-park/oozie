@@ -36,13 +36,13 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
     @Id
     @Basic
     @Index
-    @Column(name = "query_Id", length = 63)
+    @Column(name = "query_id", length = 63)
     protected String queryId;
 
     @Id
     @Basic
     @Index
-    @Column(name = "stage_Id", length = 15)
+    @Column(name = "stage_id", length = 15)
     protected String stageId;
 
     @Basic
@@ -52,13 +52,17 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
 
     @Basic
     @Index
-    @Column(name = "job_Id", length = 31)
+    @Column(name = "job_id", length = 31)
     protected String jobId;
 
     @Basic
     @Index
     @Column(name = "status", length = 15)
     protected String status;
+
+    @Basic
+    @Column(name = "failed_tasks", length = 4096)
+    protected String failedTasks;
 
     @Transient
     private Date startTime;
@@ -92,6 +96,10 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getFailedTasks() {
+        return failedTasks;
     }
 
     public Date getStartTime() {

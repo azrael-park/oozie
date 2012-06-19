@@ -22,6 +22,8 @@ public interface HiveStatus {
 
     String getStatus();
 
+    String getFailedTasks();
+
     Date getStartTime();
 
     Date getEndTime();

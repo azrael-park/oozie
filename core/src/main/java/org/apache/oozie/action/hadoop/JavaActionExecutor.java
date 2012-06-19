@@ -207,7 +207,7 @@ public class JavaActionExecutor extends ActionExecutor {
         }
     }
 
-    public JobConf createBaseHadoopConf(Context context, Element actionXml) {
+    public static JobConf createBaseHadoopConf(Context context, Element actionXml) {
         Namespace ns = actionXml.getNamespace();
         String jobTracker = actionXml.getChild("job-tracker", ns).getTextTrim();
         String nameNode = actionXml.getChild("name-node", ns).getTextTrim();

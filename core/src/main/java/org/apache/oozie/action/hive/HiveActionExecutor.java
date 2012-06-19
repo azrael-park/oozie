@@ -9,7 +9,9 @@ import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
+import org.apache.oozie.action.hadoop.JavaActionExecutor;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.wf.ActionKillXCommand;
 import org.apache.oozie.executor.jpa.HiveStatusDeleteJPAExecutor;
@@ -43,7 +45,6 @@ public class HiveActionExecutor extends ActionExecutor {
     public static final String THRIFT_ERROR = "THRIFT_ERROR";
     public static final String HIVE_SERVER_ERROR = "HIVE_SERVER_ERROR";
 
-    public static final int DEFAULT_COMPILE_TIMEOUT = 60000;
     public static final int DEFAULT_MAX_FETCH = 20;
     public static final String ACTION_TYPE = "hive";
 
@@ -113,18 +114,21 @@ public class HiveActionExecutor extends ActionExecutor {
             Attribute timeoutAttr = actionXml.getAttribute("compile-timeout");
             Attribute maxFetchAttr = actionXml.getAttribute("max-fetch");
 
+            Configuration configuration = JavaActionExecutor.createBaseHadoopConf(context, actionXml);
+
             ThriftHive.Client client = initialize(context, service.clientFor(addressAttr.getValue()));
 
             String[] queries = getQueries(actionXml, context);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("On executing queries : " + Arrays.toString(queries));
             }
-            String wfID = context.getWorkflow().getId();
+            WorkflowJob workflow = context.getWorkflow();
+            String wfID = workflow.getId();
             String actionName = action.getName();
 
-            int timeout = timeoutAttr == null ? DEFAULT_COMPILE_TIMEOUT : timeoutAttr.getIntValue();
             int maxPatch = maxFetchAttr == null ? DEFAULT_MAX_FETCH : maxFetchAttr.getIntValue();
-            HiveSession session = new HiveSession(wfID, actionName, client, queries, timeout, maxPatch);
+            HiveSession session = new HiveSession(wfID, actionName, client, queries, maxPatch);
+            session.setUGI(configuration, workflow.getUser(), workflow.getGroup());
             service.register(action.getId(), session);
 
             session.execute(context, action);
@@ -205,9 +209,9 @@ public class HiveActionExecutor extends ActionExecutor {
             return;
         }
         try {
-            if (session.kill(context.getWorkflow())) {
+            if (session.kill()) {
                 CallableQueueService callables = Services.get().get(CallableQueueService.class);
-                callables.queue(new ActionKillXCommand(action.getId(), action.getType()), 30000);
+                callables.queue(new ActionKillXCommand(action.getId(), action.getType()), 10000);
             }
         } catch (Exception e) {
             LOG.info("Failed to kill external jobs", e);
