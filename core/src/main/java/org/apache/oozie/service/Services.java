@@ -307,7 +307,7 @@ public class Services {
             Collections.reverse(list);
             for (Service service : list) {
                 try {
-                    log.trace("Destroying service[{0}]", service.getInterface());
+                    log.info("Destroying service[{0}]", service.getInterface());
                     if (service.getInterface() == XLogService.class) {
                         log.info("Shutdown");
                     }

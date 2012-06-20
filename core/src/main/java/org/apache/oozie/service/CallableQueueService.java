@@ -526,6 +526,7 @@ public class CallableQueueService implements Service, Instrumentable {
             while (!executor.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
                 log.info("Waiting for executor to shutdown");
                 if (System.currentTimeMillis() > limit) {
+                    executor.shutdownNow();
                     log.warn("Gave up, continuing without waiting for executor to shutdown");
                     break;
                 }

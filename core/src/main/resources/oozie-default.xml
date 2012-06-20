@@ -98,7 +98,6 @@
         <value>
             org.apache.oozie.service.SchedulerService,
             org.apache.oozie.service.InstrumentationService,
-            org.apache.oozie.service.CallableQueueService,
             org.apache.oozie.service.UUIDService,
             org.apache.oozie.service.ELService,
             org.apache.oozie.service.AuthorizationService,
@@ -114,6 +113,7 @@
             org.apache.oozie.service.CoordinatorStoreService,
             org.apache.oozie.service.SLAStoreService,
             org.apache.oozie.service.DBLiteWorkflowStoreService,
+            org.apache.oozie.service.CallableQueueService,
             org.apache.oozie.service.CallbackService,
             org.apache.oozie.service.ActionService,
             org.apache.oozie.service.ActionCheckerService,
