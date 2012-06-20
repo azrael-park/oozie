@@ -191,11 +191,13 @@ public class HiveActionExecutor extends ActionExecutor {
     public void check(Context context, WorkflowAction action) throws ActionExecutorException {
         LOG.debug("Action check requested");
         HiveAccessService service = Services.get().get(HiveAccessService.class);
-        HiveSession session = service.getRunningSession(action.getId());
-        try {
-            session.check(context);
-        } catch (Exception e) {
-            throw convertException(e);
+        HiveStatus session = service.peekRunningStatus(action.getId());
+        if (session != null) {
+            try {
+                ((HiveSession)session).check(context);
+            } catch (Exception e) {
+                throw convertException(e);
+            }
         }
     }
 
@@ -203,13 +205,13 @@ public class HiveActionExecutor extends ActionExecutor {
     public void kill(Context context, WorkflowAction action) throws ActionExecutorException {
         LOG.debug("Action kill requested");
         HiveAccessService service = Services.get().get(HiveAccessService.class);
-        HiveSession session = service.peekRunningStatus(action.getId());
+        HiveStatus session = service.peekRunningStatus(action.getId());
         if (session == null) {
             LOG.info("failed to find hive status for " + action.getId());
             return;
         }
         try {
-            if (session.kill()) {
+            if (session.shutdown()) {
                 CallableQueueService callables = Services.get().get(CallableQueueService.class);
                 callables.queue(new ActionKillXCommand(action.getId(), action.getType()), 10000);
             }
@@ -222,7 +224,7 @@ public class HiveActionExecutor extends ActionExecutor {
     public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
         LOG.debug("Action callback with status = " + externalStatus + ", data = " + actionData);
         HiveAccessService service = Services.get().get(HiveAccessService.class);
-        HiveSession session = service.peekRunningStatus(actionID);
+        HiveStatus session = service.peekRunningStatus(actionID);
         if (session == null) {
             LOG.info("Action callback arrived for not existing action");
         } else {

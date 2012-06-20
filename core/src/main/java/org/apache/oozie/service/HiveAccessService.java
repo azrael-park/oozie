@@ -3,9 +3,10 @@ package org.apache.oozie.service;
 import org.apache.hadoop.hive.service.ThriftHive;
 import org.apache.oozie.HiveQueryStatusBean;
 import org.apache.oozie.action.ActionExecutorException;
-import org.apache.oozie.action.hive.HiveSession;
+import org.apache.oozie.action.hive.HiveStatus;
 import org.apache.oozie.executor.jpa.HiveStatusGetJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.util.XLog;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
 
@@ -18,65 +19,74 @@ import static org.apache.oozie.action.ActionExecutorException.ErrorType;
 
 public class HiveAccessService implements Service {
 
+    final XLog LOG = XLog.getLog(HiveAccessService.class);
+
     private static final int DEFAULT_PORT = 10000;
 
-    Map<String, Map<String, HiveSession>> hiveStatus;   // wfID : action --> HiveSession
+    Map<String, Map<String, HiveStatus>> hiveStatus;   // wfID : action --> HiveStatus
     ThriftHive.Client.Factory syncFactory;
     UUIDService uuid;
 
-    @Override
     public void init(Services services) throws ServiceException {
         syncFactory = new ThriftHive.Client.Factory();
-        hiveStatus = new HashMap<String, Map<String, HiveSession>>();
+        hiveStatus = new HashMap<String, Map<String, HiveStatus>>();
         uuid = Services.get().get(UUIDService.class);
     }
 
-    @Override
     public synchronized void destroy() {
         if (hiveStatus != null) {
-            for (Map<String, HiveSession> value : hiveStatus.values()) {
-                for (HiveSession session : value.values()) {
+            for (Map<String, HiveStatus> value : hiveStatus.values()) {
+                for (HiveStatus session : value.values()) {
                     session.shutdown();
                 }
             }
+            hiveStatus.clear();
         }
     }
 
-    @Override
     public Class<? extends Service> getInterface() {
         return HiveAccessService.class;
     }
 
-    public synchronized void register(String actionID, HiveSession session) throws ActionExecutorException {
+    public synchronized void register(String actionID, HiveStatus session) {
         String wfID = uuid.getId(actionID);
         String action = uuid.getChildName(actionID);
-        Map<String, HiveSession> map = hiveStatus.get(wfID);
+        Map<String, HiveStatus> map = hiveStatus.get(wfID);
         if (map == null) {
-            hiveStatus.put(wfID, map = new LinkedHashMap<String, HiveSession>());
+            hiveStatus.put(wfID, map = new LinkedHashMap<String, HiveStatus>());
         }
         map.put(action, session);
     }
 
-    public synchronized void unregister(String wfID) {
+    public synchronized void actionFinished(String actionID) {
+        String wfID = uuid.getId(actionID);
+        Map<String, HiveStatus> map = hiveStatus.get(wfID);
+        if (map != null) {
+            map.remove(uuid.getChildName(actionID));
+        }
+    }
+
+    public synchronized void jobFinished(String wfID) {
         hiveStatus.remove(wfID);
     }
 
-    public HiveSession getRunningSession(String actionID) throws ActionExecutorException {
-        HiveSession session = peekRunningStatus(actionID);
-        if (session == null) {
-            throw new ActionExecutorException(ErrorType.ERROR, "HIVE-003", "hive status is not registered for {0}", actionID);
-        }
-        return session;
-    }
-
-    public HiveSession peekRunningStatus(String actionID) {
+    public synchronized HiveStatus peekRunningStatus(String actionID) {
         String wfID = uuid.getId(actionID);
-        Map<String, HiveSession> map = hiveStatus.get(wfID);
+        Map<String, HiveStatus> map = hiveStatus.get(wfID);
         if (map != null) {
             String action = uuid.getChildName(actionID);
             return map.get(action);
         }
         return null;
+    }
+
+    public synchronized HiveStatus accessRunningStatus(String actionID) {
+        HiveStatus session = peekRunningStatus(actionID);
+        if (session == null) {
+            session = new HiveStatus(uuid.getId(actionID), uuid.getChildName(actionID));
+            register(actionID, session);
+        }
+        return session;
     }
 
     public List<HiveQueryStatusBean> getStatusForWorkflow(String wfID) throws JPAExecutorException {
@@ -85,7 +95,7 @@ public class HiveAccessService implements Service {
     }
 
     public List<HiveQueryStatusBean> getStatusForAction(String actionID) throws JPAExecutorException {
-        HiveSession session = peekRunningStatus(actionID);
+        HiveStatus session = peekRunningStatus(actionID);
         if (session != null) {
             return session.getStatus();
         }
@@ -97,7 +107,7 @@ public class HiveAccessService implements Service {
     }
 
     public List<HiveQueryStatusBean> getStatusForQuery(String actionID, String queryID) throws JPAExecutorException {
-        HiveSession session = peekRunningStatus(actionID);
+        HiveStatus session = peekRunningStatus(actionID);
         if (session != null) {
             return session.getStatus(queryID);
         }
@@ -109,7 +119,7 @@ public class HiveAccessService implements Service {
     }
 
     public HiveQueryStatusBean getStatusForStage(String actionID, String queryID, String stageID) throws JPAExecutorException {
-        HiveSession session = peekRunningStatus(actionID);
+        HiveStatus session = peekRunningStatus(actionID);
         if (session != null) {
             return session.getStatus(queryID, stageID);
         }

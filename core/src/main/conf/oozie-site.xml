@@ -49,7 +49,7 @@
             org.apache.oozie.service.ActionCheckerService,
             <!-- Fix pending coordinator actions after oozie reboot: Disable RecoveryService -->
             <!--org.apache.oozie.service.RecoveryService, -->
-            <!--org.apache.oozie.service.PurgeService, -->
+            org.apache.oozie.service.PurgeService, 
             org.apache.oozie.service.CoordinatorEngineService,
             org.apache.oozie.service.BundleEngineService,
             org.apache.oozie.service.DagEngineService,
@@ -231,6 +231,30 @@
         <value>10</value>
         <description>
              Max number of connections.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.PurgeService.older.than</name>
+        <value>30</value>
+        <description>
+            Completed workflow jobs older than this value, in days, will be purged by the PurgeService.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.PurgeService.coord.older.than</name>
+        <value>30</value>
+        <description>
+            Completed coordinator jobs older than this value, in days, will be purged by the PurgeService.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.PurgeService.purge.interval</name>
+        <value>3600</value>
+        <description>
+            Interval at which the purge service will run, in seconds.
         </description>
     </property>
 

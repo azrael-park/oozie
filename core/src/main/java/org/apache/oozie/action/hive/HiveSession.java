@@ -1,120 +1,47 @@
 package org.apache.oozie.action.hive;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.plan.api.Adjacency;
 import org.apache.hadoop.hive.ql.plan.api.Query;
 import org.apache.hadoop.hive.ql.plan.api.QueryPlan;
 import org.apache.hadoop.hive.ql.plan.api.Stage;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
 import org.apache.hadoop.hive.service.ThriftHive;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.JobID;
-import org.apache.hadoop.mapred.RunningJob;
-import org.apache.hadoop.mapred.TaskCompletionEvent;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.oozie.HiveQueryStatusBean;
-import org.apache.oozie.action.ActionExecutor.Context;
+import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.command.wf.ActionCheckXCommand;
-import org.apache.oozie.executor.jpa.HiveStatusInsertJPAExecutor;
 import org.apache.oozie.service.CallableQueueService;
-import org.apache.oozie.service.HadoopAccessorException;
-import org.apache.oozie.service.HadoopAccessorService;
-import org.apache.oozie.service.JPAService;
+import org.apache.oozie.service.HiveAccessService;
 import org.apache.oozie.service.Services;
-import org.apache.oozie.service.UUIDService;
-import org.apache.oozie.util.XConfiguration;
-import org.apache.oozie.util.XLog;
-
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.apache.oozie.action.ActionExecutorException.ErrorType.FAILED;
 
+// for hive action, create for each action
+public class HiveSession extends HiveStatus {
 
-// created per action
-public class HiveSession {
+    final ThriftHive.Client client;
+    final String[] queries;
+    final int maxFetch;
 
-    private final XLog LOG = XLog.getLog(HiveSession.class);
-
-    final String wfID;
-    final String actionID;
-    final String actionName;
-
-    ThriftHive.Client client;
-    int maxFetch;
-
-    Configuration configuration;
-    String user;
-    String group;
-
-    String[] queries;
-    Map<String, Map<String, HiveQueryStatusBean>> status; // queryID#stageID --> StatusBean
+    int index;
+    Executor executor;
 
     boolean killed;
-    boolean cleaned;
-
-    transient int index;
-    transient Executor executor;
-
-    transient JobClient jobClient;
-
-    JPAService jpaService;
 
     public HiveSession(String wfID, String actionName, ThriftHive.Client client, String[] queries, int maxFetch) {
-        this.wfID = wfID;
-        this.actionID = Services.get().get(UUIDService.class).generateChildId(wfID, actionName);
-        this.actionName = actionName;
+        super(wfID, actionName);
         this.client = client;
         this.queries = queries;
         this.maxFetch = maxFetch;
-        this.jpaService = Services.get().get(JPAService.class);
-        this.status = new LinkedHashMap<String, Map<String, HiveQueryStatusBean>>();
-    }
-
-    public void setUGI(Configuration configuration, String user, String group) {
-        this.configuration = configuration;
-        this.user = user;
-        this.group = group;
-    }
-
-    public List<HiveQueryStatusBean> getStatus() {
-        List<HiveQueryStatusBean> result = new ArrayList<HiveQueryStatusBean>();
-        for (Map<String, HiveQueryStatusBean> stages : status.values()) {
-            for (HiveQueryStatusBean status : stages.values()) {
-                result.add(status.duplicate());
-            }
-        }
-        return result;
-    }
-
-    public List<HiveQueryStatusBean> getStatus(String queryID) {
-        Map<String, HiveQueryStatusBean> stages = status.get(queryID);
-        if (stages != null) {
-            List<HiveQueryStatusBean> result = new ArrayList<HiveQueryStatusBean>();
-            for (HiveQueryStatusBean status : stages.values()) {
-                result.add(status.duplicate());
-            }
-            return result;
-        }
-        return null;
-    }
-
-    public HiveQueryStatusBean getStatus(String queryID, String stageID) {
-        Map<String, HiveQueryStatusBean> stages = status.get(queryID);
-        if (stages != null) {
-            return stages.get(stageID);
-        }
-        return null;
     }
 
     private synchronized boolean isFinal() {
@@ -125,159 +52,70 @@ public class HiveSession {
         return isFinal() && (executor == null || executor.executed || executor.ex != null);
     }
 
-    private synchronized boolean executeNext(Context context, WorkflowAction action) {
+    public synchronized void execute(ActionExecutor.Context context, WorkflowAction action) throws Exception {
+        if (!executeNext(context, action)) {
+            check(context);
+        }
+    }
+
+    private synchronized boolean executeNext(ActionExecutor.Context context, WorkflowAction action) {
         if (!isFinal()) {
-            executor = new Executor(context, action, queries[index++], index);
+            executor = new Executor(context, action, queries[index], ++index);
             Services.get().get(CallableQueueService.class).queue(executor);
             return true;
         }
+        executor = null;
         return false;
     }
 
-    public synchronized void execute(Context context, WorkflowAction action) {
-        if (!executeNext(context, action)) {
-            cleanup(context);
-        }
-    }
-
-    public synchronized void check(Context context) throws Exception {
+    public synchronized void check(ActionExecutor.Context context) throws Exception {
         if (executor != null && executor.ex != null) {
-            cleanup(context);
+            cleanup(context, "FAILED");
             throw new ActionExecutorException(FAILED,
                     "HIVE-002", "failed to execute query {0}", executor.toString(), executor.ex);
         }
         if (isCompleted()) {
-            cleanup(context);
+            cleanup(context, "OK");
         }
     }
 
-    // called by CallbackServlet --> CompletedActionXCommand
+    @Override
     public synchronized void callback(String queryID, String stageID, String jobID, String jobStatus) {
         if (executor != null && executor.inverted != null && jobStatus.equals("SUCCEEDED")) {
             executor.finishPrev(queryID, stageID);
         }
-        HiveQueryStatusBean status = updateStatus(queryID, stageID, jobID, jobStatus);
-        if (jobStatus.equals("STARTED")) {
-            try {
-                RunningJob job = jobClient().getJob(JobID.forName(jobID));
-                if (job != null) {
-                    Services.get().get(CallableQueueService.class).queue(new Polling(status, job));
-                }
-            } catch (Exception e) {
-                LOG.info("Failed to start polling job " + jobID, e);
-            }
-        }
+        super.callback(queryID, stageID, jobID, jobStatus);
     }
 
-    public synchronized boolean kill() {
+    @Override
+    public synchronized boolean shutdown() {
+        super.shutdown();
         killed = true;
-        for (Map<String, HiveQueryStatusBean> stages : status.values()) {
-            for (HiveQueryStatusBean stage : stages.values()) {
-                if (stage.getStatus().equals("STARTED")) {
-                    try {
-                        killJob(stage);
-                    } catch (Throwable e) {
-                        LOG.warn("Failed to kill stage " + stage.toString(), e);
-                    }
-                }
-            }
+        closeSession();
+        HiveAccessService hive = Services.get().get(HiveAccessService.class);
+        if (hive != null) {
+            hive.actionFinished(actionID);
         }
         return executor != null;
     }
 
-    public synchronized void shutdown() {
+    private void closeSession() {
         try {
             client.shutdown();
         } catch (Exception e) {
             LOG.debug("Failed to shutdown hive connection", e);
         }
-        if (jobClient != null) {
-            try {
-                jobClient.close();
-            } catch (Exception e) {
-                LOG.debug("Failed to shutdown job client", e);
-            }
-        }
     }
 
-    private void killJob(HiveQueryStatusBean stage) throws Exception {
-        RunningJob runningJob = jobClient().getJob(JobID.forName(stage.getJobId()));
-        if (runningJob != null && !runningJob.isComplete()) {
-            LOG.info("Killing MapReduce job " + runningJob.getID());
-            try {
-                runningJob.killJob();
-            } catch (Exception e) {
-                LOG.info("Failed to kill MapReduce job " + runningJob.getID(), e);
-            }
-        }
-    }
-
-    private void cleanup(Context context) {
-        if (cleaned) {
-            return;
-        }
+    private void cleanup(ActionExecutor.Context context, String status) {
         LOG.info("Cleaning up hive session");
-        context.setExecutionData("OK", null);   // induce ActionEndXCommand
-        if (killed) {
-            kill();
-        }
-        try {
-            client.shutdown();
-        } catch (Exception e) {
-            LOG.info("Failed to shutdown hive connection", e);
-        }
-        cleaned = true;
-    }
-
-    private synchronized HiveQueryStatusBean updateStatus(String queryID, String stageId, String jobID, String jobStatus) {
-        HiveQueryStatusBean stage = null;
-        Map<String, HiveQueryStatusBean> stages = status.get(queryID);
-        if (stages == null) {
-            status.put(queryID, stages = new LinkedHashMap<String, HiveQueryStatusBean>());
-        } else {
-            stage = stages.get(stageId);
-        }
-        if (stage == null) {
-            stage = new HiveQueryStatusBean();
-            stage.setStartTime(new Date());
-            stage.setWfId(wfID);
-            stage.setActionId(actionID);
-            stage.setActionName(actionName);
-            stages.put(stageId, stage);
-        }
-        stage.setQueryId(queryID);
-        stage.setStageId(stageId);
-        if (jobID != null) {
-            stage.setJobId(jobID);
-        }
-        stage.setStatus(jobStatus);
-        if (!jobStatus.equals("NOT_STARTED")) {
-            stage.setEndTime(new Date());
-        }
-        updateStatus(stage);
-        return stage;
-    }
-
-    private void updateStatus(HiveQueryStatusBean stage) {
-        try {
-            jpaService.execute(new HiveStatusInsertJPAExecutor(stage));
-        } catch (Exception e) {
-            LOG.info("Failed to update hive status", e);
-        }
-    }
-
-    private JobClient jobClient() throws HadoopAccessorException {
-        if (jobClient == null) {
-            JobConf jobConf = new JobConf();
-            XConfiguration.copy(configuration, jobConf);
-            jobClient = Services.get().get(HadoopAccessorService.class).createJobClient(user, jobConf);
-        }
-        return jobClient;
+        context.setExecutionData(status, null);   // induce ActionEndXCommand
+        shutdown();
     }
 
     private class Executor implements Runnable {
 
-        Context context;
+        ActionExecutor.Context context;
         WorkflowAction action;
         String query;
         int current;
@@ -288,7 +126,7 @@ public class HiveSession {
         volatile Exception ex;
         volatile boolean executed;
 
-        public Executor(Context context, WorkflowAction action, String query, int current) {
+        public Executor(ActionExecutor.Context context, WorkflowAction action, String query, int current) {
             this.context = context;
             this.action = action;
             this.query = query;
@@ -417,52 +255,4 @@ public class HiveSession {
         }
     }
 
-    // from JobClient#monitorAndPrintJob
-    private class Polling implements Runnable {
-
-        HiveQueryStatusBean status;
-        RunningJob job;
-
-        Polling(HiveQueryStatusBean status, RunningJob job) {
-            this.status = status;
-            this.job = job;
-        }
-
-        public void run() {
-            int eventCounter = 0;
-            float[] progress = new float[2];
-            try {
-                while (!job.isComplete()) {
-                    Thread.sleep(1000);
-
-                    if (job.mapProgress() != progress[0] || job.reduceProgress() != progress[1]) {
-                        StringBuilder builder = new StringBuilder();
-                        builder.append(" map ").append(StringUtils.formatPercent(job.mapProgress(), 0));
-                        builder.append(" reduce ").append(StringUtils.formatPercent(job.reduceProgress(), 0));
-                        LOG.info(builder.toString());
-                        progress[0] = job.mapProgress();
-                        progress[1] = job.reduceProgress();
-                    }
-
-                    boolean update = false;
-                    TaskCompletionEvent[] events = job.getTaskCompletionEvents(eventCounter);
-                    eventCounter += events.length;
-                    for(TaskCompletionEvent event : events) {
-                        TaskCompletionEvent.Status status = event.getTaskStatus();
-                        if (status == TaskCompletionEvent.Status.FAILED) {
-                            this.status.appendFailedTask(event.getTaskAttemptId() + "=" + event.getTaskTrackerHttp());
-                            update = true;
-                        }
-                    }
-                    if (update) {
-                        updateStatus(status);
-                    }
-                }
-            } catch (Exception e) {
-                LOG.info("Polling thread is exiting by exception " + e + ".. retrying in 30sec", e);
-                String unique = status.getJobId() + ":" + status.getStageId();
-                Services.get().get(CallableQueueService.class).queue(this, "mr.polling", unique, 30000l);
-            }
-        }
-    }
 }
