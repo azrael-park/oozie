@@ -190,9 +190,11 @@ public class HiveSession extends HiveStatus {
             }
             client.run();
 
+            StringBuilder builder = new StringBuilder().append("fetch dump\n");
             for (String result : client.fetchN(maxFetch)) {
-                LOG.info(result);
+                builder.append(result).append('\n');
             }
+            LOG.info(builder.toString());
             client.clean();
 
             if (stages != null && !stages.isEmpty()) {
