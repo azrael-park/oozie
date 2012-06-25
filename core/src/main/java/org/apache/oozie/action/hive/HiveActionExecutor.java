@@ -46,6 +46,8 @@ public class HiveActionExecutor extends ActionExecutor {
     public static final String HIVE_SERVER_ERROR = "HIVE_SERVER_ERROR";
 
     public static final int DEFAULT_MAX_FETCH = 20;
+    public static final boolean DEFAULT_MONITORING = true;
+
     public static final String ACTION_TYPE = "hive";
 
     private final XLog LOG = XLog.getLog(HiveActionExecutor.class);
@@ -113,6 +115,7 @@ public class HiveActionExecutor extends ActionExecutor {
             Attribute addressAttr = actionXml.getAttribute("address");
             Attribute timeoutAttr = actionXml.getAttribute("compile-timeout");
             Attribute maxFetchAttr = actionXml.getAttribute("max-fetch");
+            Attribute monitorAttr = actionXml.getAttribute("monitor");
 
             Configuration configuration = JavaActionExecutor.createBaseHadoopConf(context, actionXml);
 
@@ -127,7 +130,8 @@ public class HiveActionExecutor extends ActionExecutor {
             String actionName = action.getName();
 
             int maxPatch = maxFetchAttr == null ? DEFAULT_MAX_FETCH : maxFetchAttr.getIntValue();
-            HiveSession session = new HiveSession(wfID, actionName, client, queries, maxPatch);
+            boolean monitoring = monitorAttr == null ? DEFAULT_MONITORING : monitorAttr.getBooleanValue();
+            HiveSession session = new HiveSession(wfID, actionName, monitoring, client, queries, maxPatch);
             session.setUGI(configuration, workflow.getUser(), workflow.getGroup());
             service.register(action.getId(), session);
 

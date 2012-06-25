@@ -33,6 +33,8 @@ public class HiveStatus {
     final String actionID;
     final String actionName;
 
+    final boolean monitoring;
+
     Configuration configuration;
     String user;
     String group;
@@ -42,10 +44,11 @@ public class HiveStatus {
 
     JobClient jobClient;
 
-    public HiveStatus(String wfID, String actionName) {
+    public HiveStatus(String wfID, String actionName, boolean monitoring) {
         this.wfID = wfID;
         this.actionID = Services.get().get(UUIDService.class).generateChildId(wfID, actionName);
         this.actionName = actionName;
+        this.monitoring = monitoring;
         this.jpaService = Services.get().get(JPAService.class);
         this.status = new LinkedHashMap<String, Map<String, HiveQueryStatusBean>>();
     }
@@ -89,7 +92,7 @@ public class HiveStatus {
     // called by CallbackServlet --> CompletedActionXCommand
     public synchronized void callback(String queryID, String stageID, String jobID, String jobStatus) {
         HiveQueryStatusBean status = updateStatus(queryID, stageID, jobID, jobStatus);
-        if (jobStatus.equals("STARTED")) {
+        if (monitoring && jobStatus.equals("STARTED")) {
             try {
                 RunningJob job = jobClient().getJob(JobID.forName(jobID));
                 if (job == null) {
@@ -228,10 +231,10 @@ public class HiveStatus {
                     TaskCompletionEvent[] events = job.getTaskCompletionEvents(eventCounter);
                     eventCounter += events.length;
                     for(TaskCompletionEvent event : events) {
-                        TaskCompletionEvent.Status status = event.getTaskStatus();
-                        if (status == TaskCompletionEvent.Status.FAILED) {
-                            this.status.appendFailedTask(event.getTaskAttemptId() + "=" + event.getTaskTrackerHttp());
-                            update = true;
+                        TaskCompletionEvent.Status taskStatus = event.getTaskStatus();
+                        if (taskStatus == TaskCompletionEvent.Status.FAILED) {
+                            status.appendFailedTask(event.getTaskAttemptId() + "=" + event.getTaskTrackerHttp());
+                            update |= true;
                         }
                     }
                     if (update) {

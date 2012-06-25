@@ -80,10 +80,10 @@ public class HiveAccessService implements Service {
         return null;
     }
 
-    public synchronized HiveStatus accessRunningStatus(String actionID) {
+    public synchronized HiveStatus accessRunningStatus(String actionID, boolean monitoring) {
         HiveStatus session = peekRunningStatus(actionID);
         if (session == null) {
-            session = new HiveStatus(uuid.getId(actionID), uuid.getChildName(actionID));
+            session = new HiveStatus(uuid.getId(actionID), uuid.getChildName(actionID), monitoring);
             register(actionID, session);
         }
         return session;

@@ -37,8 +37,8 @@ public class HiveSession extends HiveStatus {
 
     boolean killed;
 
-    public HiveSession(String wfID, String actionName, ThriftHive.Client client, String[] queries, int maxFetch) {
-        super(wfID, actionName);
+    public HiveSession(String wfID, String actionName, boolean monitoring, ThriftHive.Client client, String[] queries, int maxFetch) {
+        super(wfID, actionName, monitoring);
         this.client = client;
         this.queries = queries;
         this.maxFetch = maxFetch;
