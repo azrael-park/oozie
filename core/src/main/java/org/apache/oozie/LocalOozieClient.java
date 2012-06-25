@@ -396,28 +396,60 @@ public class LocalOozieClient extends OozieClient {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public List<HiveStatus> getHiveStatusListForQueryID(String actionID, String queryID) throws OozieClientException {
-        return dagEngine.getHiveStatusListForQueryID(actionID, queryID);
+        try {
+            return (List)dagEngine.getHiveStatusListForQueryID(actionID, queryID);
+        } catch (XException e) {
+            throw new OozieClientException(e.getErrorCode().toString(), e);
+        }
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public List<HiveStatus> getHiveStatusListForActionID(String actionID) throws OozieClientException {
-        return dagEngine.getHiveStatusListForActionID(actionID);
+        try {
+            return (List)dagEngine.getHiveStatusListForActionID(actionID);
+        } catch (XException e) {
+            throw new OozieClientException(e.getErrorCode().toString(), e);
+        }
     }
 
     @Override
-    public List<HiveStatus> getHiveStatusForWorkflowID(String wfID) throws OozieClientException {
-        return dagEngine.getHiveStatusForWorkflowID(wfID);
+    @SuppressWarnings("unchecked")
+    public List<HiveStatus> getHiveStatusListForWorkflowID(String wfID) throws OozieClientException {
+        try {
+            return (List)dagEngine.getHiveStatusListForWorkflowID(wfID);
+        } catch (XException e) {
+            throw new OozieClientException(e.getErrorCode().toString(), e);
+        }
     }
 
     @Override
     public HiveStatus getHiveStatusForStageID(String actionID, String queryID, String stageID) throws OozieClientException {
-        return dagEngine.getHiveStatusForStageID(actionID, queryID, stageID);
+        try {
+            return dagEngine.getHiveStatusForStageID(actionID, queryID, stageID);
+        } catch (XException e) {
+            throw new OozieClientException(e.getErrorCode().toString(), e);
+        }
     }
 
     @Override
     public HiveStatus getHiveStatusForJobID(String jobID) throws OozieClientException {
-        return dagEngine.getHiveStatusForJobID(jobID);
+        try {
+            return dagEngine.getHiveStatusForJobID(jobID);
+        } catch (XException e) {
+            throw new OozieClientException(e.getErrorCode().toString(), e);
+        }
+    }
+
+    @Override
+    public Map<String, List<String>> getFailedTaskURLs(String id) throws OozieClientException {
+        try {
+            return dagEngine.getFailedTaskURLs(id);
+        } catch (XException e) {
+            throw new OozieClientException(e.getErrorCode().toString(), e);
+        }
     }
 
     /**

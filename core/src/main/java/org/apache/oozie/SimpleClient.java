@@ -324,6 +324,19 @@ public class SimpleClient {
                         System.out.println(XmlUtils.prettyPrint(context.getActionConf(action)).toString());
                     }
                 }
+            } else if (commands[0].equals("failed")) {
+                String targetID = getID(commands);
+                if (targetID == null) {
+                    System.out.println("target id is not specified");
+                } else {
+                    Map<String, List<String>> result = client.getFailedTaskURLs(targetID);
+                    for (Map.Entry<String, List<String>> entry : result.entrySet()) {
+                        System.out.println(entry.getKey());
+                        for (String value : entry.getValue()) {
+                            System.out.println("    " + value);
+                        }
+                    }
+                }
             } else if (commands[0].equals("use")) {
                 String newJobID;
                 if (commands.length > 1 && commands[1].length() > 0 && isJobID(commands[1])) {

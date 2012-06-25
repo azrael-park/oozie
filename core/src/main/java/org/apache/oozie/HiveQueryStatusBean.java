@@ -21,9 +21,16 @@ import java.util.Date;
         @NamedQuery(name = "UPDATE_STATUS", query = "update HiveQueryStatusBean a set a.jobId = :jobId, a.status = :status where a.wfId = :wfId AND a.actionName = :actionName AND a.queryId = :queryId AND a.stageId = :stageId"),
 
         @NamedQuery(name = "GET_STATUS_WF", query = "select OBJECT(a) from HiveQueryStatusBean a where a.wfId = :wfId"),
+        @NamedQuery(name = "GET_STATUS_WF_FAILED", query = "select OBJECT(a) from HiveQueryStatusBean a where a.wfId = :wfId AND a.failedTasks IS NOT NULL"),
+
         @NamedQuery(name = "GET_STATUS_WF_ACTION", query = "select OBJECT(a) from HiveQueryStatusBean a where a.wfId = :wfId AND a.actionName = :actionName"),
+        @NamedQuery(name = "GET_STATUS_WF_ACTION_FAILED", query = "select OBJECT(a) from HiveQueryStatusBean a where a.wfId = :wfId AND a.actionName = :actionName AND a.failedTasks IS NOT NULL"),
+
         @NamedQuery(name = "GET_STATUS_WF_ACTION_QUERY", query = "select OBJECT(a) from HiveQueryStatusBean a where a.wfId = :wfId AND a.actionName = :actionName AND a.queryId = :queryId"),
+        @NamedQuery(name = "GET_STATUS_WF_ACTION_QUERY_FAILED", query = "select OBJECT(a) from HiveQueryStatusBean a where a.wfId = :wfId AND a.actionName = :actionName AND a.queryId = :queryId AND a.failedTasks IS NOT NULL"),
+
         @NamedQuery(name = "GET_STATUS_WF_ACTION_QUERY_STAGE", query = "select OBJECT(a) from HiveQueryStatusBean a where a.wfId = :wfId AND a.actionName = :actionName AND a.queryId = :queryId AND a.stageId = :stageId"),
+        @NamedQuery(name = "GET_STATUS_WF_ACTION_QUERY_STAGE_FAILED", query = "select OBJECT(a) from HiveQueryStatusBean a where a.wfId = :wfId AND a.actionName = :actionName AND a.queryId = :queryId AND a.stageId = :stageId AND a.failedTasks IS NOT NULL"),
 
         @NamedQuery(name = "GET_STATUS_JOB", query = "select OBJECT(a) from HiveQueryStatusBean a where a.jobId = :jobId")
         })

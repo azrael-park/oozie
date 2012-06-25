@@ -14,8 +14,9 @@ public class HiveStatusGetJPAExecutor implements JPAExecutor<List<HiveQueryStatu
     private String queryId;
     private String stageId;
     private String jobId;
+    private boolean hasFailedTasks;
 
-    private final String query;
+    private String query;
 
     public HiveStatusGetJPAExecutor(String wfId) {
         this.wfId = wfId;
@@ -48,12 +49,19 @@ public class HiveStatusGetJPAExecutor implements JPAExecutor<List<HiveQueryStatu
         this.query = "GET_STATUS_JOB";
     }
 
+    public void setHasFailedTasks(boolean hasFailedTasks) {
+        this.hasFailedTasks = hasFailedTasks;
+    }
+
     public String getName() {
         return "HiveStatusGetJPAExecutor";
     }
 
     @SuppressWarnings("unchecked")
     public List<HiveQueryStatusBean> execute(EntityManager em) throws JPAExecutorException {
+        if (hasFailedTasks) {
+            query += "_FAILED";
+        }
         try {
             Query q = em.createNamedQuery(query);
             if (wfId != null) {

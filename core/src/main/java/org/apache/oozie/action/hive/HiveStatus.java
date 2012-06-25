@@ -249,8 +249,7 @@ public class HiveStatus {
         }
     }
 
-    //add &filter=stdout or stderr or syslog, &start, &end is optional
     public static String getTaskLogURL(String taskId, String baseUrl) {
-        return baseUrl + "/tasklog?plaintext=true&taskid=" + taskId;
+        return baseUrl + "/tasklog?attemptid=" + taskId + "&all=true";
     }
 }

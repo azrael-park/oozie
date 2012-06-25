@@ -170,6 +170,10 @@ public interface RestConstants {
 
     public static final String HIVE_ACTION_STATUS = "status";
 
+    public static final String HIVE_FAILED_TASK_URLS = "failed-task-url";
+
+    public static final String HIVE_GENERIC_ID = "id";
+
     public static final String HIVE_STATUS_WF_ID = "worflow-id";
 
     public static final String HIVE_STATUS_ACTION_ID = "action-id";

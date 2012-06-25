@@ -3,6 +3,7 @@ package org.apache.oozie.service;
 import org.apache.hadoop.hive.service.ThriftHive;
 import org.apache.oozie.HiveQueryStatusBean;
 import org.apache.oozie.action.ActionExecutorException;
+import org.apache.oozie.action.hive.HiveSession;
 import org.apache.oozie.action.hive.HiveStatus;
 import org.apache.oozie.executor.jpa.HiveStatusGetJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
@@ -10,6 +11,8 @@ import org.apache.oozie.util.XLog;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -95,6 +98,10 @@ public class HiveAccessService implements Service {
     }
 
     public List<HiveQueryStatusBean> getStatusForAction(String actionID) throws JPAExecutorException {
+        return _getStatusForAction(actionID, false);
+    }
+
+    public List<HiveQueryStatusBean> _getStatusForAction(String actionID, boolean failedURL) throws JPAExecutorException {
         HiveStatus session = peekRunningStatus(actionID);
         if (session != null) {
             return session.getStatus();
@@ -102,8 +109,37 @@ public class HiveAccessService implements Service {
         String wfID = uuid.getId(actionID);
         String action = uuid.getChildName(actionID);
 
+        HiveStatusGetJPAExecutor executor = new HiveStatusGetJPAExecutor(wfID, action);
+        executor.setHasFailedTasks(failedURL);
+
         JPAService jpaService = Services.get().get(JPAService.class);
-        return jpaService.execute(new HiveStatusGetJPAExecutor(wfID, action));
+        return jpaService.execute(executor);
+    }
+
+    public Map<String, List<String>> getFailedTaskURLs(String id) throws JPAExecutorException {
+        String actionName = id.contains("@") ? uuid.getChildName(id) : null;
+        List<HiveQueryStatusBean> list = actionName != null ? _getStatusForAction(id, true) : getStatusForWorkflow(id);
+        if (list == null || list.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, List<String>> result = new LinkedHashMap<String, List<String>>();
+        for (HiveQueryStatusBean bean : list) {
+            if (bean.getFailedTasks() == null || bean.getFailedTasks().isEmpty()) {
+                continue;
+            }
+            StringBuilder builder = new StringBuilder();
+            if (actionName == null) {
+                builder.append(bean.getActionName()).append(':');
+            }
+            builder.append(bean.getQueryId()).append(':').append(bean.getStageId());
+            List<String> values = new ArrayList<String>();
+            for (String entry : bean.getFailedTasks().split(";")) {
+                String[] pair = entry.split("=");
+                values.add(HiveSession.getTaskLogURL(pair[0], pair[1]));
+            }
+            result.put(builder.toString(), values);
+        }
+        return result;
     }
 
     public List<HiveQueryStatusBean> getStatusForQuery(String actionID, String queryID) throws JPAExecutorException {

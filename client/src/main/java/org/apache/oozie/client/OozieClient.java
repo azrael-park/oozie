@@ -35,6 +35,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -57,8 +58,8 @@ import static org.apache.oozie.client.rest.RestConstants.ACTION;
 import static org.apache.oozie.client.rest.RestConstants.ACTION_PARAM;
 import static org.apache.oozie.client.rest.RestConstants.HIVE_ACTION;
 import static org.apache.oozie.client.rest.RestConstants.HIVE_ACTION_STATUS;
-//import static org.apache.oozie.client.rest.RestConstants.HIVE_FAILED_TASK_URLS;
-//import static org.apache.oozie.client.rest.RestConstants.HIVE_GENERIC_ID;
+import static org.apache.oozie.client.rest.RestConstants.HIVE_FAILED_TASK_URLS;
+import static org.apache.oozie.client.rest.RestConstants.HIVE_GENERIC_ID;
 import static org.apache.oozie.client.rest.RestConstants.HIVE_STATUS_ACTION_ID;
 import static org.apache.oozie.client.rest.RestConstants.HIVE_STATUS_JOB_ID;
 import static org.apache.oozie.client.rest.RestConstants.HIVE_STATUS_QUERY_ID;
@@ -1623,7 +1624,30 @@ public class OozieClient {
         }
     }
 
-    public List<HiveStatus> getHiveStatusForWorkflowID(String wfID) throws OozieClientException {
+    private class GetFailedTaskURLs extends ClientCallable<Map<String, List<String>>> {
+
+        public GetFailedTaskURLs(Map<String, String> param) {
+            super("PUT", RestConstants.HIVE, "", param);
+        }
+
+        @SuppressWarnings("unchecked")
+        public Map<String, List<String>> call(HttpURLConnection conn) throws IOException, OozieClientException {
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                handleError(conn);
+            }
+            Reader reader = new InputStreamReader(conn.getInputStream());
+            JSONObject json = (JSONObject) JSONValue.parse(reader);
+
+            Map<String, List<String>> result = new TreeMap<String, List<String>>();
+            for (Object value : json.entrySet()) {
+                Map.Entry<String, JSONArray> entry = (Map.Entry<String, JSONArray>) value;
+                result.put(entry.getKey(), entry.getValue());
+            }
+            return result;
+        }
+    }
+
+    public List<HiveStatus> getHiveStatusListForWorkflowID(String wfID) throws OozieClientException {
         Map<String, String> param = prepareParams(HIVE_ACTION, HIVE_ACTION_STATUS, HIVE_STATUS_WF_ID, wfID);
         return new GetHiveStatusList(param).call();
     }
@@ -1646,6 +1670,11 @@ public class OozieClient {
     public HiveStatus getHiveStatusForJobID(String jobID) throws OozieClientException {
         Map<String, String> param = prepareParams(HIVE_ACTION, HIVE_ACTION_STATUS, HIVE_STATUS_JOB_ID, jobID);
         return new GetHiveStatus(param).call();
+    }
+
+    public Map<String, List<String>> getFailedTaskURLs(String id) throws OozieClientException {
+        Map<String, String> param = prepareParams(HIVE_ACTION, HIVE_FAILED_TASK_URLS, HIVE_GENERIC_ID, id);
+        return new GetFailedTaskURLs(param).call();
     }
 
     private class SetSystemMode extends ClientCallable<Void> {

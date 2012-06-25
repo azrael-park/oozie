@@ -17,7 +17,6 @@
  */
 package org.apache.oozie;
 
-import org.apache.oozie.client.HiveStatus;
 import org.apache.oozie.client.OozieClientException;
 import org.apache.oozie.command.FilterResolver;
 import org.apache.oozie.command.wf.ActionResumeXCommand;
@@ -59,15 +58,15 @@ import org.apache.oozie.util.XCallable;
 import org.apache.oozie.util.XLog;
 
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.ArrayList;
 import java.io.IOException;
 
 /**
@@ -555,58 +554,58 @@ public class DagEngine extends BaseEngine {
         }
     }
 
-    public List<HiveStatus> getHiveStatusForWorkflowID(String wfID) throws OozieClientException {
+    public List<HiveQueryStatusBean> getHiveStatusListForWorkflowID(String wfID) throws BaseEngineException {
         HiveAccessService hive = Services.get().get(HiveAccessService.class);
         try {
-            return convert(hive.getStatusForWorkflow(wfID));
+            return hive.getStatusForWorkflow(wfID);
         } catch (JPAExecutorException ex) {
-            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+            throw new BaseEngineException(ex);
         }
     }
 
-    public List<HiveStatus> getHiveStatusListForActionID(String actionID) throws OozieClientException {
+    public List<HiveQueryStatusBean> getHiveStatusListForActionID(String actionID) throws BaseEngineException {
         HiveAccessService hive = Services.get().get(HiveAccessService.class);
         try {
-            return convert(hive.getStatusForAction(actionID));
+            return hive.getStatusForAction(actionID);
         } catch (JPAExecutorException ex) {
-            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+            throw new BaseEngineException(ex);
         }
     }
 
-    public List<HiveStatus> getHiveStatusListForQueryID(String actionID, String queryID) throws OozieClientException {
+    public List<HiveQueryStatusBean> getHiveStatusListForQueryID(String actionID, String queryID) throws BaseEngineException {
         HiveAccessService hive = Services.get().get(HiveAccessService.class);
         try {
-            return convert(hive.getStatusForQuery(actionID, queryID));
+            return hive.getStatusForQuery(actionID, queryID);
         } catch (JPAExecutorException ex) {
-            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+            throw new BaseEngineException(ex);
         }
     }
 
-    public HiveStatus getHiveStatusForStageID(String actionID, String queryID, String stageID) throws OozieClientException {
+    public HiveQueryStatusBean getHiveStatusForStageID(String actionID, String queryID, String stageID) throws BaseEngineException {
         HiveAccessService hive = Services.get().get(HiveAccessService.class);
         try {
             return hive.getStatusForStage(actionID, queryID, stageID);
         } catch (JPAExecutorException ex) {
-            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+            throw new BaseEngineException(ex);
         }
     }
 
-    public HiveStatus getHiveStatusForJobID(String jobID) throws OozieClientException {
+    public HiveQueryStatusBean getHiveStatusForJobID(String jobID) throws BaseEngineException {
         HiveAccessService hive = Services.get().get(HiveAccessService.class);
         try {
             return hive.getStatusForJob(jobID);
         } catch (JPAExecutorException ex) {
-            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+            throw new BaseEngineException(ex);
         }
     }
 
-    private List<HiveStatus> convert(List<HiveQueryStatusBean> status) {
-        if (status == null) {
-            return null;
+    public Map<String, List<String>> getFailedTaskURLs(String id) throws BaseEngineException {
+        HiveAccessService hive = Services.get().get(HiveAccessService.class);
+        try {
+            return hive.getFailedTaskURLs(id);
+        } catch (JPAExecutorException ex) {
+            throw new BaseEngineException(ex);
         }
-        List<HiveStatus> result = new ArrayList<HiveStatus>();
-        result.addAll(status);
-        return result;
     }
 
     /* (non-Javadoc)
