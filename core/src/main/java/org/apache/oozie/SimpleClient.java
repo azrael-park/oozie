@@ -374,8 +374,13 @@ public class SimpleClient {
             } else {
                 System.err.println("invalid command " + line);
             }
-        } catch (Exception e) {
+        } catch (OozieClientException e) {
             e.printStackTrace();
+            if (e.getDetail() != null) {
+                System.out.println(e.getDetail().replaceAll("\\|", "\n\t"));
+            }
+        } catch (Exception e) {
+          e.printStackTrace();
         }
         return true;
     }

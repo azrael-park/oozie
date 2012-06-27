@@ -294,7 +294,7 @@ public abstract class JsonRestServlet extends HttpServlet {
             request.setAttribute(AUDIT_ERROR_CODE, ex.getErrorCode().toString());
             request.setAttribute(AUDIT_HTTP_STATUS_CODE, ex.getHttpStatusCode());
             incrCounter(INSTR_TOTAL_FAILED_REQUESTS_COUNTER, 1);
-            sendErrorResponse(response, ex.getHttpStatusCode(), ex.getErrorCode().toString(), ex.getMessage());
+            sendErrorResponse(response, ex);
         }
         catch (AccessControlException ex) {
             XLog log = XLog.getLog(getClass());
@@ -373,8 +373,25 @@ public abstract class JsonRestServlet extends HttpServlet {
     protected void sendErrorResponse(HttpServletResponse response, XServletException ex) throws IOException {
         response.setHeader(RestConstants.OOZIE_ERROR_CODE, ex.getErrorCode().toString());
         response.setHeader(RestConstants.OOZIE_ERROR_MESSAGE, ex.getLocalizedMessage());
-        if (ex.getCause() != null) {
-            response.setHeader(RestConstants.OOZIE_ERROR_DETAIL, StringUtils.stringifyException(ex.getCause()));
+
+        Throwable root = ex.getCause();
+        while (root != null && root.getCause() != null) {
+            root = root.getCause();
+        }
+        if (root != null) {
+            StringBuilder builder = new StringBuilder();
+            builder.append(root.toString());
+            StackTraceElement[] trace = root.getStackTrace();
+            for (int i = 0; i < trace.length; i++) {
+                builder.append("|at ").append(trace[i]);
+                if (builder.length() > 2048) {
+                    if (trace.length - i > 1) {
+                    builder.append("|... ").append(trace.length - i - 1).append(" more");
+                    }
+                    break;
+                }
+            }
+            response.setHeader(RestConstants.OOZIE_ERROR_DETAIL, builder.toString());
         }
         response.sendError(ex.getHttpStatusCode());
     }
