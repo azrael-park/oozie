@@ -297,8 +297,8 @@ public class SimpleClient {
                     }
                     return true;
                 }
-                if (!params.all && (params.jobID != null || jobID != null)) {
-                    params.appendFilter("id=" + targetID);
+                if (!params.all && params.jobID != null) {
+                    params.appendFilter("id=" + params.jobID);
                 }
 
                 jobIDs.clear();
