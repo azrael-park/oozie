@@ -33,10 +33,16 @@ import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.action.ActionExecutor;
+import org.apache.oozie.action.hadoop.JavaActionExecutor;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.coord.CoordActionUpdateXCommand;
+import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowActionUpdateJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowJobUpdateJPAExecutor;
 import org.apache.oozie.service.CallbackService;
 import org.apache.oozie.service.ELService;
 import org.apache.oozie.service.HadoopAccessorException;
@@ -44,6 +50,7 @@ import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.LiteWorkflowStoreService;
 import org.apache.oozie.service.Services;
+import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.InstrumentUtils;
 import org.apache.oozie.util.Instrumentation;
@@ -508,4 +515,12 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
         }
     }
 
+    
+    public static ActionExecutor.Context getContext(String actionId) throws JPAExecutorException {
+        String wfId = Services.get().get(UUIDService.class).getId(actionId);
+        WorkflowJobBean workflow = Services.get().get(JPAService.class).execute(new WorkflowJobGetJPAExecutor(wfId));
+        WorkflowActionBean action = Services.get().get(JPAService.class).execute(new WorkflowActionGetJPAExecutor(actionId));
+
+        return new ActionExecutorContext(workflow, action, false, false);
+    }
 }

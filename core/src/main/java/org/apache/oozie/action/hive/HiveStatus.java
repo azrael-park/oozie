@@ -8,6 +8,8 @@ import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskCompletionEvent;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.oozie.HiveQueryStatusBean;
+import org.apache.oozie.action.ActionExecutor;
+import org.apache.oozie.action.hadoop.JavaActionExecutor;
 import org.apache.oozie.executor.jpa.HiveStatusInsertJPAExecutor;
 import org.apache.oozie.service.CallableQueueService;
 import org.apache.oozie.service.HadoopAccessorException;
@@ -18,6 +20,7 @@ import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XLog;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -53,10 +56,14 @@ public class HiveStatus {
         this.status = new LinkedHashMap<String, Map<String, HiveQueryStatusBean>>();
     }
 
-    public void setUGI(Configuration configuration, String user, String group) {
-        this.configuration = configuration;
-        this.user = user;
-        this.group = group;
+    public void initialize(ActionExecutor.Context context) throws Exception {
+        this.configuration = JavaActionExecutor.createBaseHadoopConf(context, context.getActionXML());
+        this.user = context.getWorkflow().getUser();
+        this.group = context.getWorkflow().getGroup();
+    }
+
+    public boolean isInitialized() {
+        return configuration != null;
     }
 
     public List<HiveQueryStatusBean> getStatus() {
@@ -92,7 +99,7 @@ public class HiveStatus {
     // called by CallbackServlet --> CompletedActionXCommand
     public synchronized void callback(String queryID, String stageID, String jobID, String jobStatus) {
         HiveQueryStatusBean status = updateStatus(queryID, stageID, jobID, jobStatus);
-        if (monitoring && jobStatus.equals("STARTED")) {
+        if (monitoring && jobStatus.equals("STARTED") && isInitialized()) {
             try {
                 RunningJob job = jobClient().getJob(JobID.forName(jobID));
                 if (job == null) {
@@ -128,6 +135,9 @@ public class HiveStatus {
     }
 
     private synchronized void killJob(HiveQueryStatusBean stage) throws Exception {
+        if (!isInitialized()) {
+            return;
+        }
         RunningJob runningJob = jobClient().getJob(JobID.forName(stage.getJobId()));
         if (runningJob != null && !runningJob.isComplete()) {
             LOG.info("Killing MapReduce job " + runningJob.getID());
@@ -216,36 +226,41 @@ public class HiveStatus {
             float[] progress = new float[] {-1, -1};
             try {
                 while (!job.isComplete()) {
+                    eventCounter += monitor(eventCounter, progress);
                     Thread.sleep(1000);
-
-                    if (job.mapProgress() != progress[0] || job.reduceProgress() != progress[1]) {
-                        StringBuilder builder = new StringBuilder();
-                        builder.append(" map ").append(StringUtils.formatPercent(job.mapProgress(), 0));
-                        builder.append(" reduce ").append(StringUtils.formatPercent(job.reduceProgress(), 0));
-                        LOG.info(builder.toString());
-                        progress[0] = job.mapProgress();
-                        progress[1] = job.reduceProgress();
-                    }
-
-                    boolean update = false;
-                    TaskCompletionEvent[] events = job.getTaskCompletionEvents(eventCounter);
-                    eventCounter += events.length;
-                    for(TaskCompletionEvent event : events) {
-                        TaskCompletionEvent.Status taskStatus = event.getTaskStatus();
-                        if (taskStatus == TaskCompletionEvent.Status.FAILED) {
-                            status.appendFailedTask(event.getTaskAttemptId() + "=" + event.getTaskTrackerHttp());
-                            update |= true;
-                        }
-                    }
-                    if (update) {
-                        updateStatus(status);
-                    }
                 }
+                monitor(eventCounter, progress);
             } catch (Exception e) {
                 LOG.info("Polling thread is exiting by exception " + e + ".. retrying in 30sec", e);
                 String unique = status.getJobId() + ":" + status.getStageId();
                 Services.get().get(CallableQueueService.class).queue(this, "mr.polling", unique, 30000l);
             }
+        }
+
+
+        private int monitor(int eventCounter, float[] progress) throws IOException {
+            if (job.mapProgress() != progress[0] || job.reduceProgress() != progress[1]) {
+                StringBuilder builder = new StringBuilder();
+                builder.append(" map ").append(StringUtils.formatPercent(job.mapProgress(), 0));
+                builder.append(" reduce ").append(StringUtils.formatPercent(job.reduceProgress(), 0));
+                LOG.info(builder.toString());
+                progress[0] = job.mapProgress();
+                progress[1] = job.reduceProgress();
+            }
+
+            boolean update = false;
+            TaskCompletionEvent[] events = job.getTaskCompletionEvents(eventCounter);
+            for(TaskCompletionEvent event : events) {
+                TaskCompletionEvent.Status taskStatus = event.getTaskStatus();
+                if (taskStatus == TaskCompletionEvent.Status.FAILED) {
+                    status.appendFailedTask(event.getTaskAttemptId() + "=" + event.getTaskTrackerHttp());
+                    update |= true;
+                }
+            }
+            if (update) {
+                updateStatus(status);
+            }
+            return events.length;
         }
     }
 

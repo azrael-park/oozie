@@ -9,7 +9,6 @@ import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
-import org.apache.oozie.action.hadoop.JavaActionExecutor;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
@@ -113,11 +112,8 @@ public class HiveActionExecutor extends ActionExecutor {
             HiveAccessService service = Services.get().get(HiveAccessService.class);
 
             Attribute addressAttr = actionXml.getAttribute("address");
-            Attribute timeoutAttr = actionXml.getAttribute("compile-timeout");
             Attribute maxFetchAttr = actionXml.getAttribute("max-fetch");
             Attribute monitorAttr = actionXml.getAttribute("monitor");
-
-            Configuration configuration = JavaActionExecutor.createBaseHadoopConf(context, actionXml);
 
             ThriftHive.Client client = initialize(context, service.clientFor(addressAttr.getValue()));
 
@@ -132,9 +128,9 @@ public class HiveActionExecutor extends ActionExecutor {
             int maxPatch = maxFetchAttr == null ? DEFAULT_MAX_FETCH : maxFetchAttr.getIntValue();
             boolean monitoring = monitorAttr == null ? DEFAULT_MONITORING : monitorAttr.getBooleanValue();
             HiveSession session = new HiveSession(wfID, actionName, monitoring, client, queries, maxPatch);
-            session.setUGI(configuration, workflow.getUser(), workflow.getGroup());
             service.register(action.getId(), session);
 
+            session.initialize(context);
             session.execute(context, action);
 
         } catch (Throwable ex) {
