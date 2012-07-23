@@ -148,7 +148,7 @@ public class SimpleClient {
     private static final String CURRENT_JOB_ID = "$CUR";
 
     private static enum COMMAND {
-        submit, start, run, rerun, kill, killall, suspend, resume, update, status, poll, cancel, log, xml, jobs, actions, use, context, reset, quit
+        submit, start, run, rerun, kill, killall, suspend, resume, update, status, poll, cancel, log, data, xml, jobs, actions, use, failed, context, reset, quit
     }
 
     CONTEXT context = CONTEXT.WF;
@@ -627,7 +627,8 @@ public class SimpleClient {
         props.setProperty(OozieClient.GROUP_NAME, ugi.getGroupNames()[0]);
 
         Path qualified = fs.makeQualified(new Path(appPath));
-        props.setProperty(context.pathKey(), qualified.toString());
+        String key = (context == null ? CONTEXT.WF : context).pathKey();
+        props.setProperty(key, qualified.toString());
 
         return props;
     }
