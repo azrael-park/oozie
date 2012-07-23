@@ -1738,18 +1738,17 @@ public class OozieClient {
         return new GetSystemMode().call();
     }
 
-    private class GetBuildVersion extends ClientCallable<String> {
+    private class GetBuildInfo extends ClientCallable<JSONObject> {
 
-        GetBuildVersion() {
+        GetBuildInfo() {
             super("GET", RestConstants.ADMIN, RestConstants.ADMIN_BUILD_VERSION_RESOURCE, prepareParams());
         }
 
         @Override
-        protected String call(HttpURLConnection conn) throws IOException, OozieClientException {
+        protected JSONObject call(HttpURLConnection conn) throws IOException, OozieClientException {
             if ((conn.getResponseCode() == HttpURLConnection.HTTP_OK)) {
                 Reader reader = new InputStreamReader(conn.getInputStream());
-                JSONObject json = (JSONObject) JSONValue.parse(reader);
-                return (String) json.get(JsonTags.BUILD_VERSION);
+                return (JSONObject) JSONValue.parse(reader);
             }
             else {
                 handleError(conn);
@@ -1765,7 +1764,20 @@ public class OozieClient {
      * @throws OozieClientException throw if it the server build version could not be retrieved.
      */
     public String getServerBuildVersion() throws OozieClientException {
-        return new GetBuildVersion().call();
+        return (String) new GetBuildInfo().call().get(JsonTags.BUILD_VERSION);
+    }
+
+    /**
+     *  Return the Oozie server build information
+     */
+    public Map<String, String> getServerBuildInfo() throws OozieClientException {
+        JSONObject obj = new GetBuildInfo().call();
+        Map<String, String> info = new LinkedHashMap<String, String>();
+        info.put(BuildInfo.BUILD_VERSION, (String) obj.get(JsonTags.BUILD_VERSION));
+        info.put(BuildInfo.BUILD_VC_REVISION, (String) obj.get(JsonTags.BUILD_REVISION));
+        info.put(BuildInfo.BUILD_TIME, (String) obj.get(JsonTags.BUILD_TIME));
+        info.put(BuildInfo.BUILD_USER_NAME, (String) obj.get(JsonTags.BUILD_USER));
+        return info;
     }
 
     /**

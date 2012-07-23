@@ -25,6 +25,9 @@ public interface JsonTags {
     public static final String OOZIE_SAFE_MODE = "safeMode"; //Applicable for V0 only
     public static final String OOZIE_SYSTEM_MODE = "systemMode";
     public static final String BUILD_VERSION = "buildVersion";
+    public static final String BUILD_REVISION = "buildRevision";
+    public static final String BUILD_TIME = "buildTime";
+    public static final String BUILD_USER = "buildUser";
     public static final String QUEUE_DUMP = "queueDump";
     public static final String CALLABLE_DUMP = "callableDump";
     public static final String UNIQUE_MAP_DUMP = "uniqueMapDump";

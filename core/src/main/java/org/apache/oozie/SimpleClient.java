@@ -148,7 +148,7 @@ public class SimpleClient {
     private static final String CURRENT_JOB_ID = "$CUR";
 
     private static enum COMMAND {
-        submit, start, run, rerun, kill, killall, suspend, resume, update, status, poll, cancel, log, data, xml, jobs, actions, use, failed, context, reset, quit
+        submit, start, run, rerun, kill, killall, suspend, resume, update, status, poll, cancel, log, data, xml, jobs, actions, use, failed, context, reset, version, quit
     }
 
     CONTEXT context = CONTEXT.WF;
@@ -357,6 +357,11 @@ public class SimpleClient {
                 jobID = newJobID;
             } else if (commands[0].equals("reset")) {
                 jobID = null;
+            } else if (commands[0].equals("version")) {
+                Map<String, String> result = client.getServerBuildInfo();
+                for (Map.Entry<String, String> entry : result.entrySet()) {
+                  System.out.println(entry);
+                }
             } else if (commands[0].equals("quit")) {
                 return false;
             } else if (commands[0].equals("context")) {

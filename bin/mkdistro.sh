@@ -32,7 +32,7 @@ function setRevUrl() {
       if which git  >/dev/null; then
           if [ -d ".git" ]; then
              export VC_REV=`git branch -v | awk '/^\*/ {printf("%s@%s\n", $2, $3); }'`
-	     export VC_URL=`git remote -v | grep origin | grep fetch | awk '{print $2}'`
+	     export VC_URL=`git remote -v | grep nexr | grep fetch | awk '{print $2}'`
          fi
       fi
    fi
