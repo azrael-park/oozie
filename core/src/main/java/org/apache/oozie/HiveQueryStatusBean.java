@@ -124,6 +124,7 @@ public class HiveQueryStatusBean extends JsonHiveStatus {
         status.setStageId(getStageId());
         status.setJobId(getJobId());
         status.setStatus(getStatus());
+        status.setFailedTasks(getFailedTasks());
         status.setStartTime(getStartTime());
         status.setEndTime(getEndTime());
         return status;

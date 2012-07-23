@@ -133,6 +133,7 @@ public class JsonHiveStatus implements HiveStatus, JsonBean {
         json.put(JsonTags.HIVE_STATUS_STAGE_ID, getStageId());
         json.put(JsonTags.HIVE_STATUS_JOB_ID, getJobId());
         json.put(JsonTags.HIVE_STATUS_JOB_STATUS, getStatus());
+        json.put(JsonTags.HIVE_STATUS_FAILED_TASKS, getFailedTasks());
         json.put(JsonTags.HIVE_STATUS_CREATED_TIME, JsonUtils.formatDateRfc822(getStartTime()));
         json.put(JsonTags.HIVE_STATUS_END_TIME, JsonUtils.formatDateRfc822(getEndTime()));
         return json;

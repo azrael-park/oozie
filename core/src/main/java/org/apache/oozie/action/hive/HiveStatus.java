@@ -253,6 +253,8 @@ public class HiveStatus {
             for(TaskCompletionEvent event : events) {
                 TaskCompletionEvent.Status taskStatus = event.getTaskStatus();
                 if (taskStatus == TaskCompletionEvent.Status.FAILED) {
+                    LOG.info("Task failed, check " +
+                        HiveSession.getTaskLogURL(event.getTaskAttemptId(), event.getTaskTrackerHttp()));
                     status.appendFailedTask(event.getTaskAttemptId() + "=" + event.getTaskTrackerHttp());
                     update |= true;
                 }
@@ -264,7 +266,7 @@ public class HiveStatus {
         }
     }
 
-    public static String getTaskLogURL(String taskId, String baseUrl) {
-        return baseUrl + "/tasklog?attemptid=" + taskId + "&all=true";
+    public static String getTaskLogURL(Object taskId, String baseUrl) {
+        return baseUrl + "/tasklog?attemptid=" + String.valueOf(taskId) + "&all=true";
     }
 }

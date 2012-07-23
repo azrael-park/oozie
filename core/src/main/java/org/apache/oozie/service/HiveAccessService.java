@@ -98,10 +98,6 @@ public class HiveAccessService implements Service {
     }
 
     public List<HiveQueryStatusBean> getStatusForAction(String actionID) throws JPAExecutorException {
-        return _getStatusForAction(actionID, false);
-    }
-
-    public List<HiveQueryStatusBean> _getStatusForAction(String actionID, boolean failedURL) throws JPAExecutorException {
         HiveStatus session = peekRunningStatus(actionID);
         if (session != null) {
             return session.getStatus();
@@ -110,7 +106,6 @@ public class HiveAccessService implements Service {
         String action = uuid.getChildName(actionID);
 
         HiveStatusGetJPAExecutor executor = new HiveStatusGetJPAExecutor(wfID, action);
-        executor.setHasFailedTasks(failedURL);
 
         JPAService jpaService = Services.get().get(JPAService.class);
         return jpaService.execute(executor);
@@ -118,7 +113,7 @@ public class HiveAccessService implements Service {
 
     public Map<String, List<String>> getFailedTaskURLs(String id) throws JPAExecutorException {
         String actionName = id.contains("@") ? uuid.getChildName(id) : null;
-        List<HiveQueryStatusBean> list = actionName != null ? _getStatusForAction(id, true) : getStatusForWorkflow(id);
+        List<HiveQueryStatusBean> list = actionName != null ? getStatusForAction(id) : getStatusForWorkflow(id);
         if (list == null || list.isEmpty()) {
             return Collections.emptyMap();
         }
