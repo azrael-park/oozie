@@ -1,36 +1,19 @@
 package org.apache.oozie.command.wf;
 
 import org.apache.oozie.ErrorCode;
-import org.apache.oozie.WorkflowActionBean;
-import org.apache.oozie.WorkflowJobBean;
-import org.apache.oozie.XException;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionUpdateJPAExecutor;
-import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
 import org.apache.oozie.service.HiveAccessService;
-import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
-import org.apache.oozie.service.UUIDService;
-import org.apache.oozie.util.LogUtils;
 
-public class ActionSuspendXCommand<T> extends WorkflowXCommand<T> {
-
-    private String jobId;
-    private String actionId;
-
-    private WorkflowJobBean wfJob;
-    private WorkflowActionBean wfAction;
-    private JPAService jpaService;
+public class ActionSuspendXCommand extends ActionXCommand<Void> {
 
     public ActionSuspendXCommand(String actionId) {
-        super("action.suspend", "suspend", 1);
-        this.actionId = actionId;
-        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
+        super(actionId, "action.suspend", "suspend", 1);
     }
 
     protected boolean isLockRequired() {
@@ -42,22 +25,11 @@ public class ActionSuspendXCommand<T> extends WorkflowXCommand<T> {
     }
 
     protected void loadState() throws CommandException {
-        try {
-            jpaService = Services.get().get(JPAService.class);
-            if (jpaService != null) {
-                this.wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(jobId));
-                this.wfAction = jpaService.execute(new WorkflowActionGetJPAExecutor(actionId));
-                LogUtils.setLogInfo(wfJob, logInfo);
-                LogUtils.setLogInfo(wfAction, logInfo);
-            } else {
-                throw new CommandException(ErrorCode.E0610);
-            }
-        } catch (XException ex) {
-            throw new CommandException(ex);
-        }
+        loadActionBean();
     }
 
     protected void verifyPrecondition() throws CommandException, PreconditionException {
+        verifyActionBean();
         if (wfJob.getStatus() == WorkflowJob.Status.KILLED ||
                 wfJob.getStatus() == WorkflowJob.Status.FAILED ||
                 wfJob.getStatus() == WorkflowJob.Status.SUCCEEDED) {
@@ -71,7 +43,7 @@ public class ActionSuspendXCommand<T> extends WorkflowXCommand<T> {
         }
     }
 
-    protected T execute() throws CommandException {
+    protected Void execute() throws CommandException {
         wfAction.resetPendingOnly();
         wfAction.setStatus(WorkflowAction.Status.START_MANUAL);
         try {
@@ -79,6 +51,7 @@ public class ActionSuspendXCommand<T> extends WorkflowXCommand<T> {
         } catch (JPAExecutorException e) {
             throw new CommandException(e);
         }
+        sendActionNotification();
         HiveAccessService access = Services.get().get(HiveAccessService.class);
         access.actionFinished(actionId);
         return null;

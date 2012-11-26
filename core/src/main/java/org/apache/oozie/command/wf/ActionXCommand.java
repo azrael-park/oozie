@@ -32,17 +32,17 @@ import org.apache.oozie.DagELFunctions;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
+import org.apache.oozie.XException;
 import org.apache.oozie.action.ActionExecutor;
-import org.apache.oozie.action.hadoop.JavaActionExecutor;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
+import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.command.coord.CoordActionUpdateXCommand;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
-import org.apache.oozie.executor.jpa.WorkflowActionUpdateJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
-import org.apache.oozie.executor.jpa.WorkflowJobUpdateJPAExecutor;
+import org.apache.oozie.service.ActionService;
 import org.apache.oozie.service.CallbackService;
 import org.apache.oozie.service.ELService;
 import org.apache.oozie.service.HadoopAccessorException;
@@ -54,6 +54,7 @@ import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.InstrumentUtils;
 import org.apache.oozie.util.Instrumentation;
+import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XmlUtils;
 import org.apache.oozie.workflow.WorkflowException;
@@ -66,15 +67,88 @@ import org.jdom.JDOMException;
  * Base class for Action execution commands. Provides common functionality to handle different types of errors while
  * attempting to start or end an action.
  */
-public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
+public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
     private static final String INSTRUMENTATION_GROUP = "action.executors";
 
     protected static final String INSTR_FAILED_JOBS_COUNTER = "failed";
 
     protected static final String RECOVERY_ID_SEPARATOR = "@";
 
-    public ActionXCommand(String name, String type, int priority) {
+    protected final String actionId;
+    protected final String jobId;
+
+    protected WorkflowJobBean wfJob;
+    protected WorkflowActionBean wfAction;
+    protected JPAService jpaService;
+    protected ActionExecutor executor;
+
+    protected transient String prevStatus;
+
+    public ActionXCommand(String actionId, String name, String type, int priority) {
         super(name, type, priority);
+        this.actionId = actionId;
+        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
+    }
+
+    protected void loadActionBean() throws CommandException {
+        try {
+            jpaService = Services.get().get(JPAService.class);
+            if (jpaService != null) {
+                this.wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(jobId));
+                this.wfAction = jpaService.execute(new WorkflowActionGetJPAExecutor(actionId));
+                LogUtils.setLogInfo(wfJob, logInfo);
+                LogUtils.setLogInfo(wfAction, logInfo);
+            }
+            else {
+                throw new CommandException(ErrorCode.E0610);
+            }
+        }
+        catch (XException ex) {
+            throw new CommandException(ex);
+        }
+        prevStatus = currentStatus();
+    }
+
+    protected void verifyActionBean() throws PreconditionException {
+        if (wfJob == null) {
+            throw new PreconditionException(ErrorCode.E0604, jobId);
+        }
+        if (wfAction == null) {
+            throw new PreconditionException(ErrorCode.E0605, actionId);
+        }
+    }
+
+    protected void loadActionExecutor(boolean updateConf) throws CommandException {
+        executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
+        if (executor == null) {
+            throw new CommandException(ErrorCode.E0802, wfAction.getType());
+        }
+
+
+
+//        Configuration conf = updateConf ? wfJob.getWorkflowInstance().getConf() : null;
+//        executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType(), conf);
+//        if (executor == null) {
+//            throw new CommandException(ErrorCode.E0802, wfAction.getType());
+//        }
+    }
+
+    protected String currentStatus() {
+        return wfJob.getStatus() + ":" + wfAction.getStatus();
+    }
+
+    protected boolean isLockRequired() {
+        return true;
+    }
+
+    public String getEntityKey() {
+        return jobId;
+    }
+
+    protected void sendActionNotification() {
+        if(!prevStatus.equals(currentStatus())){
+            queue(new NotificationXCommand(wfJob, wfAction));
+        }
     }
 
     /**
@@ -210,7 +284,6 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
                 workflow.setStatus(WorkflowJob.Status.FAILED);
                 action.setStatus(WorkflowAction.Status.FAILED);
                 action.resetPending();
-                queue(new NotificationXCommand(workflow, action));
                 queue(new KillXCommand(workflow.getId()));
                 InstrumentUtils.incrJobCounter(INSTR_FAILED_JOBS_COUNTER, 1, getInstrumentation());
             }
@@ -515,7 +588,7 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
         }
     }
 
-    
+
     public static ActionExecutor.Context getContext(String actionId) throws JPAExecutorException {
         String wfId = Services.get().get(UUIDService.class).getId(actionId);
         WorkflowJobBean workflow = Services.get().get(JPAService.class).execute(new WorkflowJobGetJPAExecutor(wfId));

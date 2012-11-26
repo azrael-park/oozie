@@ -43,17 +43,10 @@ import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.command.coord.CoordActionUpdateXCommand;
 import org.apache.oozie.executor.jpa.BulkUpdateInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
-import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
-import org.apache.oozie.service.ActionService;
 import org.apache.oozie.service.EventHandlerService;
-import org.apache.oozie.service.JPAService;
-import org.apache.oozie.service.Services;
-import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.ELEvaluationException;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.Instrumentation;
-import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.apache.oozie.util.db.SLADbXOperations;
@@ -67,19 +60,11 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
     public static final String START_DATA_MISSING = "START_DATA_MISSING";
     public static final String EXEC_DATA_MISSING = "EXEC_DATA_MISSING";
 
-    private String jobId = null;
-    private String actionId = null;
-    private WorkflowJobBean wfJob = null;
-    private WorkflowActionBean wfAction = null;
-    private JPAService jpaService = null;
-    private ActionExecutor executor = null;
     private List<JsonBean> updateList = new ArrayList<JsonBean>();
     private List<JsonBean> insertList = new ArrayList<JsonBean>();
 
     public ActionStartXCommand(String actionId, String type) {
-        super("action.start", type, 0);
-        this.actionId = actionId;
-        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
+        super(actionId, "action.start", type, 0);
     }
 
     @Override
@@ -94,31 +79,12 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
 
     @Override
     protected void loadState() throws CommandException {
-        try {
-            jpaService = Services.get().get(JPAService.class);
-            if (jpaService != null) {
-                this.wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(jobId));
-                this.wfAction = jpaService.execute(new WorkflowActionGetJPAExecutor(actionId));
-                LogUtils.setLogInfo(wfJob, logInfo);
-                LogUtils.setLogInfo(wfAction, logInfo);
-            }
-            else {
-                throw new CommandException(ErrorCode.E0610);
-            }
-        }
-        catch (XException ex) {
-            throw new CommandException(ex);
-        }
+        loadActionBean();
     }
 
     @Override
     protected void verifyPrecondition() throws CommandException, PreconditionException {
-        if (wfJob == null) {
-            throw new PreconditionException(ErrorCode.E0604, jobId);
-        }
-        if (wfAction == null) {
-            throw new PreconditionException(ErrorCode.E0605, actionId);
-        }
+        verifyActionBean();
         if (wfAction.isPending()
                 && (wfAction.getStatus() == WorkflowActionBean.Status.PREP
                         || wfAction.getStatus() == WorkflowActionBean.Status.START_RETRY
@@ -133,10 +99,8 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
             throw new PreconditionException(ErrorCode.E0816, wfAction.getPending(), wfAction.getStatusStr());
         }
 
-        executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
-        if (executor == null) {
-            throw new CommandException(ErrorCode.E0802, wfAction.getType());
-        }
+        loadActionExecutor(true);
+
     }
 
     @Override
@@ -223,6 +187,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
                 wfAction.setErrorInfo(EXEC_DATA_MISSING,
                         "Execution Complete, but Execution Data Missing from Action");
                 failJob(context);
+                sendActionNotification();
             } else {
                 wfAction.setPending();
                 queue(new ActionEndXCommand(wfAction.getId(), wfAction.getType()));
@@ -234,9 +199,8 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
                         .getType());
                 wfAction.setErrorInfo(START_DATA_MISSING, "Execution Started, but Start Data Missing from Action");
                 failJob(context);
-            } else {
-                queue(new NotificationXCommand(wfJob, wfAction));
             }
+            sendActionNotification();
         }
 
         LOG.warn(XLog.STD, "[***" + wfAction.getId() + "***]" + "Action status=" + wfAction.getStatusStr());
@@ -259,6 +223,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         } else {
             LOG.warn("Unhandled exception", t);
         }
+        sendActionNotification();
     }
 
     private void onActionException(ActionExecutorContext context, ActionExecutorException ex) throws CommandException {
@@ -334,6 +299,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         }
         catch (ELEvaluationException ex) {
             caught = true;
+            sendActionNotification();
             throw new ActionExecutorException(ActionExecutorException.ErrorType.TRANSIENT, EL_EVAL_ERROR, ex
                     .getMessage(), ex);
         }
@@ -361,6 +327,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
 
     private void handleError(ActionExecutorContext context, WorkflowJobBean workflow, WorkflowActionBean action)
             throws CommandException {
+        sendActionNotification();
         failJob(context);
         updateList.add(wfAction);
         wfJob.setLastModifiedTime(new Date());

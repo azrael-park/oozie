@@ -75,6 +75,14 @@ public class NotificationXCommand extends WorkflowXCommand<Void> {
         }
     }
 
+    public static String getJobNotificationURL(WorkflowJobBean workflow) {
+        return workflow.getWorkflowInstance().getConf().get(OozieClient.WORKFLOW_NOTIFICATION_URL);
+    }
+
+    public static String getActionNotificationURL(WorkflowJobBean workflow) {
+        return workflow.getWorkflowInstance().getConf().get(OozieClient.ACTION_NOTIFICATION_URL);
+    }
+
     @Override
     protected boolean isLockRequired() {
         return false;

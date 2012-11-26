@@ -25,7 +25,6 @@ import java.util.List;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
-import org.apache.oozie.XException;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
@@ -35,17 +34,12 @@ import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.executor.jpa.BulkUpdateInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionUpdateJPAExecutor;
-import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
 import org.apache.oozie.service.ActionCheckerService;
-import org.apache.oozie.service.ActionService;
 import org.apache.oozie.service.EventHandlerService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
-import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.Instrumentation;
-import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.XLog;
 
 /**
@@ -55,13 +49,8 @@ import org.apache.oozie.util.XLog;
  */
 public class ActionCheckXCommand extends ActionXCommand {
     public static final String EXEC_DATA_MISSING = "EXEC_DATA_MISSING";
-    private String actionId;
-    private String jobId;
+
     private int actionCheckDelay;
-    private WorkflowJobBean wfJob = null;
-    private WorkflowActionBean wfAction = null;
-    private JPAService jpaService = null;
-    private ActionExecutor executor = null;
     private List<JsonBean> updateList = new ArrayList<JsonBean>();
     private boolean generateEvent = false;
 
@@ -69,44 +58,23 @@ public class ActionCheckXCommand extends ActionXCommand {
         this(actionId, -1);
     }
 
-    public ActionCheckXCommand(String actionId, int priority, int checkDelay) {
-        super("action.check", "action.check", priority);
-        this.actionId = actionId;
-        this.actionCheckDelay = checkDelay;
-        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
-    }
-
     public ActionCheckXCommand(String actionId, int checkDelay) {
         this(actionId, 0, checkDelay);
     }
 
+    public ActionCheckXCommand(String actionId, int priority, int checkDelay) {
+        super(actionId, "action.check", "action.check", priority);
+        this.actionCheckDelay = checkDelay;
+    }
+
     @Override
     protected void eagerLoadState() throws CommandException {
-        try {
-            jpaService = Services.get().get(JPAService.class);
-            if (jpaService != null) {
-                this.wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(jobId));
-                this.wfAction = jpaService.execute(new WorkflowActionGetJPAExecutor(actionId));
-                LogUtils.setLogInfo(wfJob, logInfo);
-                LogUtils.setLogInfo(wfAction, logInfo);
-            }
-            else {
-                throw new CommandException(ErrorCode.E0610);
-            }
-        }
-        catch (XException ex) {
-            throw new CommandException(ex);
-        }
+        loadActionBean();
     }
 
     @Override
     protected void eagerVerifyPrecondition() throws CommandException, PreconditionException {
-        if (wfJob == null) {
-            throw new PreconditionException(ErrorCode.E0604, jobId);
-        }
-        if (wfAction == null) {
-            throw new PreconditionException(ErrorCode.E0605, actionId);
-        }
+        verifyActionBean();
         // if the action has been updated, quit this command
         if (actionCheckDelay > 0) {
             Timestamp actionCheckTs = new Timestamp(System.currentTimeMillis() - actionCheckDelay * 1000);
@@ -115,11 +83,7 @@ public class ActionCheckXCommand extends ActionXCommand {
                 throw new PreconditionException(ErrorCode.E0817, actionId);
             }
         }
-
-        executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
-        if (executor == null) {
-            throw new CommandException(ErrorCode.E0802, wfAction.getType());
-        }
+        loadActionExecutor(false);
     }
 
     @Override
@@ -186,6 +150,7 @@ public class ActionCheckXCommand extends ActionXCommand {
                             "Execution Complete, but Execution Data Missing from Action");
                     failJob(context);
                     generateEvent = true;
+                    sendActionNotification();
                 } else {
                     wfAction.setPending();
                     queue(new ActionEndXCommand(wfAction.getId(), wfAction.getType()));
@@ -234,6 +199,7 @@ public class ActionCheckXCommand extends ActionXCommand {
                 if (generateEvent && EventHandlerService.isEnabled()) {
                     generateEvent(wfAction, wfJob.getUser());
                 }
+                sendActionNotification();
             }
             catch (JPAExecutorException e) {
                 throw new CommandException(e);

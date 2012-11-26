@@ -26,9 +26,6 @@ import org.apache.oozie.DagELFunctions;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.SLAEventBean;
 import org.apache.oozie.WorkflowActionBean;
-import org.apache.oozie.WorkflowJobBean;
-import org.apache.oozie.XException;
-import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.action.control.ControlNodeActionExecutor;
 import org.apache.oozie.client.OozieClient;
@@ -41,15 +38,8 @@ import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.executor.jpa.BulkUpdateInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
-import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
-import org.apache.oozie.service.ActionService;
 import org.apache.oozie.service.EventHandlerService;
-import org.apache.oozie.service.JPAService;
-import org.apache.oozie.service.Services;
-import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.Instrumentation;
-import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.db.SLADbXOperations;
 import org.apache.oozie.workflow.WorkflowInstance;
@@ -59,19 +49,11 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
     public static final String COULD_NOT_END = "COULD_NOT_END";
     public static final String END_DATA_MISSING = "END_DATA_MISSING";
 
-    private String jobId = null;
-    private String actionId = null;
-    private WorkflowJobBean wfJob = null;
-    private WorkflowActionBean wfAction = null;
-    private JPAService jpaService = null;
-    private ActionExecutor executor = null;
     private List<JsonBean> updateList = new ArrayList<JsonBean>();
     private List<JsonBean> insertList = new ArrayList<JsonBean>();
 
     public ActionEndXCommand(String actionId, String type) {
-        super("action.end", type, 0);
-        this.actionId = actionId;
-        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
+        super(actionId, "action.end", type, 0);
     }
 
     @Override
@@ -91,31 +73,12 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
 
     @Override
     protected void loadState() throws CommandException {
-        try {
-            jpaService = Services.get().get(JPAService.class);
-            if (jpaService != null) {
-                this.wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(jobId));
-                this.wfAction = jpaService.execute(new WorkflowActionGetJPAExecutor(actionId));
-                LogUtils.setLogInfo(wfJob, logInfo);
-                LogUtils.setLogInfo(wfAction, logInfo);
-            }
-            else {
-                throw new CommandException(ErrorCode.E0610);
-            }
-        }
-        catch (XException ex) {
-            throw new CommandException(ex);
-        }
+        loadActionBean();
     }
 
     @Override
     protected void verifyPrecondition() throws CommandException, PreconditionException {
-        if (wfJob == null) {
-            throw new PreconditionException(ErrorCode.E0604, jobId);
-        }
-        if (wfAction == null) {
-            throw new PreconditionException(ErrorCode.E0605, actionId);
-        }
+        verifyActionBean();
         if (wfAction.isPending()
                 && (wfAction.getStatus() == WorkflowActionBean.Status.DONE
                         || wfAction.getStatus() == WorkflowActionBean.Status.END_RETRY || wfAction.getStatus() == WorkflowActionBean.Status.END_MANUAL)) {
@@ -127,11 +90,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
         else {
             throw new PreconditionException(ErrorCode.E0812, wfAction.getPending(), wfAction.getStatusStr());
         }
-
-        executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
-        if (executor == null) {
-            throw new CommandException(ErrorCode.E0802, wfAction.getType());
-        }
+        loadActionExecutor(true);
     }
 
     @Override
@@ -217,6 +176,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
                     }
                     queue(new SignalXCommand(jobId, actionId));
                 }
+                sendActionNotification();
             }
             updateList.add(wfAction);
             wfJob.setLastModifiedTime(new Date());
@@ -265,6 +225,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
                 if (!(executor instanceof ControlNodeActionExecutor) && EventHandlerService.isEnabled()) {
                     generateEvent(wfAction, wfJob.getUser());
                 }
+                sendActionNotification();
             }
             catch (JPAExecutorException e) {
                 throw new CommandException(e);
