@@ -39,12 +39,13 @@ public class HiveAccessService implements Service {
     public synchronized void destroy() {
         if (hiveStatus != null) {
             for (Map<String, HiveStatus> value : hiveStatus.values()) {
-                for (HiveStatus session : value.values()) {
-                    session.shutdown();
+                for (HiveStatus status : value.values()) {
+                    status.shutdown(false);
                 }
             }
             hiveStatus.clear();
         }
+        hiveStatus = null;
     }
 
     public Class<? extends Service> getInterface() {
@@ -53,43 +54,71 @@ public class HiveAccessService implements Service {
 
     public synchronized void register(String actionID, HiveStatus session) {
         String wfID = uuid.getId(actionID);
-        String action = uuid.getChildName(actionID);
+        String actionName = uuid.getChildName(actionID);
         Map<String, HiveStatus> map = hiveStatus.get(wfID);
         if (map == null) {
             hiveStatus.put(wfID, map = new LinkedHashMap<String, HiveStatus>());
         }
-        map.put(action, session);
+        map.put(actionName, session);
     }
 
-    public synchronized void actionFinished(String actionID) {
+    public synchronized void unregister(String actionID) {
         String wfID = uuid.getId(actionID);
-        Map<String, HiveStatus> map = hiveStatus.get(wfID);
+        String actionName = uuid.getChildName(actionID);
+        Map<String, HiveStatus> map = hiveStatus.remove(wfID);
         if (map != null) {
-            map.remove(uuid.getChildName(actionID));
+            map.remove(actionName);
         }
     }
 
+    public synchronized boolean actionFinished(String actionID) {
+        boolean finished = true;
+        String wfID = uuid.getId(actionID);
+        Map<String, HiveStatus> map = hiveStatus.get(wfID);
+        if (map != null) {
+            HiveStatus status = map.remove(uuid.getChildName(actionID));
+            if (status != null) {
+                finished = status.shutdown(false);
+            }
+        }
+        return finished;
+    }
+
     public synchronized void jobFinished(String wfID) {
-        hiveStatus.remove(wfID);
+        Map<String, HiveStatus> finished = hiveStatus.remove(wfID);
+        if (finished != null) {
+            for (HiveStatus status : finished.values()) {
+                status.shutdown(false);
+            }
+            finished.clear();
+        }
     }
 
     public synchronized HiveStatus peekRunningStatus(String actionID) {
         String wfID = uuid.getId(actionID);
         Map<String, HiveStatus> map = hiveStatus.get(wfID);
         if (map != null) {
-            String action = uuid.getChildName(actionID);
-            return map.get(action);
+            String actionName = uuid.getChildName(actionID);
+            return map.get(actionName);
         }
         return null;
     }
 
-    public synchronized HiveStatus accessRunningStatus(String actionID, boolean monitoring) {
+    public synchronized HiveStatus accessRunningStatus(String actionID, boolean monitoring, boolean temporal) {
         HiveStatus session = peekRunningStatus(actionID);
         if (session == null) {
-            session = new HiveStatus(uuid.getId(actionID), uuid.getChildName(actionID), monitoring);
+            session = temporal ? temporalSession(actionID) : newSession(actionID, monitoring);
             register(actionID, session);
         }
         return session;
+    }
+
+    private HiveStatus temporalSession(String actionID) {
+        return new HiveStatus(uuid.getId(actionID), uuid.getChildName(actionID));
+    }
+
+    private HiveStatus newSession(String actionID, boolean monitoring) {
+        return new HiveStatus(uuid.getId(actionID), uuid.getChildName(actionID), monitoring);
     }
 
     public List<HiveQueryStatusBean> getStatusForWorkflow(String wfID) throws JPAExecutorException {
@@ -103,9 +132,9 @@ public class HiveAccessService implements Service {
             return session.getStatus();
         }
         String wfID = uuid.getId(actionID);
-        String action = uuid.getChildName(actionID);
+        String actionName = uuid.getChildName(actionID);
 
-        HiveStatusGetJPAExecutor executor = new HiveStatusGetJPAExecutor(wfID, action);
+        HiveStatusGetJPAExecutor executor = new HiveStatusGetJPAExecutor(wfID, actionName);
 
         JPAService jpaService = Services.get().get(JPAService.class);
         return jpaService.execute(executor);
@@ -143,10 +172,10 @@ public class HiveAccessService implements Service {
             return session.getStatus(queryID);
         }
         String wfID = uuid.getId(actionID);
-        String action = uuid.getChildName(actionID);
+        String actionName = uuid.getChildName(actionID);
 
         JPAService jpaService = Services.get().get(JPAService.class);
-        return jpaService.execute(new HiveStatusGetJPAExecutor(wfID, action, queryID));
+        return jpaService.execute(new HiveStatusGetJPAExecutor(wfID, actionName, queryID));
     }
 
     public HiveQueryStatusBean getStatusForStage(String actionID, String queryID, String stageID) throws JPAExecutorException {
@@ -155,10 +184,10 @@ public class HiveAccessService implements Service {
             return session.getStatus(queryID, stageID);
         }
         String wfID = uuid.getId(actionID);
-        String action = uuid.getChildName(actionID);
+        String actionName = uuid.getChildName(actionID);
 
         JPAService jpaService = Services.get().get(JPAService.class);
-        List<HiveQueryStatusBean> result = jpaService.execute(new HiveStatusGetJPAExecutor(wfID, action, queryID, stageID));
+        List<HiveQueryStatusBean> result = jpaService.execute(new HiveStatusGetJPAExecutor(wfID, actionName, queryID, stageID));
         return result != null && !result.isEmpty() ? result.get(0) : null;
     }
 

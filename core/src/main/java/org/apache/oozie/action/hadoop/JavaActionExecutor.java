@@ -56,10 +56,13 @@ import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
+import org.apache.oozie.action.hive.HiveStatus;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.command.wf.ActionXCommand;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
+import org.apache.oozie.service.HiveAccessService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.URIHandlerService;
 import org.apache.oozie.service.WorkflowAppService;
@@ -1241,7 +1244,41 @@ public class JavaActionExecutor extends ActionExecutor {
 
     @Override
     public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
+        if (actionData != null) {
+            handleCallback(actionID, externalStatus, actionData);
+        }
         return FINAL_STATUS.contains(externalStatus);
+    }
+
+    protected void handleCallback(String actionID, String jobStatus, Properties actionData) {
+        String jobId = actionData.getProperty("jobId");
+        String queryId = actionData.getProperty("queryId");
+        String stageId = actionData.getProperty("stageId");
+        boolean monitoring = PropertiesUtils.getBoolean(actionData, "monitoring", false);
+        boolean nonHiveMonitor = monitoring && !isHiveQuery(queryId, stageId) ;
+        if (nonHiveMonitor && !isEvaluated(jobId, "$jobId")) {
+            return;
+        }
+
+        HiveAccessService service = Services.get().get(HiveAccessService.class);
+        HiveStatus session = service.accessRunningStatus(actionID, monitoring, nonHiveMonitor);
+
+        if (!session.isInitialized()) {
+            try {
+                session.initialize(ActionXCommand.getContext(actionID));
+            } catch (Exception e) {
+                log.info("Failed to initialize internal status for hive", e);
+            }
+        }
+        session.callback(queryId, stageId, jobId, jobStatus);
+    }
+
+    private boolean isHiveQuery(String queryId, String stageId) {
+        return isEvaluated(queryId, "$queryId") && isEvaluated(stageId, "$stageId");
+    }
+
+    private boolean isEvaluated(String value, String before) {
+        return value != null && !value.isEmpty() && !value.equals(before);
     }
 
 

@@ -5,6 +5,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
+import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapred.TaskCompletionEvent;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.oozie.HiveQueryStatusBean;
@@ -46,6 +47,15 @@ public class HiveStatus {
     Map<String, Map<String, HiveQueryStatusBean>> status; // queryID#stageID --> StatusBean
 
     JobClient jobClient;
+    boolean attached;
+
+    // temporal
+    public HiveStatus(String wfID, String actionName) {
+        this.wfID = wfID;
+        this.actionID = Services.get().get(UUIDService.class).generateChildId(wfID, actionName);
+        this.actionName = actionName;
+        this.monitoring = true;
+    }
 
     public HiveStatus(String wfID, String actionName, boolean monitoring) {
         this.wfID = wfID;
@@ -64,6 +74,10 @@ public class HiveStatus {
 
     public boolean isInitialized() {
         return configuration != null;
+    }
+
+    public boolean isTemporal() {
+        return status == null;
     }
 
     public List<HiveQueryStatusBean> getStatus() {
@@ -98,24 +112,34 @@ public class HiveStatus {
 
     // called by CallbackServlet --> CompletedActionXCommand
     public synchronized void callback(String queryID, String stageID, String jobID, String jobStatus) {
-        HiveQueryStatusBean status = updateStatus(queryID, stageID, jobID, jobStatus);
-        if (monitoring && jobStatus.equals("STARTED") && isInitialized()) {
-            try {
-                RunningJob job = jobClient().getJob(JobID.forName(jobID));
-                if (job == null) {
-                    LOG.info("Cannot access running job " + jobID + " for monitoring");
-                } else {
-                    Services.get().get(CallableQueueService.class).queue(new Polling(status, job));
-                }
-            } catch (Exception e) {
-                LOG.info("Failed to start polling job " + jobID, e);
-            }
+        HiveQueryStatusBean status = isTemporal() ? null : updateStatus(queryID, stageID, jobID, jobStatus);
+        if (monitoring && !attached) {
+            attached = startMonitor(jobID, status);
         }
     }
 
-    public boolean shutdown() {
-        killJobs();
-        killJobClient();
+    private boolean startMonitor(String jobID, HiveQueryStatusBean status) {
+        try {
+            RunningJob job = jobClient().getJob(JobID.forName(jobID));
+            if (job != null) {
+                Polling monitor = new Polling(status, job, jobID);
+                return Services.get().get(CallableQueueService.class).queue(monitor);
+            }
+            String address = jobClient().getConf().get("mapred.job.tracker");
+            LOG.info("Cannot access running job " + jobID + " for monitoring from job tracker " + address);
+        } catch (Exception e) {
+            LOG.info("Failed to start polling job " + jobID, e);
+        }
+        return false;
+    }
+
+    public boolean shutdown(boolean internal) {
+        if (!isTemporal()) {
+            killJobs();
+        }
+        if (jobClient != null) {
+            killJobClient();
+        }
         return true;
     }
 
@@ -150,12 +174,11 @@ public class HiveStatus {
     }
 
     private synchronized void killJobClient() {
-        if (jobClient != null) {
-            try {
-                jobClient.close();
-            } catch (Exception e) {
-                LOG.debug("Failed to shutdown job client", e);
-            }
+        try {
+            jobClient.close();
+            jobClient = null;
+        } catch (Exception e) {
+            LOG.debug("Failed to shutdown job client", e);
         }
     }
 
@@ -213,12 +236,14 @@ public class HiveStatus {
     // from JobClient#monitorAndPrintJob
     private class Polling implements Runnable {
 
-        HiveQueryStatusBean status;
-        RunningJob job;
+        final HiveQueryStatusBean hiveBean;
+        final RunningJob job;
+        final String jobID;
 
-        Polling(HiveQueryStatusBean status, RunningJob job) {
-            this.status = status;
+        Polling(HiveQueryStatusBean hiveBean, RunningJob job, String jobID) {
+            this.hiveBean = hiveBean;
             this.job = job;
+            this.jobID = jobID;
         }
 
         public void run() {
@@ -232,11 +257,9 @@ public class HiveStatus {
                 monitor(eventCounter, progress);
             } catch (Exception e) {
                 LOG.info("Polling thread is exiting by exception " + e + ".. retrying in 30sec", e);
-                String unique = status.getJobId() + ":" + status.getStageId();
-                Services.get().get(CallableQueueService.class).queue(this, "mr.polling", unique, 30000l);
+                Services.get().get(CallableQueueService.class).queue(this, "mr.polling", jobID, 30000l);
             }
         }
-
 
         private int monitor(int eventCounter, float[] progress) throws IOException {
             if (job.mapProgress() != progress[0] || job.reduceProgress() != progress[1]) {
@@ -248,19 +271,22 @@ public class HiveStatus {
                 progress[1] = job.reduceProgress();
             }
 
-            boolean update = false;
+            boolean updated = false;
             TaskCompletionEvent[] events = job.getTaskCompletionEvents(eventCounter);
-            for(TaskCompletionEvent event : events) {
+            for (TaskCompletionEvent event : events) {
                 TaskCompletionEvent.Status taskStatus = event.getTaskStatus();
                 if (taskStatus == TaskCompletionEvent.Status.FAILED) {
-                    LOG.info("Task failed, check " +
-                        HiveSession.getTaskLogURL(event.getTaskAttemptId(), event.getTaskTrackerHttp()));
-                    status.appendFailedTask(event.getTaskAttemptId() + "=" + event.getTaskTrackerHttp());
-                    update |= true;
+                    TaskAttemptID taskId = event.getTaskAttemptId();
+                    LOG.info("Task " + taskId + " failed, check " +
+                        HiveSession.getTaskLogURL(taskId, event.getTaskTrackerHttp()));
+                    if (hiveBean != null) {
+                        hiveBean.appendFailedTask(taskId + "=" + event.getTaskTrackerHttp());
+                    }
+                    updated |= true;
                 }
             }
-            if (update) {
-                updateStatus(status);
+            if (updated && hiveBean != null) {
+                updateStatus(hiveBean);
             }
             return events.length;
         }
@@ -268,5 +294,13 @@ public class HiveStatus {
 
     public static String getTaskLogURL(Object taskId, String baseUrl) {
         return baseUrl + "/tasklog?attemptid=" + String.valueOf(taskId) + "&all=true";
+    }
+
+    public static String getHiveCallbackURL(String baseUrl, boolean monitor) {
+        baseUrl += "jobId=$jobId&stageId=$stageId&queryId=$queryId";
+        if (monitor) {
+            baseUrl += "&monitoring=true";
+        }
+        return baseUrl;
     }
 }

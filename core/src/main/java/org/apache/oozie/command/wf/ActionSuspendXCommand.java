@@ -4,7 +4,6 @@ import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.XException;
-import org.apache.oozie.action.hive.HiveStatus;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
@@ -81,14 +80,7 @@ public class ActionSuspendXCommand<T> extends WorkflowXCommand<T> {
             throw new CommandException(e);
         }
         HiveAccessService access = Services.get().get(HiveAccessService.class);
-        HiveStatus session = access == null ? null : access.peekRunningStatus(actionId);
-        if (session != null) {
-            try {
-                session.shutdown();
-            } catch (Exception e) {
-                LOG.info("failed to kill running hive session", e);
-            }
-        }
+        access.actionFinished(actionId);
         return null;
     }
 }

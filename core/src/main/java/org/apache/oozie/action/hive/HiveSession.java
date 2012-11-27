@@ -32,10 +32,10 @@ public class HiveSession extends HiveStatus {
     final String[] queries;
     final int maxFetch;
 
-    int index;
-    Executor executor;
+    private int index;
+    private Executor executor;
 
-    boolean killed;
+    private boolean killed;
 
     public HiveSession(String wfID, String actionName, boolean monitoring, ThriftHive.Client client, String[] queries, int maxFetch) {
         super(wfID, actionName, monitoring);
@@ -44,12 +44,12 @@ public class HiveSession extends HiveStatus {
         this.maxFetch = maxFetch;
     }
 
-    private synchronized boolean isFinal() {
-        return killed || index >= queries.length;
+    private synchronized boolean hasMore() {
+        return !killed && index < queries.length;
     }
 
     private synchronized boolean isCompleted() {
-        return isFinal() && (executor == null || executor.executed || executor.ex != null);
+        return !hasMore() && (executor == null || executor.executed || executor.ex != null);
     }
 
     public synchronized void execute(ActionExecutor.Context context, WorkflowAction action) throws Exception {
@@ -59,7 +59,7 @@ public class HiveSession extends HiveStatus {
     }
 
     private synchronized boolean executeNext(ActionExecutor.Context context, WorkflowAction action) {
-        if (!isFinal()) {
+        if (hasMore()) {
             executor = new Executor(context, action, queries[index], ++index);
             Services.get().get(CallableQueueService.class).queue(executor);
             return true;
@@ -75,7 +75,7 @@ public class HiveSession extends HiveStatus {
                     "HIVE-002", "failed to execute query {0}", executor.toString(), executor.ex);
         }
         if (isCompleted()) {
-            cleanup(context, "OK");
+            cleanup(context, killed ? "KILLED" : "OK");
         }
     }
 
@@ -88,18 +88,18 @@ public class HiveSession extends HiveStatus {
     }
 
     @Override
-    public synchronized boolean shutdown() {
-        super.shutdown();
+    public synchronized boolean shutdown(boolean internal) {
+        super.shutdown(internal);
         killed = true;
-        closeSession();
-        HiveAccessService hive = Services.get().get(HiveAccessService.class);
-        if (hive != null) {
-            hive.actionFinished(actionID);
+        killHiveSession();
+        if (internal) {
+            // remove from map
+            Services.get().get(HiveAccessService.class).unregister(actionID);
         }
-        return executor != null;
+        return executor == null;
     }
 
-    private void closeSession() {
+    private void killHiveSession() {
         try {
             client.shutdown();
         } catch (Exception e) {
@@ -110,7 +110,7 @@ public class HiveSession extends HiveStatus {
     private void cleanup(ActionExecutor.Context context, String status) {
         LOG.info("Cleaning up hive session");
         context.setExecutionData(status, null);   // induce ActionEndXCommand
-        shutdown();
+        shutdown(true);
     }
 
     private class Executor implements Runnable {

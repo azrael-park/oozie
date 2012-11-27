@@ -211,7 +211,8 @@ public class HiveActionExecutor extends ActionExecutor {
             return;
         }
         try {
-            if (session.shutdown()) {
+            if (!service.actionFinished(action.getId())) {
+                // retry after 10sec
                 CallableQueueService callables = Services.get().get(CallableQueueService.class);
                 callables.queue(new ActionKillXCommand(action.getId(), action.getType()), 10000);
             }

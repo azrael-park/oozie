@@ -111,4 +111,9 @@ public class PropertiesUtils {
         }
     }
 
+    public static boolean getBoolean(Properties props, String key, boolean defaultVal) {
+        String value = props.getProperty(key);
+        return value != null ? Boolean.valueOf(value) : defaultVal;
+    }
+
 }
