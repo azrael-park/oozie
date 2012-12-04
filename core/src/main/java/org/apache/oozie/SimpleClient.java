@@ -150,7 +150,30 @@ public class SimpleClient {
     private static final String CURRENT_JOB_ID = "$CUR";
 
     private static enum COMMAND {
-        submit, start, run, rerun, kill, killall, suspend, resume, update, status, poll, cancel, log, data, xml, jobs, actions, use, failed, context, reset, version, quit
+        submit { String help() { return "submit <app-path> : submit application"; } },
+        start { String help() { return "start <job-id> : start submitted job and poll it"; } },
+        run { String help() { return "run <app-path> : submit + start application"; } },
+        rerun { String help() { return "rerun <job-id> : run the job again"; } },
+        kill { String help() { return "kill <job-id> : kill the job"; } },
+        killall { String help() { return "killall : kill all the jobs in non-terminal status"; } },
+        suspend { String help() { return "suspend <job-id|action-id|action-name(with context)> : suspend the job or action"; } },
+        resume { String help() { return "resume <job-id|action-id|action-name(with context)> : resume the job or action"; } },
+        update { String help() { return "update <action-id|action-name(with context)> <attr-name=attr-value(,attr-name=attr-value)*> : update action spec. supported only for hive/el/decision action"; } },
+        status { String help() { return "status <job-id> : displays status of the job"; } },
+        poll { String help() { return "poll <job-id> : poll status of the job. ends when it goes to terminal status"; } },
+        cancel { String help() { return "cancel <job-id> : cancels polling the job"; } },
+        log { String help() { return "log <job-id|action-id|action-name(with context)> : get logs for the job/action"; } },
+        data { String help() { return "data <action-id|action-name(with context)> : retrieves end data for the action"; } },
+        xml { String help() { return "xml <job-id|action-id|action-name(with context)> : retrieves definition for the action"; } },
+        jobs { String help() { return "jobs [-s start] [-l length] [-c] [-p] : retrieves job list"; } },
+        actions { String help() { return "actions [-s start] [-l length] [-c] [-p] : retrieves action list"; } },
+        use { String help() { return "use <job index> : set context job id"; } },
+        failed { String help() { return "failed <job-id|action-id|action-name(with context)> : retrieves log URL for failed actions (only for monitored)"; } },
+        context { String help() { return "context <job-id> : set context job id"; } },
+        reset { String help() { return "reset : remove context job id"; } },
+        version { String help() { return "version : shows current version of oozie"; } },
+        quit { String help() { return "quit : quit the shell"; } };
+        abstract String help();
     }
 
     CONTEXT context = CONTEXT.WF;
@@ -189,7 +212,7 @@ public class SimpleClient {
         reader.addCompletor(completor);
 
         if (appPath != null) {
-            executeCommand(appPath, completor);
+            executeCommand(appPath);
         }
 
         String line;
@@ -198,20 +221,32 @@ public class SimpleClient {
             if (line.isEmpty()) {
                 continue;
             }
-            if (!executeCommand(line, completor)) {
+            if (!executeCommand(line)) {
                 break;
             }
         }
     }
 
-    private boolean executeCommand(String line, SimpleCompletor completor) {
+    private boolean executeCommand(String line) {
         if (jobID != null) {
             line.replaceAll(CURRENT_JOB_ID, jobID);
         }
         try {
             String[] commands = line.split("(\\s*,\\s*)|(\\s+)");
             if (commands[0].equals("help")) {
-                System.out.println(completor.getCandidates());
+                if (commands.length > 1) {
+                    for (int i = 1; i < commands.length; i++) {
+                        try {
+                            System.out.println(COMMAND.valueOf(commands[i].trim()).help());
+                        } catch (IllegalArgumentException e) {
+                            System.out.println("Invalid command " + commands[i].trim());
+                        }
+                    }
+                } else {
+                    for (COMMAND command : COMMAND.values()) {
+                        System.out.println(command.help());
+                    }
+                }
             } else if (commands[0].equals("submit")) {
                 String newJobID = client.submit(jobDescription(commands[1]));
                 System.out.println("submitted job " + client.getJobInfo(newJobID) + (jobID == null ? "" : ", replacing " + jobID));
