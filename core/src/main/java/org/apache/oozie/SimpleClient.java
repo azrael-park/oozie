@@ -1,6 +1,7 @@
 package org.apache.oozie;
 
 import jline.ConsoleReader;
+import jline.History;
 import jline.SimpleCompletor;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -18,6 +19,7 @@ import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.util.XmlUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -167,6 +169,17 @@ public class SimpleClient {
 
         ConsoleReader reader = new ConsoleReader();
         reader.setBellEnabled(false);
+
+        try {
+            File userHome = new File(System.getProperty("user.home"));
+            if (userHome.exists()) {
+                reader.setHistory(new History(new File(userHome, ".ooziehistory")));
+            }
+        } catch (Exception e) {
+            System.err.println("WARNING: Encountered an error while trying to initialize Hive's " +
+                "history file.  History will not be available during this session.");
+            System.err.println(e.getMessage());
+        }
 
         SimpleCompletor completor = new SimpleCompletor(new String[0]);
         for (COMMAND command : COMMAND.values()) {
