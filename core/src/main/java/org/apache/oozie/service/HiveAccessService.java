@@ -65,7 +65,7 @@ public class HiveAccessService implements Service {
     public synchronized void unregister(String actionID) {
         String wfID = uuid.getId(actionID);
         String actionName = uuid.getChildName(actionID);
-        Map<String, HiveStatus> map = hiveStatus.remove(wfID);
+        Map<String, HiveStatus> map = hiveStatus.get(wfID);
         if (map != null) {
             map.remove(actionName);
         }

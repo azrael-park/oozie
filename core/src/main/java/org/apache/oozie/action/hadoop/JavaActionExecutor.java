@@ -1252,16 +1252,18 @@ public class JavaActionExecutor extends ActionExecutor {
 
     protected void handleCallback(String actionID, String jobStatus, Properties actionData) {
         String jobId = actionData.getProperty("jobId");
-        String queryId = actionData.getProperty("queryId");
-        String stageId = actionData.getProperty("stageId");
-        boolean monitoring = PropertiesUtils.getBoolean(actionData, "monitoring", false);
-        boolean nonHiveMonitor = monitoring && !isHiveQuery(queryId, stageId) ;
-        if (nonHiveMonitor && !isEvaluated(jobId, "$jobId")) {
+        if (!isEvaluated(jobId, "$jobId")) {
             return;
         }
-
+        String queryId = actionData.getProperty("queryId");
+        String stageId = actionData.getProperty("stageId");
+        boolean hiveAction = isHiveQuery(queryId, stageId) ;
+        boolean monitoring = PropertiesUtils.getBoolean(actionData, "monitoring", false);
+        if (!hiveAction && !monitoring) {
+            return;
+        }
         HiveAccessService service = Services.get().get(HiveAccessService.class);
-        HiveStatus session = service.accessRunningStatus(actionID, monitoring, nonHiveMonitor);
+        HiveStatus session = service.accessRunningStatus(actionID, monitoring, !hiveAction);
 
         if (!session.isInitialized()) {
             try {
