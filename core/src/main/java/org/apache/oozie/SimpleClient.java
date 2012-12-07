@@ -231,8 +231,8 @@ public class SimpleClient {
         if (jobID != null) {
             line.replaceAll(CURRENT_JOB_ID, jobID);
         }
+        String[] commands = line.split("(\\s*,\\s*)|(\\s+)");
         try {
-            String[] commands = line.split("(\\s*,\\s*)|(\\s+)");
             if (commands[0].equals("help")) {
                 if (commands.length > 1) {
                     for (int i = 1; i < commands.length; i++) {
@@ -252,22 +252,24 @@ public class SimpleClient {
                 System.out.println("submitted job " + client.getJobInfo(newJobID) + (jobID == null ? "" : ", replacing " + jobID));
                 jobID = newJobID;
             } else if (commands[0].equals("start")) {
-                client.start(jobID != null ? jobID : commands[1]);
-                poll(jobID != null ? jobID : commands[1]);
+                String jobID = getJobID(commands, 1);
+                client.start(jobID);
+                poll(jobID);
             } else if (commands[0].equals("run")) {
-                String newJobID = client.run(jobDescription(commands[1]));
+                String appPath = getPath(commands, 1);
+                String newJobID = client.run(jobDescription(appPath));
                 System.out.println("running job " + client.getJobInfo(newJobID) + (jobID == null ? "" : ", replacing " + jobID));
                 jobID = newJobID;
                 poll(newJobID);
             } else if (commands[0].equals("rerun")) {
-                String runJobId = commands.length > 1 ? commands[1] : jobID;
+                String runJobId = getJobID(commands, 1);
                 String runAppPath = client.getJobInfo(runJobId).getAppPath();
                 client.reRun(runJobId, jobDescription(runAppPath));
                 System.out.println("rerunning job " + client.getJobInfo(runJobId) + (jobID == null ? "" : ", replacing " + jobID));
                 jobID = runJobId;
                 poll(runJobId);
             } else if (commands[0].equals("kill")) {
-                client.kill(jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1]);
+                client.kill(getID(commands, 1));
             } else if (commands[0].equals("killall")) {
                 for (Object job : context.getJobsInfo(client, commands.length > 1 ? commands[1] : "", 1, 1000)) {
                     if (!context.isJobTerminal(job)) {
@@ -276,26 +278,26 @@ public class SimpleClient {
                     }
                 }
             } else if (commands[0].equals("suspend")) {
-                client.suspend(getID(commands));
+                client.suspend(getID(commands, 1));
             } else if (commands[0].equals("resume")) {
-                client.resume(getID(commands));
+                client.resume(getID(commands, 1));
             } else if (commands[0].equals("update")) {
-                String actionID = jobID != null ? jobID + "@" + commands[1] : commands[1];
+                String actionID = getID(commands, 1);
                 String remain = line.substring(line.indexOf(commands[1]) + commands[1].length());
                 client.update(actionID, parseParams(remain));
             } else if (commands[0].equals("status")) {
-                System.out.println(getStatus(jobID != null ? jobID : commands[1]));
+                System.out.println(getStatus(getJobID(commands, 1)));
             } else if (commands[0].equals("poll")) {
-                poll(jobID != null ? jobID : commands[1]);
+                poll(getJobID(commands, 1));
             } else if (commands[0].equals("cancel")) {
                 if (pollings.size() > 0) {
                     pollings.get(0).cancel = true;
                     pollings.get(0).join();
                 }
             } else if (commands[0].equals("log")) {
-                client.getLog(getID(commands), System.out);
+                client.getLog(getID(commands, 1), System.out);
             } else if (commands[0].equals("xml")) {
-                String ID = getID(commands);
+                String ID = getID(commands, 1);
                 int index = ID.indexOf('@');
                 if (index >= 0) {
                     if (ID.substring(index + 1).equals(ACTION_ALL)) {
@@ -313,7 +315,7 @@ public class SimpleClient {
                     System.out.println(XmlUtils.prettyPrint(context.getJobConf(context.getJobInfo(client, ID))));
                 }
             } else if (commands[0].equals("data")) {
-                String ID = getID(commands);
+                String ID = getID(commands, 1);
                 int index = ID.indexOf('@');
                 if (index >= 0 && !ID.substring(index + 1).equals(ACTION_ALL)) {
                     WorkflowAction action = client.getWorkflowActionInfo(ID);
@@ -373,7 +375,7 @@ public class SimpleClient {
                     }
                 }
             } else if (commands[0].equals("failed")) {
-                String targetID = getID(commands);
+                String targetID = getID(commands, 1);
                 if (targetID == null) {
                     System.out.println("target id is not specified");
                 } else {
@@ -427,6 +429,9 @@ public class SimpleClient {
             } else {
                 System.err.println("invalid command " + line);
             }
+        } catch (IllegalArgumentException e) {
+            System.err.println("invalid argument.. " + e.getMessage());
+            System.out.println(COMMAND.valueOf(commands[0].trim()).help());
         } catch (OozieClientException e) {
             e.printStackTrace();
             if (e.getDetail() != null) {
@@ -438,14 +443,36 @@ public class SimpleClient {
         return true;
     }
 
-    private String getID(String[] commands) {
-        if (commands.length == 2) {
-            if (isJobID(commands[1]) || isActionID(commands[1])) {
-                return commands[1];
+    private String getPath(String[] commands, int start) {
+        if (commands.length > start) {
+            return commands[start];
+        }
+        throw new IllegalArgumentException("path is missing");
+    }
+
+    private String getJobID(String[] commands, int start) {
+        if (commands.length > start) {
+            if (isJobID(commands[start])) {
+                return commands[start];
+            }
+        }
+        if (jobID == null) {
+            throw new IllegalArgumentException("jobId is missing");
+        }
+        return jobID;
+    }
+
+    private String getID(String[] commands, int start) {
+        if (commands.length > start) {
+            if (isJobID(commands[start]) || isActionID(commands[start])) {
+                return commands[start];
             }
             if (jobID != null) {
                 return jobID + "@" + commands[1];
             }
+        }
+        if (jobID == null) {
+            throw new IllegalArgumentException("(job/action)Id is missing");
         }
         return jobID;
     }
