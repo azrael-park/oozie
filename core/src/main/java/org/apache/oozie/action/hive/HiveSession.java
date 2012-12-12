@@ -8,7 +8,6 @@ import org.apache.hadoop.hive.ql.plan.api.StageType;
 import org.apache.hadoop.hive.service.ThriftHive;
 import org.apache.oozie.HiveQueryStatusBean;
 import org.apache.oozie.action.ActionExecutor;
-import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.command.wf.ActionCheckXCommand;
 import org.apache.oozie.service.CallableQueueService;
@@ -22,8 +21,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.apache.oozie.action.ActionExecutorException.ErrorType.FAILED;
 
 // for hive action, create for each action
 public class HiveSession extends HiveStatus {
@@ -71,8 +68,8 @@ public class HiveSession extends HiveStatus {
     public synchronized void check(ActionExecutor.Context context) throws Exception {
         if (executor != null && executor.ex != null) {
             cleanup(context, "FAILED");
-            throw new ActionExecutorException(FAILED,
-                    "HIVE-002", "failed to execute query {0}", executor.toString(), executor.ex);
+            LOG.info("failed to execute query {0}", executor.toString(), executor.ex);
+            throw executor.ex;
         }
         if (isCompleted()) {
             cleanup(context, killed ? "KILLED" : "OK");
