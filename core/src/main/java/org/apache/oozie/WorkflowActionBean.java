@@ -450,7 +450,7 @@ public class WorkflowActionBean extends JsonWorkflowAction implements Writable {
     public void setEndData(Status status, String signalValue) {
         if (status == null || (status != Status.OK && status != Status.ERROR && status != Status.KILLED)) {
             throw new IllegalArgumentException("Action status must be OK, ERROR or KILLED. Received ["
-                    + status.toString() + "]");
+                    + status + "]");
         }
         if (status == Status.OK) {
             setErrorInfo(null, null);
