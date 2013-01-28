@@ -115,7 +115,7 @@ public class HiveActionExecutor extends ActionExecutor {
             Attribute maxFetchAttr = actionXml.getAttribute("max-fetch");
             Attribute monitorAttr = actionXml.getAttribute("monitor");
 
-            ThriftHive.Client client = initialize(context, service.clientFor(addressAttr.getValue()));
+            HiveTClient client = service.clientFor(addressAttr.getValue());
 
             String[] queries = getQueries(actionXml, context);
             if (LOG.isDebugEnabled()) {

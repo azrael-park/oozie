@@ -2,10 +2,8 @@ package org.apache.oozie.action.hive;
 
 import org.apache.hadoop.hive.ql.plan.api.Adjacency;
 import org.apache.hadoop.hive.ql.plan.api.Query;
-import org.apache.hadoop.hive.ql.plan.api.QueryPlan;
 import org.apache.hadoop.hive.ql.plan.api.Stage;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
-import org.apache.hadoop.hive.service.ThriftHive;
 import org.apache.oozie.HiveQueryStatusBean;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.client.WorkflowAction;
@@ -25,7 +23,7 @@ import java.util.Set;
 // for hive action, create for each action
 public class HiveSession extends HiveStatus {
 
-    final ThriftHive.Client client;
+    final HiveTClient client;
     final String[] queries;
     final int maxFetch;
 
@@ -34,7 +32,7 @@ public class HiveSession extends HiveStatus {
 
     private boolean killed;
 
-    public HiveSession(String wfID, String actionName, boolean monitoring, ThriftHive.Client client, String[] queries, int maxFetch) {
+    public HiveSession(String wfID, String actionName, boolean monitoring, HiveTClient client, String[] queries, int maxFetch) {
         super(wfID, actionName, monitoring);
         this.client = client;
         this.queries = queries;
@@ -153,20 +151,19 @@ public class HiveSession extends HiveStatus {
 
         private boolean executeSQL() throws Exception {
 
-            QueryPlan plan = client.compile(query);
-            if (plan.getQueriesSize() == 0) {
+            Query plan = client.compile(query);
+            if (plan == null) {
                 LOG.info("Query " + this + " is not SQL command");
-                client.clean();
+                client.clear();
                 return false;
             }
-            Query query = plan.getQueries().get(0);
-            LOG.debug(query.getStageGraph());
+            LOG.debug(plan.getStageGraph());
 
-            queryID = query.getQueryId();
-            inverted = invertMapping(query);
+            queryID = plan.getQueryId();
+            inverted = invertMapping(plan);
 
             boolean containsMR = false;
-            List<Stage> stages = query.getStageList();
+            List<Stage> stages = plan.getStageList();
             if (stages != null && !stages.isEmpty()) {
                 for (Stage stage : stages) {
                     StageType stageType = stage.getStageType();
@@ -174,29 +171,29 @@ public class HiveSession extends HiveStatus {
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(stage.toString());
                     }
-                    LOG.info("Preparing for query " + query.getQueryId() + " in stage " + stage.getStageId() + " type " + stageType);
-                    updateStatus(query.getQueryId(), stage.getStageId(), "NOT_ASSIGNED", mapreduce ? "NOT_STARTED" : stageType.name());
+                    LOG.info("Preparing for query " + plan.getQueryId() + " in stage " + stage.getStageId() + " type " + stageType);
+                    updateStatus(plan.getQueryId(), stage.getStageId(), "NOT_ASSIGNED", mapreduce ? "NOT_STARTED" : stageType.name());
                     containsMR |= mapreduce;
                 }
                 if (containsMR) {
                     String callback = context.getCallbackUrl("$jobStatus") +
-                            "jobId=$jobId&stageId=$stageId&queryId=" + query.getQueryId();
+                            "jobId=$jobId&stageId=$stageId&queryId=" + plan.getQueryId();
                     LOG.debug("Oozie callback handler = " + callback);
                     client.executeTransient("set hiveconf:task.notification.url=" + callback);
                 }
             }
-            client.run();
+            client.execute();
 
             StringBuilder builder = new StringBuilder().append("fetch dump\n");
             for (String result : client.fetchN(maxFetch)) {
                 builder.append(result).append('\n');
             }
             LOG.info(builder.toString());
-            client.clean();
+            client.clear();
 
             if (stages != null && !stages.isEmpty()) {
                 for (Stage stage : stages) {
-                    updateStatus(query.getQueryId(), stage.getStageId(), null, "SUCCEEDED");
+                    updateStatus(plan.getQueryId(), stage.getStageId(), null, "SUCCEEDED");
                 }
             }
             executed = true;

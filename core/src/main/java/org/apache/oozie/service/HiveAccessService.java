@@ -1,22 +1,29 @@
 package org.apache.oozie.service;
 
 import org.apache.hadoop.hive.service.ThriftHive;
+import org.apache.hive.jdbc.HiveConnection;
+import org.apache.hive.jdbc.Utils;
 import org.apache.oozie.HiveQueryStatusBean;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.action.hive.HiveSession;
 import org.apache.oozie.action.hive.HiveStatus;
+import org.apache.oozie.action.hive.HiveTClient;
+import org.apache.oozie.action.hive.HiveTClientV1;
+import org.apache.oozie.action.hive.HiveTClientV2;
 import org.apache.oozie.executor.jpa.HiveStatusGetJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.util.XLog;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.apache.oozie.action.ActionExecutorException.ErrorType;
 
@@ -24,14 +31,10 @@ public class HiveAccessService implements Service {
 
     final XLog LOG = XLog.getLog(HiveAccessService.class);
 
-    private static final int DEFAULT_PORT = 10000;
-
     Map<String, Map<String, HiveStatus>> hiveStatus;   // wfID : action --> HiveStatus
-    ThriftHive.Client.Factory syncFactory;
     UUIDService uuid;
 
     public void init(Services services) throws ServiceException {
-        syncFactory = new ThriftHive.Client.Factory();
         hiveStatus = new HashMap<String, Map<String, HiveStatus>>();
         uuid = Services.get().get(UUIDService.class);
     }
@@ -197,22 +200,30 @@ public class HiveAccessService implements Service {
         return result != null && !result.isEmpty() ? result.get(0) : null;
     }
 
-    public ThriftHive.Client clientFor(String address) throws ActionExecutorException {
-        //FIXME http://localhost:10000/default
-        if(address.startsWith("http://")){
-            address = address.substring(7);
+    public HiveTClient clientFor(String address) throws ActionExecutorException {
+        Utils.JdbcConnectionParams connParams = Utils.parseURI(URI.create(address));
+        if (connParams.getScheme() != null && !connParams.getScheme().isEmpty() && !connParams.getScheme().equals("hive")) {
+            return createClientForV2(address, connParams);
         }
-        if(address.endsWith("default")){
-            address = address.substring(0, address.indexOf("default")-1);
-        }
-        int index = address.indexOf(":");
-        String host = index < 0 ? address : address.substring(0, index);
-        int port = index < 0 ? DEFAULT_PORT : Integer.valueOf(address.substring(index + 1));
+        return createClientForV1(address, connParams);
+    }
+
+    private HiveTClient createClientForV1(String address, Utils.JdbcConnectionParams connParams) throws ActionExecutorException {
         try {
-            TSocket protocol = new TSocket(host, port);
+            TSocket protocol = new TSocket(connParams.getHost(), connParams.getPort());
             protocol.open();
-            return syncFactory.getClient(new TBinaryProtocol(protocol));
+            return new HiveTClientV1(new ThriftHive.Client(new TBinaryProtocol(protocol)));
         } catch (Throwable e) {
+            throw new ActionExecutorException(ErrorType.TRANSIENT, "HIVE-002", "failed to connect hive server {0}", address, e);
+        }
+    }
+
+    public HiveTClient createClientForV2(String address, Utils.JdbcConnectionParams params) throws ActionExecutorException {
+        HiveConnection connection = new HiveConnection();
+        try {
+            connection.initialize(params, new Properties());
+            return new HiveTClientV2(connection);
+        } catch (Exception e) {
             throw new ActionExecutorException(ErrorType.TRANSIENT, "HIVE-002", "failed to connect hive server {0}", address, e);
         }
     }

@@ -63,7 +63,12 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-service</artifactId>
-            <version>${hive.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-jdbc</artifactId>
             <scope>compile</scope>
         </dependency>
 
