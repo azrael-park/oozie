@@ -136,7 +136,11 @@ public class HiveSession extends HiveStatus {
                 executeNext(context, action);
             } catch (Exception e) {
                 ex = e;
-                LOG.warn("Failed to execute query {0}, by exception {1}", this, e.toString());
+                if (killed) {
+                    LOG.info("Failed to execute query {0} cause the action is killed", this);
+                } else {
+                    LOG.warn("Failed to execute query {0}", this, e);
+                }
             } finally {
                 LOG.info("Executed " + this + " with " + resultCode());
                 if (Thread.currentThread().isInterrupted()) {
@@ -202,7 +206,7 @@ public class HiveSession extends HiveStatus {
         }
 
         private String resultCode() {
-            return ex == null ? "SUCCEEDED" : "FAILED";
+            return ex == null && !killed ? "SUCCEEDED" : killed ?  "KILLED" : "FAILED";
         }
 
         private Map<String, Set<String>> invertMapping(Query query) {
