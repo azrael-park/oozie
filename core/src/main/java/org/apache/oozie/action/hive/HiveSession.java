@@ -171,7 +171,7 @@ public class HiveSession extends HiveStatus {
             if (stages != null && !stages.isEmpty()) {
                 for (Stage stage : stages) {
                     StageType stageType = stage.getStageType();
-                    boolean mapreduce = stageType == StageType.MAPRED || stageType == StageType.MAPREDLOCAL;
+                    boolean mapreduce = stageType == StageType.MAPRED;
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(stage.toString());
                     }

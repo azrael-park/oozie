@@ -256,8 +256,13 @@ public class HiveStatus {
                 }
                 monitor(eventCounter, progress);
             } catch (Exception e) {
-                LOG.info("Polling thread is exiting by exception " + e + ".. retrying in 30sec", e);
-                Services.get().get(CallableQueueService.class).queue(this, "mr.polling", jobID, 30000l);
+                LOG.info("Polling thread is exiting by exception " + e + ".. retrying in 10 sec", e);
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException e1) {
+                    // ignore
+                }
+                startMonitor(jobID, hiveBean);
             }
         }
 
