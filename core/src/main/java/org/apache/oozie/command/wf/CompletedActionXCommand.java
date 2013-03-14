@@ -21,6 +21,7 @@ import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.hive.HiveActionExecutor;
+import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.service.ActionService;
@@ -66,6 +67,9 @@ public class CompletedActionXCommand extends ActionXCommand<Void> {
     protected void eagerVerifyPrecondition() throws CommandException, PreconditionException {
         super.eagerVerifyPrecondition();
         if (wfAction.getStatus() != WorkflowActionBean.Status.RUNNING) {
+            if (externalStatus.equals("RUNNING") && wfAction.getStatus() == WorkflowAction.Status.PREP) {
+                return; // callback is arrived early
+            }
             if (!wfAction.getType().equals(HiveActionExecutor.ACTION_TYPE)) {
                 throw new CommandException(ErrorCode.E0800, actionId, wfAction.getStatus());
             }
