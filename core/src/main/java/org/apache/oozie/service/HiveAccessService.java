@@ -31,24 +31,21 @@ public class HiveAccessService implements Service {
 
     final XLog LOG = XLog.getLog(HiveAccessService.class);
 
-    Map<String, Map<String, HiveStatus>> hiveStatus;   // wfID : action --> HiveStatus
+    // wfID : action --> HiveStatus
+    final Map<String, Map<String, HiveStatus>> hiveStatus = new HashMap<String, Map<String, HiveStatus>>();
     UUIDService uuid;
 
     public void init(Services services) throws ServiceException {
-        hiveStatus = new HashMap<String, Map<String, HiveStatus>>();
         uuid = Services.get().get(UUIDService.class);
     }
 
     public synchronized void destroy() {
-        if (hiveStatus != null) {
-            for (Map<String, HiveStatus> value : hiveStatus.values()) {
-                for (HiveStatus status : value.values()) {
-                    status.shutdown(false);
-                }
+        for (Map<String, HiveStatus> value : new ArrayList<Map<String, HiveStatus>>(hiveStatus.values())) {
+            for (HiveStatus status : value.values()) {
+                status.shutdown(false);
             }
-            hiveStatus.clear();
         }
-        hiveStatus = null;
+        hiveStatus.clear();
     }
 
     public Class<? extends Service> getInterface() {
