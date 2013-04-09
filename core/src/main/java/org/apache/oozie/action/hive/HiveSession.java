@@ -11,6 +11,7 @@ import org.apache.oozie.command.wf.ActionCheckXCommand;
 import org.apache.oozie.service.CallableQueueService;
 import org.apache.oozie.service.HiveAccessService;
 import org.apache.oozie.service.Services;
+import org.apache.oozie.util.XLog;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -23,54 +24,59 @@ import java.util.Set;
 // for hive action, create for each action
 public class HiveSession extends HiveStatus {
 
-    final HiveTClient client;
-    final String[] queries;
-    final int maxFetch;
+    private final HiveTClient client;
+    private final String[] queries;
+    private final Executor executor;
+    private final int maxFetch;
 
     private int index;
-    private Executor executor;
-
-    private boolean killed;
 
     public HiveSession(String wfID, String actionName, boolean monitoring, HiveTClient client, String[] queries, int maxFetch) {
         super(wfID, actionName, monitoring);
         this.client = client;
         this.queries = queries;
         this.maxFetch = maxFetch;
+        this.executor = new Executor(XLog.Info.get());
     }
 
     private synchronized boolean hasMore() {
-        return !killed && index < queries.length;
+        return !executor.killed && index < queries.length;
     }
 
     private synchronized boolean isCompleted() {
-        return !hasMore() && (executor == null || executor.executed || executor.ex != null);
+        return !hasMore() && executor.executed;
     }
 
     public synchronized void execute(ActionExecutor.Context context, WorkflowAction action) throws Exception {
-        if (!executeNext(context, action)) {
+        if (hasMore()) {
+            executor.configure(context, action, index++);
+            Services.get().get(CallableQueueService.class).queue(executor);
+        } else {
             check(context);
         }
     }
 
-    private synchronized boolean executeNext(ActionExecutor.Context context, WorkflowAction action) {
-        if (hasMore()) {
-            executor = new Executor(context, action, queries[index], ++index);
-            Services.get().get(CallableQueueService.class).queue(executor);
-            return true;
+    private synchronized void executeNext(ActionExecutor.Context context, WorkflowAction action) {
+        CallableQueueService executors = Services.get().get(CallableQueueService.class);
+        if (executor.ex == null && hasMore()) {
+            executor.configure(context, action, index++);
+            executors.queue(executor);
+        } else {
+            executors.queue(new ActionCheckXCommand(actionID));
         }
-        executor = null;
-        return false;
     }
 
     public synchronized void check(ActionExecutor.Context context) throws Exception {
-        if (executor != null && executor.ex != null) {
+        if (executor.ex != null) {
             cleanup(context, "FAILED");
             LOG.info("failed to execute query {0}", executor.toString(), executor.ex);
             throw executor.ex;
         }
         if (isCompleted()) {
-            cleanup(context, killed ? "KILLED" : "OK");
+            cleanup(context, executor.killed ? "KILLED" : "OK");
+        } else {
+            CallableQueueService service = Services.get().get(CallableQueueService.class);
+            service.queue(new ActionCheckXCommand(actionID, 10));
         }
     }
 
@@ -85,13 +91,13 @@ public class HiveSession extends HiveStatus {
     @Override
     public synchronized boolean shutdown(boolean internal) {
         super.shutdown(internal);
-        killed = true;
+        executor.killed = true;
         killHiveSession();
         if (internal) {
             // remove from map
             Services.get().get(HiveAccessService.class).unregister(actionID);
         }
-        return executor == null;
+        return true;
     }
 
     private void killHiveSession() {
@@ -110,9 +116,10 @@ public class HiveSession extends HiveStatus {
 
     private class Executor implements Runnable {
 
+        final XLog.Info logInfo;
+
         ActionExecutor.Context context;
         WorkflowAction action;
-        String query;
         int current;
 
         String queryID;
@@ -120,20 +127,25 @@ public class HiveSession extends HiveStatus {
 
         volatile Exception ex;
         volatile boolean executed;
+        volatile boolean killed;
 
-        public Executor(ActionExecutor.Context context, WorkflowAction action, String query, int current) {
+        public Executor(XLog.Info logInfo) {
+            this.logInfo = logInfo;
+        }
+
+        public void configure(ActionExecutor.Context context, WorkflowAction action, int current) {
             this.context = context;
             this.action = action;
-            this.query = query;
             this.current = current;
+            this.executed = false;
         }
 
         @Override
         public void run() {
+            XLog.Info.get().setParameters(logInfo);
             LOG.info("Executing query " + this);
             try {
                 executeSQL();
-                executeNext(context, action);
             } catch (Exception e) {
                 ex = e;
                 if (killed) {
@@ -146,16 +158,14 @@ public class HiveSession extends HiveStatus {
                 if (Thread.currentThread().isInterrupted()) {
                     LOG.debug("Thread was interrupted");
                 }
-            }
-            if (checkAction()) {
-                CallableQueueService service = Services.get().get(CallableQueueService.class);
-                service.queue(new ActionCheckXCommand(actionID));
+                executed = true;
+                executeNext(context, action);
             }
         }
 
         private boolean executeSQL() throws Exception {
 
-            Query plan = client.compile(query);
+            Query plan = client.compile(queries[current]);
             if (plan == null) {
                 LOG.info("Query " + this + " is not SQL command");
                 client.clear();
@@ -200,7 +210,6 @@ public class HiveSession extends HiveStatus {
                     updateStatus(plan.getQueryId(), stage.getStageId(), null, "SUCCEEDED");
                 }
             }
-            executed = true;
 
             return containsMR;
         }
@@ -243,10 +252,6 @@ public class HiveSession extends HiveStatus {
                     }
                 }
             }
-        }
-
-        private boolean checkAction() {
-            return ex != null || current >= queries.length;
         }
 
         @Override
