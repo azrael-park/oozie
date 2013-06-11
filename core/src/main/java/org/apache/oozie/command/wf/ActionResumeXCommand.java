@@ -64,7 +64,9 @@ public class ActionResumeXCommand extends WorkflowXCommand<Void> {
         if (wfJob.getStatus() != SUSPENDED && wfJob.getStatus() != RUNNING) {
             throw new PreconditionException(ErrorCode.E0823, wfJob.getStatus());
         }
-        if (wfAction.getStatus() != WorkflowAction.Status.START_MANUAL &&
+        if (wfAction.getStatus() != WorkflowAction.Status.PREP &&
+                wfAction.getStatus() != WorkflowAction.Status.START_MANUAL &&
+                wfAction.getStatus() != WorkflowAction.Status.DONE &&
                 wfAction.getStatus() != WorkflowAction.Status.END_MANUAL) {
             throw new PreconditionException(ErrorCode.E0824, wfAction.getStatus());
         }
@@ -85,9 +87,13 @@ public class ActionResumeXCommand extends WorkflowXCommand<Void> {
         return null;
     }
 
-    // job should be in RUNNING or SUSPENDED status (also used by ResumeXCommand)
     static ActionXCommand resumeAction(WorkflowJobBean job, WorkflowActionBean action) {
-        if (job.getStatus() != RUNNING || !isExecutionHead(job, action)) {
+        return resumeAction(job, job.getWorkflowInstance(), action);
+    }
+
+    // job should be in RUNNING or SUSPENDED status (also used by ResumeXCommand)
+    static ActionXCommand resumeAction(WorkflowJobBean job, WorkflowInstance instance, WorkflowActionBean action) {
+        if (job.getStatus() != RUNNING || !isExecutionHead(instance, action)) {
             action.resetPending();
             action.setStatus(WorkflowAction.Status.PREP);
             return null;
@@ -97,16 +103,17 @@ public class ActionResumeXCommand extends WorkflowXCommand<Void> {
             action.setPendingOnly();
             return new ActionStartXCommand(action.getId(), action.getType());
         }
-        if (action.getStatus() == WorkflowAction.Status.END_MANUAL) {
+        if (action.getStatus() == WorkflowAction.Status.END_MANUAL ||
+                action.getStatus() == WorkflowAction.Status.DONE) {
             action.setPendingOnly();
             return new ActionEndXCommand(action.getId(), action.getType());
         }
         return null;
     }
 
-    private static boolean isExecutionHead(WorkflowJobBean job, WorkflowActionBean action) {
-        NodeDef node = executionHead(job.getWorkflowInstance(), action.getExecutionPath());
-        boolean executable = node != null && node.getName().equals(action.getName());
+    private static boolean isExecutionHead(WorkflowInstance instance, WorkflowActionBean action) {
+        NodeDef head = executionHead(instance, action.getExecutionPath());
+        boolean executable = head != null && head.getName().equals(action.getName());
         if (executable) {
             XLog.getLog(ActionResumeXCommand.class).info(action.getName() +
                     " in path " + action.getExecutionPath() + " is head of execution");
