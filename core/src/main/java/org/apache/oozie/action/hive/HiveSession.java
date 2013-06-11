@@ -76,7 +76,7 @@ public class HiveSession extends HiveStatus {
             cleanup(context, executor.killed ? "KILLED" : "OK");
         } else {
             CallableQueueService service = Services.get().get(CallableQueueService.class);
-            service.queue(new ActionCheckXCommand(actionID, 10));
+            service.queue(new ActionCheckXCommand(actionID));
         }
     }
 

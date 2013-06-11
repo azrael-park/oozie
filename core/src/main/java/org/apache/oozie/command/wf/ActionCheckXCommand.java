@@ -68,25 +68,6 @@ public class ActionCheckXCommand extends ActionXCommand {
     }
 
     @Override
-    protected void eagerLoadState() throws CommandException {
-        loadActionBean();
-    }
-
-    @Override
-    protected void eagerVerifyPrecondition() throws CommandException, PreconditionException {
-        verifyActionBean();
-        // if the action has been updated, quit this command
-        if (actionCheckDelay > 0) {
-            Timestamp actionCheckTs = new Timestamp(System.currentTimeMillis() - actionCheckDelay * 1000);
-            Timestamp actionLmt = wfAction.getLastCheckTimestamp();
-            if (actionLmt.after(actionCheckTs)) {
-                throw new PreconditionException(ErrorCode.E0817, actionId);
-            }
-        }
-        loadActionExecutor(false);
-    }
-
-    @Override
     protected boolean isLockRequired() {
         return true;
     }
@@ -98,11 +79,19 @@ public class ActionCheckXCommand extends ActionXCommand {
 
     @Override
     protected void loadState() throws CommandException {
-        eagerLoadState();
+        loadActionBean();
     }
 
     @Override
     protected void verifyPrecondition() throws CommandException, PreconditionException {
+        verifyActionBean();
+        if (actionCheckDelay > 0) {
+            Timestamp actionCheckTs = new Timestamp(System.currentTimeMillis() - actionCheckDelay * 1000);
+            Timestamp actionLmt = wfAction.getLastCheckTimestamp();
+            if (actionLmt.after(actionCheckTs)) {
+                throw new PreconditionException(ErrorCode.E0817, actionId);
+            }
+        }
         if (!wfAction.isPending() || wfAction.getStatus() != WorkflowActionBean.Status.RUNNING) {
             throw new PreconditionException(ErrorCode.E0815, wfAction.getPending(), wfAction.getStatusStr());
         }
@@ -116,6 +105,7 @@ public class ActionCheckXCommand extends ActionXCommand {
             }
             throw new PreconditionException(ErrorCode.E0818, wfAction.getId(), wfJob.getId(), wfJob.getStatus());
         }
+        loadActionExecutor(false);
     }
 
     @Override
