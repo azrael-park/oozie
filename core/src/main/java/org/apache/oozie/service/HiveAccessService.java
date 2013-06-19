@@ -62,30 +62,29 @@ public class HiveAccessService implements Service {
         map.put(actionName, session);
     }
 
-    public synchronized void unregister(String actionID) {
-        String wfID = uuid.getId(actionID);
-        String actionName = uuid.getChildName(actionID);
-        Map<String, HiveStatus> map = hiveStatus.get(wfID);
-        if (map != null) {
-            map.remove(actionName);
-        }
-    }
-
-    public synchronized boolean actionFinished(String actionID) {
-        boolean finished = true;
+    public synchronized HiveStatus unregister(String actionID) {
         String wfID = uuid.getId(actionID);
         Map<String, HiveStatus> map = hiveStatus.get(wfID);
         if (map != null) {
-            HiveStatus status = map.remove(uuid.getChildName(actionID));
-            if (status != null) {
-                finished = status.shutdown(false);
-            }
+            return map.remove(uuid.getChildName(actionID));
         }
-        return finished;
+        return null;
     }
 
-    public synchronized void jobFinished(String wfID) {
-        Map<String, HiveStatus> finished = hiveStatus.remove(wfID);
+    public synchronized Map<String, HiveStatus> unregisterWF(String wfID) {
+        return hiveStatus.remove(wfID);
+    }
+
+    public boolean actionFinished(String actionID) {
+        HiveStatus status = unregister(actionID);
+        if (status != null) {
+            return status.shutdown(false);
+        }
+        return false;
+    }
+
+    public void jobFinished(String wfID) {
+        Map<String, HiveStatus> finished = unregisterWF(wfID);
         if (finished != null) {
             for (HiveStatus status : finished.values()) {
                 status.shutdown(false);
