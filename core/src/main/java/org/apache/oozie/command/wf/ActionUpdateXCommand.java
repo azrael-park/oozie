@@ -16,7 +16,7 @@ public class ActionUpdateXCommand extends ActionXCommand<Void> {
     private Map<String, String> updates;
 
     public ActionUpdateXCommand(String actionId, Map<String, String> updates) {
-        super(actionId, "action.update", "action.update", 0);
+        super(actionId, "action.update", "update", 0);
         this.updates = updates;
     }
 

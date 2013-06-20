@@ -137,6 +137,10 @@ public class Instrumentation {
             }
         }
 
+        public long elapsed() {
+            return running ? System.currentTimeMillis() - lapStart : -1;
+        }
+
         /**
          * Return the start time of the cron. It must be stopped.
          *

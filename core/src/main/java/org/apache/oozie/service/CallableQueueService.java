@@ -200,7 +200,7 @@ public class CallableQueueService implements Service, Instrumentable {
          */
         @Override
         public String toString() {
-            return "delay=" + getDelay(TimeUnit.MILLISECONDS) + ", elements=" + getElement().toString();
+            return getElement().toString() + "=" + cron.elapsed();
         }
 
         /**
@@ -257,17 +257,17 @@ public class CallableQueueService implements Service, Instrumentable {
 
         public CompositeCallable(List<? extends XCallable<?>> callables) {
             this.callables = new ArrayList<XCallable<?>>(callables);
-            priority = 0;
-            createdTime = Long.MAX_VALUE;
             StringBuilder sb = new StringBuilder();
-            String separator = "[";
+            sb.append('[');
             for (XCallable<?> callable : callables) {
                 priority = Math.max(priority, callable.getPriority());
                 createdTime = Math.min(createdTime, callable.getCreatedTime());
-                sb.append(separator).append(callable.getName());
-                separator = ",";
+                if (sb.length() > 0) {
+                    sb.append(',');
+                }
+                sb.append(callable.toString());
             }
-            sb.append("]");
+            sb.append(']');
             name = sb.toString();
         }
 

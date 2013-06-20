@@ -23,41 +23,14 @@ import org.apache.oozie.workflow.lite.NodeDef;
 import static org.apache.oozie.client.WorkflowJob.Status.RUNNING;
 import static org.apache.oozie.client.WorkflowJob.Status.SUSPENDED;
 
-public class ActionResumeXCommand extends WorkflowXCommand<Void> {
-
-    private String jobId;
-    private String actionId;
-    private WorkflowJobBean wfJob;
-    private WorkflowActionBean wfAction;
-    private JPAService jpaService;
+public class ActionResumeXCommand extends ActionXCommand<Void> {
 
     public ActionResumeXCommand(String actionId) {
-        super("action.resume", "resume", 1);
-        this.actionId = actionId;
-        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
-    }
-
-    protected boolean isLockRequired() {
-        return true;
-    }
-
-    public String getEntityKey() {
-        return jobId;
+        super(actionId, "action.resume", "resume", 1);
     }
 
     protected void loadState() throws CommandException {
-        jpaService = Services.get().get(JPAService.class);
-        if (jpaService == null) {
-            throw new CommandException(ErrorCode.E0610);
-        }
-        try {
-            wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(jobId));
-            wfAction = jpaService.execute(new WorkflowActionGetJPAExecutor(actionId));
-            LogUtils.setLogInfo(wfJob, logInfo);
-            LogUtils.setLogInfo(wfAction, logInfo);
-        } catch (XException ex) {
-            throw new CommandException(ex);
-        }
+        loadActionBean();
     }
 
     protected void verifyPrecondition() throws CommandException, PreconditionException {

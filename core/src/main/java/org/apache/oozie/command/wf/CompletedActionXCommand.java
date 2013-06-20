@@ -38,7 +38,7 @@ public class CompletedActionXCommand extends ActionXCommand<Void> {
     private final Properties actionData;
 
     public CompletedActionXCommand(String actionId, String externalStatus, Properties actionData, int priority) {
-        super(actionId, "callback", "callback", priority);
+        super(actionId, "action.callback", "callback", priority);
         this.externalStatus = ParamChecker.notEmpty(externalStatus, "externalStatus");
         this.actionData = actionData;
     }

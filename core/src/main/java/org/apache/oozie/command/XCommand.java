@@ -525,4 +525,8 @@ public abstract class XCommand<T> implements XCallable<T> {
         }
         return new CommandException(ErrorCode.E9999, t);
     }
+
+    public String toString() {
+        return getName() + (getEntityKey() == null ? "" : "[" + getEntityKey() + "]");
+    }
 }

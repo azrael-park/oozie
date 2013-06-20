@@ -172,6 +172,9 @@ public class SimpleClient {
         context { String help() { return "context <job-id> : set context job id"; } },
         reset { String help() { return "reset : remove context job id"; } },
         version { String help() { return "version : shows current version of oozie"; } },
+        queue { String help() { return "queue : dump executor queue"; } },
+        definition { String help() { return "definition <job-id> : shows defintion of the job"; } },
+        url { String help() { return "url : shows url of oozie server"; } },
         quit { String help() { return "quit : quit the shell"; } };
         abstract String help();
     }
@@ -426,6 +429,19 @@ public class SimpleClient {
                     context = newContext;
                     jobID = null;
                 }
+            } else if (commands[0].equals("queue")) {
+                List<String> dump = client.getQueueDump();
+                if (dump != null) {
+                    System.out.println(dump);
+                }
+            } else if (commands[0].equals("definition")) {
+                String jobID = getJobID(commands, 1);
+                String definition = client.getJobDefinition(jobID);
+                if (definition != null) {
+                    System.out.println(XmlUtils.prettyPrint(definition));
+                }
+            } else if (commands[0].equals("url")) {
+                System.out.println(client.getOozieUrl());
             } else {
                 System.err.println("invalid command " + line);
             }

@@ -63,7 +63,7 @@ public class ActionCheckXCommand extends ActionXCommand {
     }
 
     public ActionCheckXCommand(String actionId, int priority, int checkDelay) {
-        super(actionId, "action.check", "action.check", priority);
+        super(actionId, "action.check", "check", priority);
         this.actionCheckDelay = checkDelay;
     }
 
