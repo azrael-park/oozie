@@ -4,7 +4,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.service.HiveServerException;
-import org.apache.hadoop.hive.service.ThriftHive;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
@@ -113,9 +112,9 @@ public class HiveActionExecutor extends ActionExecutor {
 
             Attribute addressAttr = actionXml.getAttribute("address");
             Attribute maxFetchAttr = actionXml.getAttribute("max-fetch");
-            Attribute monitorAttr = actionXml.getAttribute("monitor");
+            Attribute monitorAttr = actionXml.getAttribute("monitoring");
 
-            HiveTClient client = service.clientFor(addressAttr.getValue());
+            HiveTClient client = initialize(context, service.clientFor(addressAttr.getValue()));
 
             String[] queries = getQueries(actionXml, context);
             if (LOG.isDebugEnabled()) {
@@ -140,12 +139,13 @@ public class HiveActionExecutor extends ActionExecutor {
         }
     }
 
-    private ThriftHive.Client initialize(Context context, ThriftHive.Client client) throws Exception {
+    private HiveTClient initialize(Context context, HiveTClient client) throws Exception {
         for (String prefix : new String[] {"jar", "file", "archive"}) {
             String command = command(context, prefix);
             if (command != null) {
                 LOG.debug("Executing initialization command : " + command);
-                client.execute(command);
+                client.executeTransient(command);
+                client.clear();
             }
         }
         return client;
