@@ -698,10 +698,11 @@ public class SimpleClient {
         line = line.trim();
         Map<String, String> params = new HashMap<String, String>();
         for (String param : line.split(",[\\s]*")) {
+            param = param.trim();
             int eq = param.indexOf('=');
             String key = eq < 0 ? param : param.substring(0, eq).trim();
             String value = eq < 0 ? null : param.substring(eq + 1).trim();
-            params.put(key, value == null ? value : value.replaceAll(";", ";\n"));
+            params.put(key, value);
         }
         return params;
     }

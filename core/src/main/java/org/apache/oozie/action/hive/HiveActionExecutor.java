@@ -77,6 +77,7 @@ public class HiveActionExecutor extends ActionExecutor {
         for (Map.Entry<String, String> entry : updates.entrySet()) {
             String name = entry.getKey();
             String value = entry.getValue();
+            LOG.info("Updating action configuration " + entry);
             if (name.equals("address")) {
                 setAttribute(config, "address", value);
             } else if (name.equals("jar")) {
