@@ -1,13 +1,6 @@
 package org.apache.oozie.command;
 
-import org.apache.oozie.BaseEngineException;
-import org.apache.oozie.BundleEngineException;
-import org.apache.oozie.CoordinatorEngineException;
-import org.apache.oozie.DagEngineException;
-import org.apache.oozie.ErrorCode;
-import org.apache.oozie.WorkflowActionInfo;
-import org.apache.oozie.WorkflowsInfo;
-import org.apache.oozie.XException;
+import org.apache.oozie.*;
 import org.apache.oozie.client.BundleJob;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
@@ -105,31 +98,41 @@ public class FilterResolver {
         public String validate(String value) { return value; }
     }
 
-    // actionName=hive, startedRecent=1D, status=SUCCESS
-    public static boolean actionExists(String conditions, boolean precondition) {
+    // name=hive, startedRecent=1D, status=OK
+    public static boolean actionExists(String conditions) {
         try {
             Map<String, List<String>> filter = parseForWFAction(conditions);
-            if (precondition && !filter.containsKey(OozieClient.FILTER_STATUS)) {
-                filter.put(OozieClient.FILTER_STATUS, Arrays.asList("OK"));    // default
+            List<String> status = filter.remove(OozieClient.FILTER_STATUS);
+            if (status == null) {
+                status = Arrays.asList("OK");
             }
             JPAService jpa = Services.get().get(JPAService.class);
-            WorkflowActionInfo actions = jpa.execute(new WorkflowActionsGetJPAExecutor(filter, true));
-            return actions.getTotal() > 0;
+            WorkflowActionInfo actions = jpa.execute(new WorkflowActionsGetJPAExecutor(filter, 1, 1));
+            List<WorkflowActionBean> beans = actions.getActions();
+            if (beans.isEmpty()) {
+                return false;
+            }
+            return status.contains(beans.get(0).getStatusStr());
         } catch (XException e) {
             LOG.warn(e);
         }
         return false;
     }
 
-    public static boolean workflowExists(String conditions, boolean precondition) {
+    public static boolean workflowExists(String conditions) {
         try {
             Map<String, List<String>> filter = parseForJobs(conditions);
-            if (precondition && !filter.containsKey(OozieClient.FILTER_STATUS)) {
-                filter.put(OozieClient.FILTER_STATUS, Arrays.asList("SUCCEEDED"));    // default
+            List<String> status = filter.remove(OozieClient.FILTER_STATUS);
+            if (status == null) {
+                status = Arrays.asList("SUCCEEDED");
             }
             JPAService jpa = Services.get().get(JPAService.class);
-            WorkflowsInfo jobs = jpa.execute(new WorkflowsJobGetJPAExecutor(filter, true));
-            return jobs.getTotal() > 0;
+            WorkflowsInfo jobs = jpa.execute(new WorkflowsJobGetJPAExecutor(filter, 1, 1));
+            List<WorkflowJobBean> beans = jobs.getWorkflows();
+            if (beans.isEmpty()) {
+                return false;
+            }
+            return status.contains(beans.get(0).getStatusStr());
         } catch (XException e) {
             LOG.warn(e);
         }
