@@ -85,10 +85,12 @@ public class HiveActionExecutor extends ActionExecutor {
                 setAttribute(config, "file", value);
             } else if (name.equals("archive")) {
                 setAttribute(config, "archive", value);
-            } else if (name.equals("sync-wait")) {
-                setAttribute(config, "sync-wait", value);
+            } else if (name.equals("max-fetch")) {
+                setAttribute(config, "max-fetch", value);
+            } else if (name.equals("monitoring")) {
+                setAttribute(config, "monitoring", value);
             } else if (name.equals("script")) {
-                setAttribute(config, "script", value);
+                setElement(config, "script", value);
             } else if (name.equals("query")) {
                 setElement(config, "query", value);
             } else if (name.equals("queries")) {
