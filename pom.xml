@@ -98,6 +98,7 @@
          <tomcat.version>6.0.37</tomcat.version>
 
          <openjpa.version>2.2.2</openjpa.version>
+         <xerces.version>2.10.0</xerces.version>
     </properties>
 
     <modules>
@@ -750,7 +751,7 @@
             <dependency>
                 <groupId>xerces</groupId>
                 <artifactId>xercesImpl</artifactId>
-                <version>2.10.0</version>
+                <version>${xerces.version}</version>
             </dependency>
 
             <!-- For drawing runtime DAG -->
