@@ -52,7 +52,7 @@ public class HiveSession extends HiveStatus {
             executor.configure(context, action, index++);
             Services.get().get(CallableQueueService.class).queue(executor);
         } else {
-            check(context);
+            cleanup(context, "OK");
         }
     }
 
@@ -74,9 +74,6 @@ public class HiveSession extends HiveStatus {
         }
         if (isCompleted()) {
             cleanup(context, executor.killed ? "KILLED" : "OK");
-        } else {
-            CallableQueueService service = Services.get().get(CallableQueueService.class);
-            service.queue(new ActionCheckXCommand(actionID));
         }
     }
 
@@ -109,9 +106,10 @@ public class HiveSession extends HiveStatus {
     }
 
     private void cleanup(ActionExecutor.Context context, String status) {
-        LOG.info("Cleaning up hive session");
+        LOG.info("Cleaning up hive session with status " + status);
         context.setExecutionData(status, null);   // induce ActionEndXCommand
         shutdown(true);
+        LOG.info("Cleaned up hive session");
     }
 
     private class Executor implements Runnable {
@@ -171,7 +169,9 @@ public class HiveSession extends HiveStatus {
                 client.clear();
                 return false;
             }
-            LOG.debug(plan.getStageGraph());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(plan.getStageGraph());
+            }
 
             queryID = plan.getQueryId();
             inverted = invertMapping(plan);
@@ -179,14 +179,20 @@ public class HiveSession extends HiveStatus {
             boolean containsMR = false;
             List<Stage> stages = plan.getStageList();
             if (stages != null && !stages.isEmpty()) {
+                LOG.info("Preparing for query " + plan.getQueryId());
+                Set<String> walked = new HashSet<String>();
                 for (Stage stage : stages) {
+                    if (!walked.add(stage.getStageId())) {
+                        continue;
+                    }
                     StageType stageType = stage.getStageType();
                     boolean mapreduce = stageType == StageType.MAPRED;
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(stage.toString());
                     }
-                    LOG.info("Preparing for query " + plan.getQueryId() + " in stage " + stage.getStageId() + " type " + stageType);
-                    updateStatus(plan.getQueryId(), stage.getStageId(), "NOT_ASSIGNED", mapreduce ? "NOT_STARTED" : stageType.name());
+                    LOG.info(" #" + (current + 1) + ":" + stage.getStageId() + " type " + stageType);
+                    updateStatus(plan.getQueryId(), stage.getStageId(),
+                            "NOT_ASSIGNED", mapreduce ? "NOT_STARTED" : stageType.name());
                     containsMR |= mapreduce;
                 }
                 if (containsMR) {
@@ -198,11 +204,13 @@ public class HiveSession extends HiveStatus {
             }
             client.execute();
 
-            StringBuilder builder = new StringBuilder().append("fetch dump\n");
-            for (String result : client.fetchN(maxFetch)) {
-                builder.append(result).append('\n');
+            if (LOG.isInfoEnabled()) {
+                StringBuilder builder = new StringBuilder().append("fetch dump\n");
+                for (String result : client.fetchN(maxFetch)) {
+                    builder.append(result).append('\n');
+                }
+                LOG.info(builder.toString());
             }
-            LOG.info(builder.toString());
             client.clear();
 
             if (stages != null && !stages.isEmpty()) {
@@ -232,7 +240,9 @@ public class HiveSession extends HiveStatus {
                     }
                 }
             }
-            LOG.debug("Inverted mapping " + inverted);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Inverted mapping " + inverted);
+            }
             return inverted;
         }
 
@@ -256,7 +266,7 @@ public class HiveSession extends HiveStatus {
 
         @Override
         public String toString() {
-            return current + "/" + queries.length;
+            return (current + 1) + "/" + queries.length;
         }
     }
 

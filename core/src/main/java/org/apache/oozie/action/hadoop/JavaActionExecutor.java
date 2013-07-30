@@ -654,6 +654,9 @@ public class JavaActionExecutor extends ActionExecutor {
             // to disable cancelation of delegation token on launcher job end
             launcherJobConf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", false);
 
+            // disable useless logging
+            launcherJobConf.setBoolean("mapred.used.genericoptionsparser", true);
+
             return launcherJobConf;
         }
         catch (Exception ex) {

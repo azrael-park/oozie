@@ -203,7 +203,9 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
             sendActionNotification();
         }
 
-        LOG.warn(XLog.STD, "[***" + wfAction.getId() + "***]" + "Action status=" + wfAction.getStatusStr());
+        LOG.info(XLog.STD, "Action " +
+                (wfAction.isExecutionComplete() ? "succeeded" : "started") + ", status=" + wfAction.getStatusStr());
+
 
         updateList.add(wfAction);
         wfJob.setLastModifiedTime(new Date());

@@ -236,9 +236,11 @@ public class HiveStatus {
     // from JobClient#monitorAndPrintJob
     private class Polling implements Runnable {
 
-        final HiveQueryStatusBean hiveBean;
-        final RunningJob job;
-        final String jobID;
+        private final HiveQueryStatusBean hiveBean;
+        private final RunningJob job;
+        private final String jobID;
+
+        private long interval = 1000l;
 
         Polling(HiveQueryStatusBean hiveBean, RunningJob job, String jobID) {
             this.hiveBean = hiveBean;
@@ -252,7 +254,7 @@ public class HiveStatus {
             try {
                 while (!job.isComplete()) {
                     eventCounter += monitor(eventCounter, progress);
-                    Thread.sleep(1000);
+                    Thread.sleep(interval);
                 }
                 monitor(eventCounter, progress);
             } catch (Exception e) {
@@ -274,6 +276,8 @@ public class HiveStatus {
                 LOG.info(builder.toString());
                 progress[0] = job.mapProgress();
                 progress[1] = job.reduceProgress();
+            } else {
+                interval = Math.min(60000, interval << 1);
             }
 
             boolean updated = false;
