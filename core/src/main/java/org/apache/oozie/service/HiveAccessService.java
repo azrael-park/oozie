@@ -1,5 +1,6 @@
 package org.apache.oozie.service;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.service.ThriftHive;
 import org.apache.hive.jdbc.HiveConnection;
 import org.apache.hive.jdbc.Utils;
@@ -24,6 +25,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.apache.oozie.action.ActionExecutorException.ErrorType;
 
@@ -33,6 +36,8 @@ public class HiveAccessService implements Service {
 
     // wfID : action --> HiveStatus
     final Map<String, Map<String, HiveStatus>> hiveStatus = new HashMap<String, Map<String, HiveStatus>>();
+    final Map<String, AdminConnection> adminConnections = new HashMap<String, AdminConnection>();
+
     UUIDService uuid;
 
     public void init(Services services) throws ServiceException {
@@ -42,10 +47,23 @@ public class HiveAccessService implements Service {
     public synchronized void destroy() {
         for (Map<String, HiveStatus> value : new ArrayList<Map<String, HiveStatus>>(hiveStatus.values())) {
             for (HiveStatus status : value.values()) {
-                status.shutdown(false);
+                try {
+                    status.shutdown(false);
+                } catch (Exception e) {
+                    // ignore
+                }
             }
         }
         hiveStatus.clear();
+
+        for (AdminConnection connection : adminConnections.values()) {
+            try {
+                connection.client.destroy();
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+        adminConnections.clear();
     }
 
     public Class<? extends Service> getInterface() {
@@ -197,30 +215,134 @@ public class HiveAccessService implements Service {
     }
 
     public HiveTClient clientFor(String address) throws ActionExecutorException {
-        Utils.JdbcConnectionParams connParams = Utils.parseURI(URI.create(address));
+        return getHiveTClient(Utils.parseURI(URI.create(address)));
+    }
+
+    private HiveTClient getHiveTClient(Utils.JdbcConnectionParams connParams) throws ActionExecutorException {
         if (connParams.getScheme() != null && !connParams.getScheme().isEmpty() && !connParams.getScheme().equals("hive")) {
-            return createClientForV2(address, connParams);
+            Configuration conf = Services.get().get(ConfigurationService.class).getConf();
+            if(conf.getBoolean(HiveSession.PING_ENABLED, false)){
+                checkSocketForV2(connParams);
+            }
+            return createClientForV2(connParams);
         }
-        return createClientForV1(address, connParams);
+        return createClientForV1(connParams);
     }
 
-    private HiveTClient createClientForV1(String address, Utils.JdbcConnectionParams connParams) throws ActionExecutorException {
+    private HiveTClient createClientForV1(Utils.JdbcConnectionParams params) throws ActionExecutorException {
         try {
-            TSocket protocol = new TSocket(connParams.getHost(), connParams.getPort());
+            TSocket protocol = new TSocket(params.getHost(), params.getPort());
             protocol.open();
-            return new HiveTClientV1(new ThriftHive.Client(new TBinaryProtocol(protocol)));
+            return new HiveTClientV1(protocol, new ThriftHive.Client(new TBinaryProtocol(protocol)), params);
         } catch (Throwable e) {
-            throw new ActionExecutorException(ErrorType.TRANSIENT, "HIVE-002", "failed to connect hive server {0}", address, e);
+            throw new ActionExecutorException(ErrorType.TRANSIENT, "HIVE-002", "failed to connect hive server {0}", toAddress(params), e);
         }
     }
 
-    public HiveTClient createClientForV2(String address, Utils.JdbcConnectionParams params) throws ActionExecutorException {
+    public HiveTClient createClientForV2(Utils.JdbcConnectionParams params) throws ActionExecutorException {
         HiveConnection connection = new HiveConnection();
         try {
             connection.initialize(params, new Properties());
-            return new HiveTClientV2(connection);
-        } catch (Exception e) {
-            throw new ActionExecutorException(ErrorType.TRANSIENT, "HIVE-002", "failed to connect hive server {0}", address, e);
+            return new HiveTClientV2(connection, params);
+        } catch (Throwable e) {
+            throw new ActionExecutorException(ErrorType.TRANSIENT, "HIVE-002", "failed to connect hive server {0}", toAddress(params), e);
         }
+    }
+
+    private void checkSocketForV2(Utils.JdbcConnectionParams params) throws ActionExecutorException {
+        HiveConnection connection = null;
+        Utils.JdbcConnectionParams pingParams = new Utils.JdbcConnectionParams();
+        pingParams.setHost(params.getHost());
+        pingParams.setPort(params.getPort());
+        pingParams.setScheme(params.getScheme());
+        Map<String, String> sesseionVars = new HashMap<String, String>();
+        sesseionVars.put("socketTimeout", String.valueOf(HiveSession.PING_TIMEOUT));
+        pingParams.setSessionVars(sesseionVars);
+        try {
+            connection = new HiveConnection();
+            connection.initialize(pingParams, new Properties());
+        } catch (Exception e){
+            LOG.warn("hive server does not respond {0}", toAddress(pingParams));
+            throw new ActionExecutorException(ErrorType.TRANSIENT, "HIVE-002", "failed to connect hive server {0}", toAddress(params), e);
+        } finally {
+            if(connection != null){
+                try{
+                    connection.close();
+                } catch (Exception e){
+                    //ignore
+                }
+            }
+
+        }
+    }
+
+    public boolean ping(Utils.JdbcConnectionParams params, int timeout) throws Exception {
+        final String key = toStringKey(params);
+        final AdminConnection connection = getAdminConnection(key);
+        if (!connection.lock.tryLock(timeout, TimeUnit.MILLISECONDS)) {
+            return false;
+        }
+        try {
+            return pingInLock(params, timeout, connection);
+        } finally {
+            connection.lock.unlock();
+        }
+    }
+
+    private boolean pingInLock(Utils.JdbcConnectionParams params, int timeout, AdminConnection connection)
+            throws Exception {
+        if (connection.lastSuccess + timeout > System.currentTimeMillis()) {
+            return true;
+        }
+        if (connection.client == null) {
+            connection.client = getHiveTClient(params);
+        }
+        try {
+            if (connection.client.ping(timeout)) {
+                connection.lastSuccess = System.currentTimeMillis();
+                return true;
+            }
+            return false;
+        } catch (Exception ex) {
+            connection.client.destroy();
+            connection.client = null;
+            throw ex;
+        }
+    }
+
+    private synchronized AdminConnection getAdminConnection(String key) {
+        AdminConnection connection = adminConnections.get(key);
+        if (connection == null) {
+            adminConnections.put(key, connection = new AdminConnection());
+        }
+        return connection;
+    }
+
+    private static class AdminConnection {
+        final ReentrantLock lock = new ReentrantLock();
+        HiveTClient client;
+        long lastSuccess;
+    }
+
+    private static final java.lang.String HIVE_AUTH_TYPE = "auth";
+    private static final java.lang.String HIVE_AUTH_USER = "user";
+    private static final java.lang.String HIVE_AUTH_PRINCIPAL = "principal";
+
+    private String toAddress(Utils.JdbcConnectionParams params) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(params.getHost()).append(':');
+        builder.append(params.getPort());
+        return builder.toString();
+    }
+
+    private String toStringKey(Utils.JdbcConnectionParams params) {
+        Map<String, String> sessionVars = params.getSessionVars();
+        StringBuilder builder = new StringBuilder();
+        builder.append(params.getHost()).append(':');
+        builder.append(params.getPort()).append(':');
+        builder.append(sessionVars.get(HIVE_AUTH_TYPE)).append(':');
+        builder.append(sessionVars.get(HIVE_AUTH_USER)).append(':');
+        builder.append(sessionVars.get(HIVE_AUTH_PRINCIPAL));
+        return builder.toString();
     }
 }

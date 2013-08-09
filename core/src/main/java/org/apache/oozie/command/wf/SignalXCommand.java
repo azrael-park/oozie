@@ -142,7 +142,7 @@ public class SignalXCommand extends WorkflowXCommand<Void> {
 
     @Override
     protected Void execute() throws CommandException {
-        LOG.debug("STARTED SignalCommand for jobid=" + jobId + ", actionId=" + actionId);
+        LOG.debug("STARTED SignalCommand for jobId=" + jobId + ", actionId=" + actionId);
         WorkflowInstance workflowInstance = wfJob.getWorkflowInstance();
         workflowInstance.setTransientVar(WorkflowStoreService.WORKFLOW_BEAN, wfJob);
         boolean completed = false;
@@ -352,7 +352,7 @@ public class SignalXCommand extends WorkflowXCommand<Void> {
             new CoordActionUpdateXCommand(wfJob).call();    //Note: Called even if wf is not necessarily instantiated by coordinator
             new WfEndXCommand(wfJob).call(); //To delete the WF temp dir
         }
-        LOG.debug("ENDED SignalCommand for jobid=" + jobId + ", actionId=" + actionId);
+        LOG.debug("ENDED SignalCommand for jobId=" + jobId + ", actionId=" + actionId);
         return null;
     }
 

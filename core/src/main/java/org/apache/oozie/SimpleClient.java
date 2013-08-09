@@ -620,8 +620,16 @@ public class SimpleClient {
                 for (WorkflowAction action : workflow.getActions()) {
                     builder.append(action.toString()).append('\n');
                     if (action.getType().equals("hive")) {
+                        int index = 0;
+                        String prevQueryID = null;
                         for (HiveStatus status : client.getHiveStatusListForActionID(action.getId())) {
-                            builder.append("   ").append(status.getStageId()).append("-->");
+                            builder.append("   ");
+                            if (prevQueryID == null || !prevQueryID.equals(status.getQueryId())) {
+                                prevQueryID = status.getQueryId();
+                                index++;
+                            }
+                            builder.append('#').append(index).append(' ');
+                            builder.append(status.getStageId()).append("-->");
                             builder.append(status.getJobId()).append(":").append(status.getStatus()).append('\n');
                         }
                     }

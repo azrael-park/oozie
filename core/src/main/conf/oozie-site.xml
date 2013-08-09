@@ -523,4 +523,12 @@
         </description>
     </property>
 
+    <property>
+        <name>oozie.action.hive.ping.enabled</name>
+        <value>true</value>
+        <description>Specifies whether ping check is enabled or not.
+            If disabled hive action can be indefinitely waiting when hive server is not shutdown gracefully.
+        </description>
+    </property>
+
 </configuration>

@@ -110,8 +110,8 @@ public class ActionCheckXCommand extends ActionXCommand {
 
     @Override
     protected Void execute() throws CommandException {
-        LOG.info("STARTED ActionCheckXCommand : status[{0}] external status [{1}]", wfAction.getStatus(),
-                wfAction.getExternalStatus());
+        LOG.info("STARTED ActionCheckXCommand : status[{0}] external status [{1}] signal value [{2}]",
+                wfAction.getStatus(), wfAction.getExternalStatus(), wfAction.getSignalValue());
 
         long retryInterval = Services.get().getConf().getLong(ActionCheckerService.CONF_ACTION_CHECK_INTERVAL, executor
                 .getRetryInterval());

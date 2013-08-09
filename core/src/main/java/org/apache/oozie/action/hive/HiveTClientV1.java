@@ -3,15 +3,26 @@ package org.apache.oozie.action.hive;
 import org.apache.hadoop.hive.ql.plan.api.Query;
 import org.apache.hadoop.hive.ql.plan.api.QueryPlan;
 import org.apache.hadoop.hive.service.ThriftHive;
+import org.apache.hive.jdbc.Utils;
+import org.apache.thrift.transport.TSocket;
 
 import java.util.List;
 
 public class HiveTClientV1 implements HiveTClient {
 
+    final TSocket socket;
     final ThriftHive.Client client;
+    final Utils.JdbcConnectionParams params;
 
-    public HiveTClientV1(ThriftHive.Client client) {
+    public HiveTClientV1(TSocket socket, ThriftHive.Client client, Utils.JdbcConnectionParams params) {
+        this.params = params;
+        this.socket = socket;
         this.client = client;
+    }
+
+    @Override
+    public Utils.JdbcConnectionParams getConnectionParams() {
+        return params;
     }
 
     @Override
@@ -42,7 +53,21 @@ public class HiveTClientV1 implements HiveTClient {
     }
 
     @Override
-    public void shutdown() throws Exception {
+    public void shutdown(boolean interanl) throws Exception {
         client.shutdown();
+    }
+
+    @Override
+    public boolean ping(int timeout) {
+        return true;
+    }
+
+    @Override
+    public void destroy() {
+        try {
+            socket.close();
+        } catch (Exception e) {
+            // ignore
+        }
     }
 }

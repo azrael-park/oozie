@@ -21,8 +21,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// for hive action, create for each action
+/**
+ * Created per hive action, sustaining session in the action
+ */
 public class HiveSession extends HiveStatus {
+
+    public static final String PING_ENABLED = "oozie.action.hive.ping.enabled";
+
+    public static final int PING_TIMEOUT = 10000;
+    public static final int DEFAULT_TIMEOUT = 10000;
+    public static final int MAXIMUM_TIMEOUT = 600000;
 
     private final HiveTClient client;
     private final String[] queries;
@@ -31,11 +39,17 @@ public class HiveSession extends HiveStatus {
 
     private int index;
 
+    private final HiveAccessService access;
+
+    private transient long lastPing;
+    private transient long timeout;
+
     public HiveSession(String wfID, String actionName, boolean monitoring, HiveTClient client, String[] queries, int maxFetch) {
         super(wfID, actionName, monitoring);
         this.client = client;
         this.queries = queries;
         this.maxFetch = maxFetch;
+        this.access = Services.get().get(HiveAccessService.class);
         this.executor = new Executor(XLog.Info.get());
     }
 
@@ -47,34 +61,55 @@ public class HiveSession extends HiveStatus {
         return !hasMore() && executor.executed;
     }
 
-    public synchronized void execute(ActionExecutor.Context context, WorkflowAction action) throws Exception {
-        if (hasMore()) {
-            executor.configure(context, action, index++);
-            Services.get().get(CallableQueueService.class).queue(executor);
-        } else {
-            cleanup(context, "OK");
-        }
-    }
-
-    private synchronized void executeNext(ActionExecutor.Context context, WorkflowAction action) {
+    public synchronized void execute(ActionExecutor.Context context, WorkflowAction action) {
         CallableQueueService executors = Services.get().get(CallableQueueService.class);
         if (executor.ex == null && hasMore()) {
-            executor.configure(context, action, index++);
-            executors.queue(executor);
+            resetTimer();
+            executors.queue(executor.configure(context, action, index++));
         } else {
             executors.queue(new ActionCheckXCommand(actionID));
         }
     }
 
-    public synchronized void check(ActionExecutor.Context context) throws Exception {
+    public synchronized boolean check(ActionExecutor.Context context) throws Exception {
         if (executor.ex != null) {
             cleanup(context, "FAILED");
             LOG.info("failed to execute query {0}", executor.toString(), executor.ex);
             throw executor.ex;
         }
-        if (isCompleted()) {
-            cleanup(context, executor.killed ? "KILLED" : "OK");
+        if (!isCompleted()) {
+            return false;
         }
+        cleanup(context, executor.killed ? "KILLED" : "OK");
+        return true;
+    }
+
+    private void resetTimer() {
+        timeout = DEFAULT_TIMEOUT;
+        lastPing = System.currentTimeMillis();
+    }
+
+    public void checkConnection() {
+        long current = System.currentTimeMillis();
+        if (current > lastPing + timeout) {
+            LOG.info("check connection for {0}", executor.toString());
+            lastPing = current;
+            try {
+                if (!access.ping(client.getConnectionParams(), PING_TIMEOUT)) {
+                    timeout = Math.min(timeout << 1, MAXIMUM_TIMEOUT);
+                }
+            } catch (Exception e) {
+                setException(e);
+            }
+        }
+    }
+
+    private synchronized void setException(Exception ping) {
+        if (executor.ex == null) {
+            executor.ex = ping;
+            LOG.info("exception occurs during check connection : {0} ", ping.getMessage());
+        }
+        Services.get().get(CallableQueueService.class).queue(new ActionCheckXCommand(actionID));
     }
 
     @Override
@@ -99,7 +134,7 @@ public class HiveSession extends HiveStatus {
 
     private void killHiveSession() {
         try {
-            client.shutdown();
+            client.shutdown(true);
         } catch (Exception e) {
             LOG.debug("Failed to shutdown hive connection", e);
         }
@@ -131,11 +166,12 @@ public class HiveSession extends HiveStatus {
             this.logInfo = logInfo;
         }
 
-        public void configure(ActionExecutor.Context context, WorkflowAction action, int current) {
+        public Executor configure(ActionExecutor.Context context, WorkflowAction action, int current) {
             this.context = context;
             this.action = action;
             this.current = current;
             this.executed = false;
+            return this;
         }
 
         @Override
@@ -157,7 +193,7 @@ public class HiveSession extends HiveStatus {
                     LOG.debug("Thread was interrupted");
                 }
                 executed = true;
-                executeNext(context, action);
+                execute(context, action);
             }
         }
 
@@ -179,20 +215,14 @@ public class HiveSession extends HiveStatus {
             boolean containsMR = false;
             List<Stage> stages = plan.getStageList();
             if (stages != null && !stages.isEmpty()) {
-                LOG.info("Preparing for query " + plan.getQueryId());
-                Set<String> walked = new HashSet<String>();
                 for (Stage stage : stages) {
-                    if (!walked.add(stage.getStageId())) {
-                        continue;
-                    }
                     StageType stageType = stage.getStageType();
                     boolean mapreduce = stageType == StageType.MAPRED;
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(stage.toString());
                     }
-                    LOG.info(" #" + (current + 1) + ":" + stage.getStageId() + " type " + stageType);
-                    updateStatus(plan.getQueryId(), stage.getStageId(),
-                            "NOT_ASSIGNED", mapreduce ? "NOT_STARTED" : stageType.name());
+                    LOG.info("Preparing for query " + plan.getQueryId() + " in stage " + stage.getStageId() + " type " + stageType);
+                    updateStatus(plan.getQueryId(), stage.getStageId(), "NOT_ASSIGNED", mapreduce ? "NOT_STARTED" : stageType.name());
                     containsMR |= mapreduce;
                 }
                 if (containsMR) {
@@ -266,7 +296,7 @@ public class HiveSession extends HiveStatus {
 
         @Override
         public String toString() {
-            return (current + 1) + "/" + queries.length;
+            return current + "/" + queries.length;
         }
     }
 

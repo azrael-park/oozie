@@ -15,6 +15,7 @@ import org.apache.oozie.command.wf.ActionKillXCommand;
 import org.apache.oozie.executor.jpa.HiveStatusDeleteJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.CallableQueueService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.HiveAccessService;
@@ -194,10 +195,16 @@ public class HiveActionExecutor extends ActionExecutor {
     public void check(Context context, WorkflowAction action) throws ActionExecutorException {
         LOG.debug("Action check requested");
         HiveAccessService service = Services.get().get(HiveAccessService.class);
-        HiveStatus session = service.peekRunningStatus(action.getId());
-        if (session != null) {
+        HiveStatus status = service.peekRunningStatus(action.getId());
+        if (status instanceof HiveSession) {
             try {
-                ((HiveSession)session).check(context);
+                HiveSession session = (HiveSession) status;
+                if (!session.check(context)) {
+                    Configuration conf = Services.get().get(ConfigurationService.class).getConf();
+                    if(conf.getBoolean(HiveSession.PING_ENABLED, false)){
+                        session.checkConnection();
+                    }
+                }
             } catch (Exception e) {
                 throw convertException(e);
             }
