@@ -192,4 +192,7 @@ public interface RestConstants {
 
     public static final String ACTION_SHOW_LOG = "log";
 
+    public static final String ADMIN_AVAILABLE_OOZIE_SERVERS_RESOURCE = "available-oozie-servers";
+
+
 }

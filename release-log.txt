@@ -1,3 +1,4 @@
+OOZIE-615 Support high availability for the Oozie service (rkanter)
 -- Oozie 4.0.1 release (unreleased)
 
 OOZIE-1670 Workflow kill command doesn't kill child job for map-reduce action (puru via rohini)

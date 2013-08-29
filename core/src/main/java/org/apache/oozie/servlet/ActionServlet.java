@@ -69,7 +69,7 @@ public class ActionServlet extends JsonRestServlet {
         } else if (action.equals(RestConstants.ACTION_SHOW_LOG)) {
             response.setContentType(TEXT_UTF8);
             try {
-                dagEngine.streamLog(actionID, response.getWriter());
+                dagEngine.streamLog(actionID, response.getWriter(), request.getParameterMap());
             } catch (DagEngineException e) {
                 throw new XServletException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
             }

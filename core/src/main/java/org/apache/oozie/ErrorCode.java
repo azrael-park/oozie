@@ -252,6 +252,9 @@ public enum ErrorCode {
     E1602(XLog.STD, "Cannot retrieve Topic name [{0}]"),
 
     E9999(XLog.STD, "Generic exception, [{0}]"),
+
+    E1700(XLog.STD, "Issue communicating with ZooKeeper: {0}"),
+
     ETEST(XLog.STD, "THIS SHOULD HAPPEN ONLY IN TESTING, invalid job id [{0}]"),;
 
     private String template;
