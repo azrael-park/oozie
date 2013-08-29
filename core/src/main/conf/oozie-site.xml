@@ -57,7 +57,9 @@
             org.apache.oozie.service.StatusTransitService,
             org.apache.oozie.service.PauseTransitService,
             org.apache.oozie.service.GroupsService,
-            org.apache.oozie.service.ProxyUserService
+            org.apache.oozie.service.ProxyUserService,
+            org.apache.oozie.service.XLogStreamingService,
+            org.apache.oozie.service.JobsConcurrencyService
         </value>
         <description>
             All services to be created and managed by Oozie Services singleton.
