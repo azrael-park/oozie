@@ -65,10 +65,10 @@ cd ${BASEDIR}
 export DATETIME=`date -u "+%Y.%m.%d-%H:%M:%SGMT"`
 setRevUrl
 
-MVN_OPTS="-Dbuild.time=${DATETIME} -Dvc.revision=${VC_REV} -Dvc.url=${VC_URL} -DgenerateDocs"
+MVN_OPTS="-DincludeHadoopJars -Dhadoop.version=1.2.1 -Dbuild.time=${DATETIME} -Dvc.revision=${VC_REV} -Dvc.url=${VC_URL} -DgenerateDocs"
 
 export DATETIME2=`date -u "+%Y%m%d-%H%M%SGMT"`
-mvn clean package assembly:single ${MVN_OPTS} "$@"
+mvn clean install assembly:single ${MVN_OPTS} "$@"
 
 if [ "$?" != "0" ]; then
   echo
