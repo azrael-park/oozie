@@ -1,3 +1,4 @@
+OOOZIE-1460 Implement and Document security for HA (rkanter)
 OOZIE-1560 Log messages should have a way of identifying which server they came from when using HA (rkanter)
 OOZIE-1540 When oozie.zookeeper.oozie.id is not specified, its using a space instead of the hostname (rkanter)
 OOZIE-615 Support high availability for the Oozie service (rkanter)
