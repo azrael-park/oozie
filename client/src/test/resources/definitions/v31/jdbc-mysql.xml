@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="select"/>
+    <action name="select">
+        <jdbc password="" username="" url="jdbc:h2:mem:test;MVCC=TRUE">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>create table if not exists emp (empno int, ename varchar(31), manager int, job varchar(31), deptno int)</query>
+        </jdbc>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

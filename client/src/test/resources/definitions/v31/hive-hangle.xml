@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="hive-mr"/>
+    <action name="hive-mr">
+        <hive monitoring="true" address="${hiveServer}">
+        <job-tracker>${jobTracker}</job-tracker>
+        <name-node>${nameNode}</name-node>
+        <query>DROP TABLE IF EXISTS hangle_result</query>
+        <query>CREATE TABLE hangle_result AS SELECT emp_no, (CASE WHEN file_type='문서파일' then 1 ELSE 100 END) as type FROM hangle</query>
+    </hive>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>
