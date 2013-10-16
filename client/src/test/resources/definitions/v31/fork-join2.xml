@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="fork"/>
+    <fork name="fork">
+        <path start="hive1"/>
+        <path start="hive6"/>
+    </fork>
+    <action name="hive1">
+        <hive monitoring="true" address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>SHOW TABLES</query>
+        </hive>
+        <ok to="join"/>
+        <error to="fail"/>
+    </action>
+
+    <action name="hive6">
+        <hive monitoring="true" address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>SHOW TABLES</query>
+        </hive>
+        <ok to="join"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+
+    <join name="join" to="hive-final"/>
+
+    <action name="hive-final">
+        <hive monitoring="true" address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>SHOW TABLES</query>
+        </hive>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+
+    <end name="end"/>
+</workflow-app>
