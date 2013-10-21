@@ -47,11 +47,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.service.SchemaService;
 import org.apache.oozie.service.SchemaService.SchemaName;
 import org.apache.oozie.service.Services;
+import org.jdom.Attribute;
 import org.jdom.Comment;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
+import org.jdom.Text;
 import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
 import org.jdom.output.XMLOutputter;
@@ -106,6 +108,56 @@ public class XmlUtils {
         }
     }
 
+    /**
+     * Remove comments from any Xml String.
+     *
+     * @param xmlStr XML string to remove comments.
+     * @return String after removing comments.
+     * @throws JDOMException thrown if an error happend while XML parsing.
+     */
+    public static Document removeComments(String xmlStr, ELEvaluator evaluator) throws Exception {
+        if (xmlStr == null) {
+            return null;
+        }
+        try {
+            SAXBuilder saxBuilder = createSAXBuilder();
+            Document document = saxBuilder.build(new StringReader(xmlStr));
+            removeComments(document.getContent(), evaluator);
+            return document;
+        }
+        catch (IOException ex) {
+            throw new RuntimeException("It should not happen, " + ex.getMessage(), ex);
+        }
+    }
+
+    private static void removeComments(List l, ELEvaluator evaluator) throws Exception{
+        for (Iterator i = l.iterator(); i.hasNext();) {
+            Object node = i.next();
+            if (node instanceof Comment) {
+                i.remove();
+            }
+            else if (node instanceof Element) {
+                Element element = (Element) node;
+                if (evaluator == null){
+                    removeComments(element.getContent(), evaluator);
+                }
+                else {
+                    for (Object attr: element.getAttributes()) {
+                        Attribute attribute = (Attribute) attr;
+                        attribute.setValue(evaluator.evaluate(attribute.getValue(), String.class));
+                    }
+                }
+                removeComments(((Element) node).getContent(), evaluator);
+            }
+            else if (node instanceof Text) {
+                if (evaluator !=null){
+                    Text text = (Text) node;
+                    text.setText(evaluator.evaluate(text.getText(), String.class));
+                }
+            }
+        }
+    }
+
     private static void removeComments(List l) {
         for (Iterator i = l.iterator(); i.hasNext();) {
             Object node = i.next();
@@ -119,6 +171,8 @@ public class XmlUtils {
             }
         }
     }
+
+
 
     private static void removeComments(Document doc) {
         removeComments(doc.getContent());
