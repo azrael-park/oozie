@@ -25,6 +25,8 @@ import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
 
+import java.util.Properties;
+
 public class ForTestingActionExecutor extends ActionExecutor {
     public final static String TEST_ERROR = "TEST_ERROR";
 
@@ -127,6 +129,11 @@ public class ForTestingActionExecutor extends ActionExecutor {
     }
 
     public void kill(Context context, WorkflowAction action) throws ActionExecutorException {
+    }
+
+    @Override
+    public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
+        return false;
     }
 
     public boolean isCompleted(String externalStatus) {

@@ -488,7 +488,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         Context context = createContext(actionXml, null);
         final RunningJob runningJob = submitAction(context);
         ActionExecutor ae = new JavaActionExecutor();
-        assertFalse(ae.isCompleted(context.getAction().getExternalStatus()));
+        assertFalse(ae.isCompleted(context.getAction().getId(), context.getAction().getExternalStatus(), new Properties()));
         waitFor(60 * 1000, new Predicate() {
             @Override
             public boolean evaluate() throws Exception {
@@ -523,7 +523,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         assertTrue(runningJob.isSuccessful());
         ActionExecutor ae = new JavaActionExecutor();
         ae.check(context, context.getAction());
-        assertTrue(ae.isCompleted(context.getAction().getExternalStatus()));
+        assertTrue(ae.isCompleted(context.getAction().getId(), context.getAction().getExternalStatus(), new Properties()));
         assertEquals("SUCCEEDED", context.getAction().getExternalStatus());
         assertNull(context.getAction().getData());
 
@@ -551,7 +551,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         assertFalse(LauncherMapperHelper.isMainSuccessful(runningJob));
         ActionExecutor ae = new JavaActionExecutor();
         ae.check(context, context.getAction());
-        assertTrue(ae.isCompleted(context.getAction().getExternalStatus()));
+        assertTrue(ae.isCompleted(context.getAction().getId(), context.getAction().getExternalStatus(), new Properties()));
         assertEquals("FAILED/KILLED", context.getAction().getExternalStatus());
         assertEquals("1", context.getAction().getErrorCode());
         assertNull(context.getAction().getData());
@@ -580,7 +580,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         assertFalse(LauncherMapperHelper.isMainSuccessful(runningJob));
         ActionExecutor ae = new JavaActionExecutor();
         ae.check(context, context.getAction());
-        assertTrue(ae.isCompleted(context.getAction().getExternalStatus()));
+        assertTrue(ae.isCompleted(context.getAction().getId(), context.getAction().getExternalStatus(), new Properties()));
         assertEquals("FAILED/KILLED", context.getAction().getExternalStatus());
         assertNull(context.getAction().getData());
 
@@ -601,7 +601,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         ae.kill(context, context.getAction());
         assertEquals(WorkflowAction.Status.DONE, context.getAction().getStatus());
         assertEquals("KILLED", context.getAction().getExternalStatus());
-        assertTrue(ae.isCompleted(context.getAction().getExternalStatus()));
+        assertTrue(ae.isCompleted(context.getAction().getId(), context.getAction().getExternalStatus(), new Properties()));
 
         waitFor(60 * 1000, new Predicate() {
             @Override

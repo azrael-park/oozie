@@ -29,6 +29,9 @@ import org.apache.oozie.service.Services;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.oozie.util.XmlUtils;
+import org.jdom.Element;
+import org.jdom.JDOMException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -40,6 +43,8 @@ public class TestDecisionActionExecutor extends XFsTestCase {
         private WorkflowActionBean action;
         boolean executed;
         boolean ended;
+
+        private Element element;
 
         public Context(WorkflowActionBean action) {
             this.action = action;
@@ -120,6 +125,15 @@ public class TestDecisionActionExecutor extends XFsTestCase {
             return action.getId();
         }
 
+        @Override
+        public Element getActionXML() throws JDOMException {
+            return element == null ? element = XmlUtils.parseXml(action.getConf()) : element;
+        }
+
+        public void setActionXML(Element element) {
+            this.element = element;
+        }
+
         public Path getActionDir() throws URISyntaxException, IOException {
             String name = getWorkflow().getId() + "/" + action.getName() + "--" + action.getType();
             FileSystem fs = getAppFileSystem();
@@ -194,7 +208,7 @@ public class TestDecisionActionExecutor extends XFsTestCase {
                 fail();
              }
              catch (ActionExecutorException ex) {
-                assertEquals(ActionExecutorException.ErrorType.FAILED, ex.getErrorType());
+                assertEquals(ActionExecutorException.ErrorType.NON_TRANSIENT, ex.getErrorType());
                 assertEquals(DecisionActionExecutor.XML_ERROR, ex.getErrorCode());
              }
              catch (Exception ex) {

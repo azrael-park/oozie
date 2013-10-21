@@ -43,6 +43,8 @@ import org.apache.oozie.workflow.WorkflowLib;
 import org.apache.oozie.workflow.lite.EndNodeDef;
 import org.apache.oozie.workflow.lite.LiteWorkflowApp;
 import org.apache.oozie.workflow.lite.StartNodeDef;
+import org.jdom.Element;
+import org.jdom.JDOMException;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -80,6 +82,8 @@ public abstract class ActionExecutorTestCase extends XFsTestCase {
         boolean executed;
         boolean ended;
         private Map<String, String> vars = new HashMap<String, String>();
+
+        private Element element;
 
         public Context(WorkflowJobBean workflow, WorkflowActionBean action) {
             this.workflow = workflow;
@@ -179,6 +183,15 @@ public abstract class ActionExecutorTestCase extends XFsTestCase {
         @Override
         public String getRecoveryId() {
             return action.getId();
+        }
+
+        @Override
+        public Element getActionXML() throws JDOMException {
+            return element == null ? element = XmlUtils.parseXml(action.getConf()) : element;
+        }
+
+        public void setActionXML(Element element) {
+            this.element = element;
         }
 
         public Path getActionDir() throws URISyntaxException, IOException {

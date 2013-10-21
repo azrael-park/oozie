@@ -57,6 +57,11 @@ public class TestWorkflowBean extends XTestCase {
             return null;
         }
 
+        @Override
+        public void prepare() throws WorkflowException {
+            //To change body of implemented methods use File | Settings | File Templates.
+        }
+
         public boolean start() throws WorkflowException {
             return false;
         }

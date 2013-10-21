@@ -24,6 +24,7 @@ import org.apache.oozie.client.WorkflowAction;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
+import java.util.Properties;
 
 public class TestActionExecutor extends XTestCase {
 
@@ -65,6 +66,11 @@ public class TestActionExecutor extends XTestCase {
         }
 
         public void kill(Context context, WorkflowAction action) throws ActionExecutorException {
+        }
+
+        @Override
+        public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
+            return true;
         }
 
         public boolean isCompleted(String externalStatus) {

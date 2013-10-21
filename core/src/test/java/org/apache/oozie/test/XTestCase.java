@@ -261,7 +261,7 @@ public abstract class XTestCase extends TestCase {
             System.err.println(XLog.format("Could not create test dir [{0}]",  baseDir));
             System.exit(-1);
         }
-        hadoopVersion = System.getProperty(HADOOP_VERSION, "0.20.0");
+        hadoopVersion = System.getProperty(HADOOP_VERSION, "1.2.1");
         testCaseDir = createTestCaseDir(this, true);
 
         //setting up Oozie HOME and Oozie conf directory

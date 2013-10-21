@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 import junit.framework.Assert;
 import org.apache.hadoop.fs.Path;
@@ -60,6 +61,11 @@ public class TestLiteWorkflowAppService extends XTestCase {
         }
 
         public void kill(Context context, WorkflowAction action) throws ActionExecutorException {
+        }
+
+        @Override
+        public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
+            return true;
         }
 
         public boolean isCompleted(String externalStatus) {

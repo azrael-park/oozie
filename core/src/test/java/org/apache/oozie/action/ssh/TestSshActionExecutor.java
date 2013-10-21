@@ -47,6 +47,9 @@ import org.apache.oozie.test.XFsTestCase;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.PropertiesUtils;
 import org.apache.oozie.util.XConfiguration;
+import org.apache.oozie.util.XmlUtils;
+import org.jdom.Element;
+import org.jdom.JDOMException;
 
 public class TestSshActionExecutor extends XFsTestCase {
 
@@ -62,6 +65,8 @@ public class TestSshActionExecutor extends XFsTestCase {
     private class Context implements ActionExecutor.Context {
         private WorkflowActionBean action;
         private WorkflowJobBean workflow;
+
+        private Element element;
 
         public Context(WorkflowJobBean workflow, WorkflowActionBean action) {
             this.workflow = workflow;
@@ -136,6 +141,15 @@ public class TestSshActionExecutor extends XFsTestCase {
         @Override
         public String getRecoveryId() {
             return action.getId();
+        }
+
+        @Override
+        public Element getActionXML() throws JDOMException {
+            return element == null ? element = XmlUtils.parseXml(action.getConf()) : element;
+        }
+
+        public void setActionXML(Element element) {
+            this.element = element;
         }
 
         public Path getActionDir() throws URISyntaxException, IOException {
