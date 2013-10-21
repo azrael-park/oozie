@@ -38,8 +38,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 //TODO javadoc
 public class LiteWorkflowInstance implements Writable, WorkflowInstance {
@@ -162,6 +164,31 @@ public class LiteWorkflowInstance implements Writable, WorkflowInstance {
         this.conf = ParamChecker.notNull(conf, "conf");
         refreshLog();
         status = Status.PREP;
+    }
+
+    @Override
+    public void prepare() throws WorkflowException {
+        log.debug(XLog.STD, "Preparing job");
+        try {
+            prepare(ROOT, StartNodeDef.START, new HashSet<String>());
+        } catch (WorkflowException e) {
+            status = Status.FAILED;
+            throw e;
+        }
+    }
+
+    private void prepare(String executionPath, String nodeName, Set<String> visited) throws WorkflowException {
+        log.debug(XLog.STD, "Preparing node " + nodeName + " in execution path " + executionPath);
+        NodeDef nodeDef = def.getNode(nodeName);
+        NodeHandler nodeHandler = nodeDef.newHanldler();
+        Context context = new Context(nodeDef, executionPath, null);
+        for (String fullTransition : nodeHandler.prepare(context)) {
+            String childExecutionPath = getExecutionPath(fullTransition);
+            String childTransition = getTransitionNode(fullTransition);
+            if (visited.add(childTransition)) {
+                prepare(childExecutionPath, childTransition, visited);
+            }
+        }
     }
 
     public synchronized boolean start() throws WorkflowException {

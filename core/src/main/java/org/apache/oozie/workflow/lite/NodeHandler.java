@@ -88,6 +88,18 @@ public abstract class NodeHandler {
         return transitions;
     }
 
+    public List<String> prepare(Context context) throws WorkflowException {
+        return getAllTransition(context);
+    }
+
+    protected List<String> getAllTransition(Context context) {
+        List<String> transitions = context.getNodeDef().getTransitions();
+        List<String> fullTransitions = new ArrayList<String>(transitions.size());
+        for (String transition : transitions) {
+            fullTransitions.add(context.createFullTransition(context.getExecutionPath(), transition));
+        }
+        return fullTransitions;
+    }
 
     public abstract String exit(Context context) throws WorkflowException;
 

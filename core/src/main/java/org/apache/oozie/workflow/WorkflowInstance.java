@@ -83,6 +83,11 @@ public interface WorkflowInstance {
     public WorkflowApp getApp();
 
     /**
+     * prepare instance
+     */
+    public void prepare() throws WorkflowException;
+
+    /**
      * Start the instance.
      *
      * @throws WorkflowException thrown if the instance could not be started.

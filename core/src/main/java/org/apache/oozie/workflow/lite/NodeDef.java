@@ -18,6 +18,7 @@
 package org.apache.oozie.workflow.lite;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.oozie.service.LiteWorkflowStoreService;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.workflow.WorkflowException;
@@ -90,6 +91,10 @@ public class NodeDef implements Writable {
 
     public Class<? extends NodeHandler> getHandlerClass() {
         return handlerClass;
+    }
+
+    public NodeHandler newHanldler() {
+        return ReflectionUtils.newInstance(handlerClass, null);
     }
 
     public List<String> getTransitions() {
