@@ -110,7 +110,8 @@ public class SqoopMain extends LauncherMain {
         Properties hadoopProps = new Properties();
 
         // Preparing log4j configuration
-        URL log4jFile = Thread.currentThread().getContextClassLoader().getResource("log4j.properties");
+        String log4jConfFileName = System.getProperty("log4j.configuration", "log4j.properties");
+        URL log4jFile = Thread.currentThread().getContextClassLoader().getResource(log4jConfFileName);
         if (log4jFile != null) {
             // getting hadoop log4j configuration
             hadoopProps.load(log4jFile.openStream());
