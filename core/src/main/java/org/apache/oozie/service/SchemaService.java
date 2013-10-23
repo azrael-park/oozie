@@ -67,6 +67,7 @@ public class SchemaService implements Service {
         "oozie-workflow-0.2.xsd",
         "oozie-workflow-0.2.5.xsd",
         "oozie-workflow-0.3.xsd",
+        "oozie-workflow-0.3.1.xsd",
         "oozie-workflow-0.4.xsd",
         "oozie-workflow-0.4.5.xsd",
         "oozie-workflow-0.5.xsd"};
