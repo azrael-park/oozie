@@ -532,7 +532,7 @@ public class LiteWorkflowInstance implements Writable, WorkflowInstance {
         return path + child + PATH_SEPARATOR;
     }
 
-    private static String getParentPath(String path) {
+    public static String getParentPath(String path) {
         path = path.substring(0, path.length() - 1);
         return (path.length() == 0) ? null : path.substring(0, path.lastIndexOf(PATH_SEPARATOR) + 1);
     }

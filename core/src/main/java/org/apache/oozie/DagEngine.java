@@ -19,8 +19,11 @@ package org.apache.oozie;
 
 import org.apache.oozie.client.HiveStatus;
 import org.apache.oozie.client.OozieClientException;
+import org.apache.oozie.command.wf.ActionResumeXCommand;
+import org.apache.oozie.command.wf.ActionSuspendXCommand;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.HiveAccessService;
+import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.XLogStreamer;
 import org.apache.oozie.service.XLogService;
 import org.apache.oozie.service.DagXLogInfoService;
@@ -213,9 +216,13 @@ public class DagEngine extends BaseEngine {
         // loss of command if the queue is full or the queue is lost in case of
         // failure.
         try {
+            if (jobId.contains("@")){
+                new ActionResumeXCommand(jobId).call();
+            }
+            else {
                 new ResumeXCommand(jobId).call();
-        }
-        catch (CommandException e) {
+            }
+        }catch (CommandException e){
             throw new DagEngineException(e);
         }
     }
@@ -232,9 +239,13 @@ public class DagEngine extends BaseEngine {
         // loss of command if the queue is full or the queue is lost in case of
         // failure.
         try {
-			new SuspendXCommand(jobId).call();
-        }
-        catch (CommandException e) {
+            if (jobId.contains("@")) {
+                new ActionSuspendXCommand(jobId).call();
+            }
+            else {
+                new SuspendXCommand(jobId).call();
+            }
+        }catch (CommandException e) {
             throw new DagEngineException(e);
         }
     }
@@ -376,17 +387,24 @@ public class DagEngine extends BaseEngine {
     }
 
     /**
-     * Stream the log of a job.
+     * Stream the log of a job/action
      *
-     * @param jobId job Id.
+     * @param id job Id/action Id.
      * @param writer writer to stream the log to.
      * @throws IOException thrown if the log cannot be streamed.
      * @throws DagEngineException thrown if there is error in getting the Workflow Information for jobId.
      */
     @Override
-    public void streamLog(String jobId, Writer writer) throws IOException, DagEngineException {
+    public void streamLog(String id, Writer writer) throws IOException, DagEngineException {
         XLogStreamer.Filter filter = new XLogStreamer.Filter();
-        filter.setParameter(DagXLogInfoService.JOB, jobId);
+        String jobId;
+        if (id.contains("@")) {
+            filter.setParameter(DagXLogInfoService.ACTION, id);
+            jobId = Services.get().get(UUIDService.class).getId(id);
+        } else {
+            filter.setParameter(DagXLogInfoService.JOB, id);
+            jobId = id;
+        }
         WorkflowJob job = getJob(jobId);
         Date lastTime = job.getEndTime();
         if (lastTime == null) {
@@ -414,7 +432,7 @@ public class DagEngine extends BaseEngine {
      */
     protected Map<String, List<String>> parseFilter(String filter) throws DagEngineException {
         Map<String, List<String>> map = new HashMap<String, List<String>>();
-        if (filter != null) {
+        if (filter != null && !filter.isEmpty()) {
             StringTokenizer st = new StringTokenizer(filter, ";");
             while (st.hasMoreTokens()) {
                 String token = st.nextToken();

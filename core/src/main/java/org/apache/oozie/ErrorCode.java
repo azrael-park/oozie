@@ -81,7 +81,7 @@ public enum ErrorCode {
     E0501(XLog.OPS, "Could not perform authorization operation, {0}"),
     E0502(XLog.OPS, "User [{0}] does not belong to group [{1}]"),
     E0503(XLog.OPS, "User [{0}] does not have admin privileges"),
-    E0504(XLog.OPS, "App directory [{0}] does not exist"),
+    E0504(XLog.OPS, "App directory [{0}] does not exist in [{1}]"),
     E0505(XLog.OPS, "App definition [{0}] does not exist"),
     E0506(XLog.OPS, "App definition [{0}] is not a file"),
     E0507(XLog.OPS, "Could not access to [{0}], {1}"),
@@ -171,6 +171,12 @@ public enum ErrorCode {
     E0818(XLog.STD, "Action [{0}] status is running but WF Job [{1}] status is [{2}]. Expected status is RUNNING."),
     E0819(XLog.STD, "Unable to delete the temp dir of job WF Job [{0}]."),
     E0820(XLog.STD, "Action user retry max [{0}] is over system defined max [{1}], re-assign to use system max."),
+
+    E0821(XLog.STD, "Action suspend issued by admin"),
+    E0822(XLog.STD, "Action can not be suspended as it is already in finished state : {0}"),
+    E0823(XLog.STD, "Action can not be resumed as job is not in running state : {0}"),
+    E0824(XLog.STD, "Action can not be resumed as the action is not in suspended state : {0}"),
+    E0825(XLog.STD, "Action can not be resumed as the action is not head of execution"),
 
     E0900(XLog.OPS, "Jobtracker [{0}] not allowed, not in Oozie's whitelist"),
     E0901(XLog.OPS, "Namenode [{0}] not allowed, not in Oozie's whitelist"),
