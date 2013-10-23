@@ -10,7 +10,6 @@ import org.apache.oozie.executor.jpa.WorkflowActionsRunningInWorkFlowGetJPAExecu
 import org.apache.oozie.executor.jpa.WorkflowJobUpdateJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobsRunningJPAExecutor;
 import org.apache.oozie.workflow.WorkflowInstance;
-import org.apache.oozie.workflow.lite.InitNodeHandler;
 import org.apache.oozie.workflow.lite.LiteWorkflowInstance;
 
 import javax.persistence.EntityManager;
@@ -29,7 +28,6 @@ public class JobRecoveryService implements Service {
                     workflow.setStatus(WorkflowJob.Status.SUSPENDED);
                     LiteWorkflowInstance instance = (LiteWorkflowInstance) workflow.getWorkflowInstance();
                     instance.setStatus(WorkflowInstance.Status.SUSPENDED);
-                    instance.setVar(InitNodeHandler.INITIALIZED, String.valueOf(false));
                     workflow.setWfInstance(instance);
                     jpa.execute(new WorkflowJobUpdateJPAExecutor(workflow));
                     for (WorkflowActionBean action : jpa.execute(new WorkflowActionsRunningInWorkFlowGetJPAExecutor(workflow.getId()))) {

@@ -53,6 +53,18 @@ import org.json.simple.JSONValue;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import static org.apache.oozie.client.rest.RestConstants.ACTION;
+import static org.apache.oozie.client.rest.RestConstants.ACTION_PARAM;
+import static org.apache.oozie.client.rest.RestConstants.HIVE_ACTION;
+import static org.apache.oozie.client.rest.RestConstants.HIVE_ACTION_STATUS;
+//import static org.apache.oozie.client.rest.RestConstants.HIVE_FAILED_TASK_URLS;
+//import static org.apache.oozie.client.rest.RestConstants.HIVE_GENERIC_ID;
+import static org.apache.oozie.client.rest.RestConstants.HIVE_STATUS_ACTION_ID;
+import static org.apache.oozie.client.rest.RestConstants.HIVE_STATUS_JOB_ID;
+import static org.apache.oozie.client.rest.RestConstants.HIVE_STATUS_QUERY_ID;
+import static org.apache.oozie.client.rest.RestConstants.HIVE_STATUS_STAGE_ID;
+import static org.apache.oozie.client.rest.RestConstants.HIVE_STATUS_WF_ID;
+
 /**
  * Client API to submit and manage Oozie workflow jobs against an Oozie intance.
  * <p/>
@@ -666,24 +678,47 @@ public class OozieClient {
         new JobSubmit(jobId, conf).call();
     }
 
+    private class ActionAction extends ClientCallable<Void> {
+
+        ActionAction(String actionId, String action) {
+            super("GET", ACTION, actionId, prepareParams(ACTION_PARAM, action));
+        }
+
+        @Override
+        protected Void call(HttpURLConnection conn) throws IOException, OozieClientException {
+            if (!(conn.getResponseCode() == HttpURLConnection.HTTP_OK)) {
+                handleError(conn);
+            }
+            return null;
+        }
+    }
+
     /**
      * Suspend a workflow job.
      *
-     * @param jobId job Id.
+     * @param id job Id.
      * @throws OozieClientException thrown if the job could not be suspended.
      */
-    public void suspend(String jobId) throws OozieClientException {
-        new JobAction(jobId, RestConstants.JOB_ACTION_SUSPEND).call();
+    public void suspend(String id) throws OozieClientException {
+        if (id.contains("@")) {
+            new ActionAction(id, RestConstants.ACTION_SUSPEND).call();
+        } else {
+            new JobAction(id, RestConstants.JOB_ACTION_SUSPEND).call();
+        }
     }
 
     /**
      * Resume a workflow job.
      *
-     * @param jobId job Id.
+     * @param id job Id.
      * @throws OozieClientException thrown if the job could not be resume.
      */
-    public void resume(String jobId) throws OozieClientException {
-        new JobAction(jobId, RestConstants.JOB_ACTION_RESUME).call();
+    public void resume(String id) throws OozieClientException {
+        if (id.contains("@")) {
+            new ActionAction(id, RestConstants.ACTION_RESUME).call();
+        } else {
+            new JobAction(id, RestConstants.JOB_ACTION_RESUME).call();
+        }
     }
 
     /**
@@ -813,6 +848,14 @@ public class OozieClient {
         return new WorkflowActionInfo(actionId).call();
     }
 
+    public String getLog(String id) throws OozieClientException {
+        return getLog(id, null);
+    }
+
+    public String getLog(String id, PrintStream ps) throws OozieClientException {
+        return id.contains("@") ? getActionLog(id, ps) : getJobLog(id, ps);
+    }
+
     /**
      * Get the log of a workflow job.
      *
@@ -821,7 +864,11 @@ public class OozieClient {
      * @throws OozieClientException thrown if the job info could not be retrieved.
      */
     public String getJobLog(String jobId) throws OozieClientException {
-        return new JobLog(jobId).call();
+        return getJobLog(jobId, null);
+    }
+
+    public String getJobLog(String jobId, PrintStream ps) throws OozieClientException {
+        return new JobLog(jobId, ps).call();
     }
 
     /**
@@ -839,14 +886,36 @@ public class OozieClient {
     }
 
     private class JobLog extends JobMetadata {
-        JobLog(String jobId) {
-            super(jobId, RestConstants.JOB_SHOW_LOG);
+        JobLog(String jobId, PrintStream ps) {
+            super(jobId, RestConstants.JOB_SHOW_LOG, ps);
         }
 
         JobLog(String jobId, String logRetrievalType, String logRetrievalScope, PrintStream ps) {
             super(jobId, logRetrievalType, logRetrievalScope, RestConstants.JOB_SHOW_LOG, ps);
         }
     }
+
+/**
+     * Get the log of a workflow action.
+     *
+     * @param actionId action Id.
+     * @return the action log.
+     * @throws OozieClientException thrown if the action info could not be retrieved.
+     */
+    public String getActionLog(String actionId) throws OozieClientException {
+        return getActionLog(actionId, null);
+    }
+
+    public String getActionLog(String actionId, PrintStream ps) throws OozieClientException {
+        return new ActionLog(actionId, ps).call();
+    }
+
+    private class ActionLog extends ActionMetadata {
+        ActionLog(String actionId, PrintStream ps) {
+            super(actionId, RestConstants.ACTION_SHOW_LOG, ps);
+        }
+    }
+
 
     /**
      * Gets the JMS topic name for a particular job
@@ -886,29 +955,50 @@ public class OozieClient {
      * @throws OozieClientException thrown if the job info could not be retrieved.
      */
     public String getJobDefinition(String jobId) throws OozieClientException {
-        return new JobDefinition(jobId).call();
+        return new JobDefinition(jobId, null).call();
+    }
+
+    public String getJobDefinition(String jobId, PrintStream ps) throws OozieClientException {
+        return new JobDefinition(jobId, ps).call();
     }
 
     private class JobDefinition extends JobMetadata {
 
-        JobDefinition(String jobId) {
-            super(jobId, RestConstants.JOB_SHOW_DEFINITION);
+        JobDefinition(String jobId, PrintStream ps) {
+            super(jobId, RestConstants.JOB_SHOW_DEFINITION, ps);
         }
     }
 
-    private class JobMetadata extends ClientCallable<String> {
-        PrintStream printStream;
+    private class ActionMetadata extends Metadata {
 
-        JobMetadata(String jobId, String metaType) {
-            super("GET", RestConstants.JOB, notEmpty(jobId, "jobId"), prepareParams(RestConstants.JOB_SHOW_PARAM,
-                    metaType));
+        ActionMetadata(String actionId, String metaType, PrintStream ps) {
+            super(RestConstants.ACTION, notEmpty(actionId, "actionId"), prepareParams(RestConstants.ACTION_PARAM,
+                    metaType), ps);
+        }
+    }
+
+    private class JobMetadata extends Metadata {
+
+        JobMetadata(String jobId, String metaType, PrintStream ps) {
+            super(RestConstants.JOB, notEmpty(jobId, "jobId"), prepareParams(RestConstants.JOB_SHOW_PARAM,
+                    metaType), ps);
         }
 
         JobMetadata(String jobId, String logRetrievalType, String logRetrievalScope, String metaType, PrintStream ps) {
-            super("GET", RestConstants.JOB, notEmpty(jobId, "jobId"), prepareParams(RestConstants.JOB_SHOW_PARAM,
+            super(RestConstants.JOB, notEmpty(jobId, "jobId"), prepareParams(RestConstants.JOB_SHOW_PARAM,
                     metaType, RestConstants.JOB_LOG_TYPE_PARAM, logRetrievalType, RestConstants.JOB_LOG_SCOPE_PARAM,
-                    logRetrievalScope));
-            printStream = ps;
+                    logRetrievalScope), ps);
+        }
+
+    }
+
+    private abstract class Metadata extends ClientCallable<String> {
+
+        PrintStream printStream;
+
+        Metadata(String collection, String id, Map<String, String> params, PrintStream printStream) {
+            super("GET", collection, id, params);
+            this.printStream = printStream;
         }
 
         @Override
@@ -1390,6 +1480,63 @@ public class OozieClient {
      */
     public String getJobId(String externalId) throws OozieClientException {
         return new JobIdAction(externalId).call();
+    }
+
+    private class GetHiveStatus extends ClientCallable<HiveStatus> {
+
+        public GetHiveStatus(Map<String, String> param) {
+            super("PUT", RestConstants.HIVE, "", param);
+        }
+
+        public HiveStatus call(HttpURLConnection conn) throws IOException, OozieClientException {
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                handleError(conn);
+            }
+            Reader reader = new InputStreamReader(conn.getInputStream());
+            JSONObject json = (JSONObject) JSONValue.parse(reader);
+            return JsonToBean.createHiveStatus(json);
+        }
+    }
+
+    private class GetHiveStatusList extends ClientCallable<List<HiveStatus>> {
+
+        public GetHiveStatusList(Map<String, String> param) {
+            super("PUT", RestConstants.HIVE, "", param);
+        }
+
+        public List<HiveStatus> call(HttpURLConnection conn) throws IOException, OozieClientException {
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                handleError(conn);
+            }
+            Reader reader = new InputStreamReader(conn.getInputStream());
+            JSONArray json = (JSONArray) JSONValue.parse(reader);
+            return JsonToBean.createHiveStatusList(json);
+        }
+    }
+
+    public List<HiveStatus> getHiveStatusForWorkflowID(String wfID) throws OozieClientException {
+        Map<String, String> param = prepareParams(HIVE_ACTION, HIVE_ACTION_STATUS, HIVE_STATUS_WF_ID, wfID);
+        return new GetHiveStatusList(param).call();
+    }
+
+    public List<HiveStatus> getHiveStatusListForActionID(String actionID) throws OozieClientException {
+        Map<String, String> param = prepareParams(HIVE_ACTION, HIVE_ACTION_STATUS, HIVE_STATUS_ACTION_ID, actionID);
+        return new GetHiveStatusList(param).call();
+    }
+
+    public List<HiveStatus> getHiveStatusListForQueryID(String actionID, String queryID) throws OozieClientException {
+        Map<String, String> param = prepareParams(HIVE_ACTION, HIVE_ACTION_STATUS, HIVE_STATUS_ACTION_ID, actionID, HIVE_STATUS_QUERY_ID, queryID);
+        return new GetHiveStatusList(param).call();
+    }
+
+    public HiveStatus getHiveStatusForStageID(String actionID, String queryID, String stageID) throws OozieClientException {
+        Map<String, String> param = prepareParams(HIVE_ACTION, HIVE_ACTION_STATUS, HIVE_STATUS_ACTION_ID, actionID, HIVE_STATUS_QUERY_ID, queryID, HIVE_STATUS_STAGE_ID, stageID);
+        return new GetHiveStatus(param).call();
+    }
+
+    public HiveStatus getHiveStatusForJobID(String jobID) throws OozieClientException {
+        Map<String, String> param = prepareParams(HIVE_ACTION, HIVE_ACTION_STATUS, HIVE_STATUS_JOB_ID, jobID);
+        return new GetHiveStatus(param).call();
     }
 
     private class SetSystemMode extends ClientCallable<Void> {

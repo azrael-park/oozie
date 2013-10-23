@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.oozie.client.HiveStatus;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.OozieClientException;
 import org.apache.oozie.client.WorkflowJob;
@@ -320,6 +321,31 @@ public class LocalOozieClient extends OozieClient {
         catch (DagEngineException ex) {
             throw new OozieClientException(ex.getErrorCode().toString(), ex);
         }
+    }
+
+    @Override
+    public List<HiveStatus> getHiveStatusListForQueryID(String actionID, String queryID) throws OozieClientException {
+        return dagEngine.getHiveStatusListForQueryID(actionID, queryID);
+    }
+
+    @Override
+    public List<HiveStatus> getHiveStatusListForActionID(String actionID) throws OozieClientException {
+        return dagEngine.getHiveStatusListForActionID(actionID);
+    }
+
+    @Override
+    public List<HiveStatus> getHiveStatusForWorkflowID(String wfID) throws OozieClientException {
+        return dagEngine.getHiveStatusForWorkflowID(wfID);
+    }
+
+    @Override
+    public HiveStatus getHiveStatusForStageID(String actionID, String queryID, String stageID) throws OozieClientException {
+        return dagEngine.getHiveStatusForStageID(actionID, queryID, stageID);
+    }
+
+    @Override
+    public HiveStatus getHiveStatusForJobID(String jobID) throws OozieClientException {
+        return dagEngine.getHiveStatusForJobID(jobID);
     }
 
     /**
