@@ -69,6 +69,8 @@ import org.apache.openjpa.persistence.jdbc.Index;
 
     @NamedQuery(name = "GET_RUNNING_ACTIONS", query = "select OBJECT(a) from WorkflowActionBean a where a.pending = 1 AND a.status = 'RUNNING' AND a.lastCheckTimestamp < :lastCheckTime"),
 
+    @NamedQuery(name = "GET_RUNNING_ACTIONS_FOR_WORKFLOW", query = "select OBJECT(a) from WorkflowActionBean a where a.wfId = :wfId AND a.status = 'RUNNING'"),
+
     @NamedQuery(name = "GET_RETRY_MANUAL_ACTIONS", query = "select OBJECT(a) from WorkflowActionBean a where a.wfId = :wfId AND (a.status = 'START_RETRY' OR a.status = 'START_MANUAL' OR a.status = 'END_RETRY' OR a.status = 'END_MANUAL')") })
 
 public class WorkflowActionBean extends JsonWorkflowAction implements Writable {
@@ -258,6 +260,7 @@ public class WorkflowActionBean extends JsonWorkflowAction implements Writable {
      */
     public boolean isRetryOrManual() {
         return (getStatus() == WorkflowAction.Status.START_RETRY || getStatus() == WorkflowAction.Status.START_MANUAL
+                || getStatus() == WorkflowAction.Status.USER_RETRY
                 || getStatus() == WorkflowAction.Status.END_RETRY || getStatus() == WorkflowAction.Status.END_MANUAL);
     }
 
@@ -639,4 +642,7 @@ public class WorkflowActionBean extends JsonWorkflowAction implements Writable {
         this.endTimestamp = DateUtils.convertDateToTimestamp(endTime);
     }
 
+    public String toString() {
+        return super.toString() + ", pending " + pending;
+    }
 }

@@ -61,6 +61,8 @@ import org.apache.openjpa.persistence.jdbc.Index;
 
     @NamedQuery(name = "GET_WORKFLOW", query = "select OBJECT(w) from WorkflowJobBean w where w.id = :id"),
 
+    @NamedQuery(name = "GET_WORKFLOWS_UNFINISHED", query = "select OBJECT(w) from WorkflowJobBean w where w.status = 'RUNNING' OR w.status = 'SUSPENDED'"),
+
     @NamedQuery(name = "GET_WORKFLOW_FOR_UPDATE", query = "select OBJECT(w) from WorkflowJobBean w where w.id = :id"),
 
     @NamedQuery(name = "GET_WORKFLOW_FOR_SLA", query = "select w.id, w.status, w.startTimestamp, w.endTimestamp from WorkflowJobBean w where w.id = :id"),
