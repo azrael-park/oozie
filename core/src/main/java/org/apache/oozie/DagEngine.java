@@ -17,6 +17,10 @@
  */
 package org.apache.oozie;
 
+import org.apache.oozie.client.HiveStatus;
+import org.apache.oozie.client.OozieClientException;
+import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.service.HiveAccessService;
 import org.apache.oozie.util.XLogStreamer;
 import org.apache.oozie.service.XLogService;
 import org.apache.oozie.service.DagXLogInfoService;
@@ -500,6 +504,60 @@ public class DagEngine extends BaseEngine {
         catch (CommandException ex) {
             throw new BaseEngineException(ex);
         }
+    }
+
+    public List<HiveStatus> getHiveStatusForWorkflowID(String wfID) throws OozieClientException {
+        HiveAccessService hive = Services.get().get(HiveAccessService.class);
+        try {
+            return convert(hive.getStatusForWorkflow(wfID));
+        } catch (JPAExecutorException ex) {
+            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+        }
+    }
+
+    public List<HiveStatus> getHiveStatusListForActionID(String actionID) throws OozieClientException {
+        HiveAccessService hive = Services.get().get(HiveAccessService.class);
+        try {
+            return convert(hive.getStatusForAction(actionID));
+        } catch (JPAExecutorException ex) {
+            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+        }
+    }
+
+    public List<HiveStatus> getHiveStatusListForQueryID(String actionID, String queryID) throws OozieClientException {
+        HiveAccessService hive = Services.get().get(HiveAccessService.class);
+        try {
+            return convert(hive.getStatusForQuery(actionID, queryID));
+        } catch (JPAExecutorException ex) {
+            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+        }
+    }
+
+    public HiveStatus getHiveStatusForStageID(String actionID, String queryID, String stageID) throws OozieClientException {
+        HiveAccessService hive = Services.get().get(HiveAccessService.class);
+        try {
+            return hive.getStatusForStage(actionID, queryID, stageID);
+        } catch (JPAExecutorException ex) {
+            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+        }
+    }
+
+    public HiveStatus getHiveStatusForJobID(String jobID) throws OozieClientException {
+        HiveAccessService hive = Services.get().get(HiveAccessService.class);
+        try {
+            return hive.getStatusForJob(jobID);
+        } catch (JPAExecutorException ex) {
+            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+        }
+    }
+
+    private List<HiveStatus> convert(List<HiveQueryStatusBean> status) {
+        if (status == null) {
+            return null;
+        }
+        List<HiveStatus> result = new ArrayList<HiveStatus>();
+        result.addAll(status);
+        return result;
     }
 
     /* (non-Javadoc)

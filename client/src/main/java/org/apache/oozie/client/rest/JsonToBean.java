@@ -21,6 +21,7 @@ import org.apache.oozie.client.BulkResponse;
 import org.apache.oozie.client.BundleJob;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
+import org.apache.oozie.client.HiveStatus;
 import org.apache.oozie.client.JMSConnectionInfo;
 import org.apache.oozie.client.JMSConnectionInfoWrapper;
 import org.apache.oozie.client.WorkflowAction;
@@ -73,6 +74,8 @@ public class JsonToBean {
     private static final Map<String, Property> BUNDLE_JOB = new HashMap<String, Property>();
     private static final Map<String, Property> BULK_RESPONSE = new HashMap<String, Property>();
     private static final Map<String, Property> JMS_CONNECTION_INFO = new HashMap<String, Property>();
+
+    private static final Map<String, Property> HIVE_STATUS = new HashMap<String, Property>();
 
     static {
         WF_ACTION.put("getId", new Property(JsonTags.WORKFLOW_ACTION_ID, String.class));
@@ -189,6 +192,15 @@ public class JsonToBean {
         JMS_CONNECTION_INFO.put("getTopicPatternProperties", new Property(JsonTags.JMS_TOPIC_PATTERN, Properties.class));
         JMS_CONNECTION_INFO.put("getJNDIProperties", new Property(JsonTags.JMS_JNDI_PROPERTIES, Properties.class));
         JMS_CONNECTION_INFO.put("getTopicPrefix", new Property(JsonTags.JMS_TOPIC_PREFIX, String.class));
+    
+        
+        HIVE_STATUS.put("getWfId",new Property(JsonTags.HIVE_STATUS_WF_ID, String.class));
+        HIVE_STATUS.put("getActionName",new Property(JsonTags.HIVE_STATUS_ACTION_NAME, String.class));
+        HIVE_STATUS.put("getQueryId",new Property(JsonTags.HIVE_STATUS_QUERY_ID, String.class));
+        HIVE_STATUS.put("getStageId",new Property(JsonTags.HIVE_STATUS_STAGE_ID, String.class));
+        HIVE_STATUS.put("getJobId",new Property(JsonTags.HIVE_STATUS_JOB_ID, String.class));
+        HIVE_STATUS.put("getStatus",new Property(JsonTags.HIVE_STATUS_JOB_STATUS, String.class));
+
     }
 
     /**
@@ -462,6 +474,21 @@ public class JsonToBean {
             list.add(createBulkResponse((JSONObject) obj));
         }
         return list;
+    }
+
+
+    public static List<HiveStatus> createHiveStatusList(JSONArray json) {
+        List<HiveStatus> list = new ArrayList<HiveStatus>();
+        for (Object obj : json) {
+            list.add(createHiveStatus((JSONObject) obj));
+        }
+        return list;
+    }
+
+    public static HiveStatus createHiveStatus(JSONObject json) {
+        return (HiveStatus) Proxy.newProxyInstance(JsonToBean.class.getClassLoader(),
+                                                       new Class[]{HiveStatus.class},
+                                                       new JsonInvocationHandler(HIVE_STATUS, json));
     }
 
 }

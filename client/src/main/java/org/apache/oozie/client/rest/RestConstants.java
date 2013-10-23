@@ -24,11 +24,15 @@ public interface RestConstants {
 
     public static final String VERSIONS = "versions";
 
+    public static final String ACTION = "action";
+
     public static final String JOB = "job";
 
     public static final String JOBS = "jobs";
 
     public static final String ADMIN = "admin";
+
+    public static final String HIVE = "hive";
 
     public static final String JSON_CONTENT_TYPE = "application/json";
 
@@ -157,4 +161,25 @@ public interface RestConstants {
     public static final String ADMIN_JMS_INFO = "jmsinfo";
 
     public static final String JOB_SHOW_JMS_TOPIC = "jmstopic";
+
+    public static final String HIVE_ACTION = "action";
+
+    public static final String HIVE_ACTION_STATUS = "status";
+
+    public static final String HIVE_STATUS_WF_ID = "worflow-id";
+
+    public static final String HIVE_STATUS_ACTION_ID = "action-id";
+
+    public static final String HIVE_STATUS_QUERY_ID = "query-id";
+
+    public static final String HIVE_STATUS_STAGE_ID = "stage-id";
+
+    public static final String HIVE_STATUS_JOB_ID = "job-id";
+
+    public static final String ACTION_SUSPEND = "suspend";
+
+    public static final String ACTION_RESUME = "resume";
+
+    public static final String ACTION_SHOW_LOG = "log";
+
 }

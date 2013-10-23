@@ -165,6 +165,15 @@ public interface JsonTags {
     public static final String SLA_SUMMARY_SLA_STATUS = "slaStatus";
     public static final String SLA_SUMMARY_LAST_MODIFIED = "lastModified";
 
+    public static final String HIVE_STATUS_WF_ID = "wfId";
+    public static final String HIVE_STATUS_ACTION_NAME = "actionName";
+    public static final String HIVE_STATUS_QUERY_ID = "queryId";
+    public static final String HIVE_STATUS_STAGE_ID = "stageId";
+    public static final String HIVE_STATUS_JOB_ID = "jobId";
+    public static final String HIVE_STATUS_JOB_STATUS = "status";
+
+    public static final String HIVE_STATUS = "hive";
+
     public static final String TO_STRING = "toString";
 
 

@@ -22,6 +22,7 @@ import java.util.Properties;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
+import org.apache.oozie.action.hive.HiveActionExecutor;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
@@ -84,7 +85,10 @@ public class CompletedActionXCommand extends WorkflowXCommand<Void> {
     protected void eagerVerifyPrecondition() throws CommandException, PreconditionException {
         super.eagerVerifyPrecondition();
         if (this.wfactionBean.getStatus() != WorkflowActionBean.Status.RUNNING) {
-            throw new CommandException(ErrorCode.E0800, actionId, this.wfactionBean.getStatus());
+            if (!wfactionBean.getType().equals(HiveActionExecutor.ACTION_TYPE)) {
+                throw new CommandException(ErrorCode.E0800, actionId, this.wfactionBean.getStatus());
+            }
+            // need status update for hive action.. even if not running
         }
     }
 

@@ -24,10 +24,21 @@
     -->
 
     <property>
+        <name>oozie.services.ext</name>
+        <value>
+            org.apache.oozie.service.HiveAccessService
+        </value>
+        <description>
+            To add/replace services defined in 'oozie.services' with custom implementations.
+            Class names must be separated by commas.
+        </description>
+    </property>
+
+    <property>
         <name>oozie.service.ActionService.executor.ext.classes</name>
         <value>
             org.apache.oozie.action.email.EmailActionExecutor,
-            org.apache.oozie.action.hadoop.HiveActionExecutor,
+            org.apache.oozie.action.hive.HiveActionExecutor,
             org.apache.oozie.action.hadoop.ShellActionExecutor,
             org.apache.oozie.action.hadoop.SqoopActionExecutor,
             org.apache.oozie.action.hadoop.DistcpActionExecutor

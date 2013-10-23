@@ -27,12 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.client.OozieClient.SYSTEM_MODE;
@@ -410,7 +407,8 @@ public class CallableQueueService implements Service, Instrumentable {
     private XLog log = XLog.getLog(getClass());
 
     private int queueSize;
-    private PriorityDelayQueue<CallableWrapper> queue;
+    private PriorityDelayQueue<Runnable> queue;
+    private AtomicLong delayQueueExecCounter = new AtomicLong(0);
     private ThreadPoolExecutor executor;
     private Instrumentation instrumentation;
 
@@ -452,7 +450,7 @@ public class CallableQueueService implements Service, Instrumentable {
         }
 
         if (!callableNextEligible) {
-            queue = new PriorityDelayQueue<CallableWrapper>(3, 1000 * 30, TimeUnit.MILLISECONDS, queueSize) {
+            queue = new PriorityDelayQueue<Runnable>(3, 1000 * 30, TimeUnit.MILLISECONDS, queueSize) {
                 @Override
                 protected void debug(String msgTemplate, Object... msgArgs) {
                     log.trace(msgTemplate, msgArgs);
@@ -465,7 +463,8 @@ public class CallableQueueService implements Service, Instrumentable {
             // which has not yet reach max concurrency.Overrided method
             // 'eligibleToPoll' to check if the
             // element of this queue has reached the maximum concurrency.
-            queue = new PollablePriorityDelayQueue<CallableWrapper>(3, 1000 * 30, TimeUnit.MILLISECONDS, queueSize) {
+            queue = new PollablePriorityDelayQueue<Runnable>(3, 1000 * 30, TimeUnit.MILLISECONDS,
+                    queueSize) {
                 @Override
                 protected void debug(String msgTemplate, Object... msgArgs) {
                     log.trace(msgTemplate, msgArgs);
@@ -473,15 +472,14 @@ public class CallableQueueService implements Service, Instrumentable {
 
                 @Override
                 protected boolean eligibleToPoll(QueueElement<?> element) {
-                    if (element != null) {
-                        CallableWrapper wrapper = (CallableWrapper) element;
-                        if (element.getElement() != null) {
-                            return callableReachMaxConcurrency(wrapper.getElement());
+                    if (element != null && element.getElement() != null) {
+                        if (element.getElement() instanceof XCallable) {
+                            return callableReachMaxConcurrency((XCallable)element.getElement());
                         }
+                        return element.getElement() instanceof Runnable;
                     }
                     return false;
                 }
-
             };
         }
 
@@ -555,7 +553,22 @@ public class CallableQueueService implements Service, Instrumentable {
         return queue.size();
     }
 
+    public synchronized boolean queue(Runnable runnable) {
+        if (executor.isShutdown()) {
+            return false;
+        }
+        executor.execute(new RunnableWrapper(runnable));
+        incrCounter(INSTR_QUEUED_COUNTER, 1);
+        return true;
+    }
+
+    private static class RunnableWrapper extends PriorityDelayQueue.QueueElement<Runnable> implements Runnable {
+        public RunnableWrapper(Runnable element) { super(element); }
+        public void run() { getElement().run(); }
+    }
+
     private synchronized boolean queue(CallableWrapper wrapper, boolean ignoreQueueSize) {
+        log.debug(" ++ " + wrapper.getElement().getClass() + " = " + wrapper.getElement().toString());
         if (!ignoreQueueSize && queue.size() >= queueSize) {
             log.warn("queue if full, ignoring queuing for [{0}]", wrapper.getElement());
             return false;
@@ -748,7 +761,7 @@ public class CallableQueueService implements Service, Instrumentable {
      */
     public List<String> getQueueDump() {
         List<String> list = new ArrayList<String>();
-        for (QueueElement<CallableWrapper> qe : queue) {
+        for (QueueElement<Runnable> qe : queue) {
             if (qe.toString() == null) {
                 continue;
             }

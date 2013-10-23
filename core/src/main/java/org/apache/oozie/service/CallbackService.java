@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.text.MessageFormat;
+import java.util.Properties;
 
 /**
  * Service that generates and parses callback URLs.
@@ -131,4 +132,37 @@ public class CallbackService implements Service {
         }
     }
 
+    public Properties loadProperties(String callback) {
+        Properties props = new Properties();
+
+        int start = 0;
+        while (start < callback.length()) {
+            int end = callback.indexOf("&", start);
+            if (end < 0) {
+                parseKeyValue(callback.substring(start), props);
+                break;
+            } else {
+                parseKeyValue(callback.substring(start, end), props);
+                start = end + 1;
+            }
+        }
+        return props;
+    }
+
+    private boolean parseKeyValue(String string, Properties props) {
+        try {
+            string = URLDecoder.decode(string, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+        int index = string.indexOf('=');
+        if (index < 0) {
+            return false;
+        }
+        if (index == string.length()) {
+            props.setProperty(string, "");
+        }
+        props.setProperty(string.substring(0, index), string.substring(index + 1));
+        return true;
+    }
 }
