@@ -69,7 +69,7 @@
         </oozie.test.default.config.file>
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
-        <hadoop.version>1.1.1</hadoop.version>
+        <hadoop.version>1.2.1</hadoop.version>
         <hbase.version>0.94.2</hbase.version>
         <hcatalog.version>0.5.0</hcatalog.version>
         <hcatalog.hive.version>0.10.0</hcatalog.hive.version>
