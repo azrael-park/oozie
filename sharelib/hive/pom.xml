@@ -100,11 +100,14 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- hive-0.11 -->
+        <!--
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-builtins</artifactId>
             <scope>compile</scope>
         </dependency>
+        -->
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr-runtime</artifactId>

@@ -136,7 +136,7 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-metastore</artifactId>
-            <version>${hive.version}</version>
+            <version>${hcatalog.hive.version}</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
@@ -149,7 +149,7 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
-            <version>${hive.version}</version>
+            <version>${hcatalog.hive.version}</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
@@ -162,7 +162,7 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-serde</artifactId>
-            <version>${hive.version}</version>
+            <version>${hcatalog.hive.version}</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
