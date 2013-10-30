@@ -41,6 +41,7 @@ import org.jdom.Namespace;
 
 import java.io.StringReader;
 import java.io.IOException;
+import java.util.Properties;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -129,7 +130,7 @@ public class SubWorkflowActionExecutor extends ActionExecutor {
 
     public void start(Context context, WorkflowAction action) throws ActionExecutorException {
         try {
-            Element eConf = XmlUtils.parseXml(action.getConf());
+            Element eConf = context.getActionXML();
             Namespace ns = eConf.getNamespace();
             Element e = eConf.getChild("oozie", ns);
             String oozieUri = (e == null) ? LOCAL : e.getTextTrim();
@@ -178,7 +179,7 @@ public class SubWorkflowActionExecutor extends ActionExecutor {
                 check(context, action);
             }
         }
-        catch (Exception ex) {
+        catch (Throwable ex) {
             throw convertException(ex);
         }
     }
@@ -239,7 +240,7 @@ public class SubWorkflowActionExecutor extends ActionExecutor {
         FINAL_STATUS.add("FAILED");
     }
 
-    public boolean isCompleted(String externalStatus) {
+    public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
         return FINAL_STATUS.contains(externalStatus);
     }
 }

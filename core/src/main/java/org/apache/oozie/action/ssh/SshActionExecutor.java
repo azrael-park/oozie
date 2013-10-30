@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 import org.apache.hadoop.util.StringUtils;
 
@@ -112,7 +113,7 @@ public class SshActionExecutor extends ActionExecutor {
         Status status = getActionStatus(context, action);
         boolean captureOutput = false;
         try {
-            Element eConf = XmlUtils.parseXml(action.getConf());
+            Element eConf = context.getActionXML();
             Namespace ns = eConf.getNamespace();
             captureOutput = eConf.getChild("capture-output", ns) != null;
         }
@@ -188,10 +189,9 @@ public class SshActionExecutor extends ActionExecutor {
     public void start(final Context context, final WorkflowAction action) throws ActionExecutorException {
         XLog log = XLog.getLog(getClass());
         log.info("start() begins");
-        String confStr = action.getConf();
         Element conf;
         try {
-            conf = XmlUtils.parseXml(confStr);
+            conf = context.getActionXML();
         }
         catch (Exception ex) {
             throw convertException(ex);
@@ -644,7 +644,7 @@ public class SshActionExecutor extends ActionExecutor {
     }
 
     @Override
-    public boolean isCompleted(String externalStatus) {
+    public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
         return true;
     }
 

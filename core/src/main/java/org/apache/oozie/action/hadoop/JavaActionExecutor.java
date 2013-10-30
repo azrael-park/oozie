@@ -693,7 +693,7 @@ public class JavaActionExecutor extends ActionExecutor {
                 appPathRoot = appPathRoot.getParent();
             }
 
-            Element actionXml = XmlUtils.parseXml(action.getConf());
+            Element actionXml = context.getActionXML();
 
             // action job configuration
             Configuration actionConf = createBaseHadoopConf(context, actionXml);
@@ -998,7 +998,7 @@ public class JavaActionExecutor extends ActionExecutor {
         JobClient jobClient = null;
         boolean exception = false;
         try {
-            Element actionXml = XmlUtils.parseXml(action.getConf());
+            Element actionXml = context.getActionXML();
             FileSystem actionFs = context.getAppFileSystem();
             JobConf jobConf = createBaseHadoopConf(context, actionXml);
             jobClient = createJobClient(context, jobConf);
@@ -1089,7 +1089,7 @@ public class JavaActionExecutor extends ActionExecutor {
                         action.getExternalId(), action.getExternalStatus());
             }
         }
-        catch (Exception ex) {
+        catch (Throwable ex) {
             XLog.getLog(getClass()).warn("Exception in check(). Message[{0}]", ex.getMessage(), ex);
             exception = true;
             throw convertException(ex);
@@ -1099,7 +1099,7 @@ public class JavaActionExecutor extends ActionExecutor {
                 try {
                     jobClient.close();
                 }
-                catch (Exception e) {
+                catch (Throwable e) {
                     if (exception) {
                         log.error("JobClient error: ", e);
                     }
@@ -1149,7 +1149,7 @@ public class JavaActionExecutor extends ActionExecutor {
         JobClient jobClient = null;
         boolean exception = false;
         try {
-            Element actionXml = XmlUtils.parseXml(action.getConf());
+            Element actionXml = context.getActionXML();
             JobConf jobConf = createBaseHadoopConf(context, actionXml);
             jobClient = createJobClient(context, jobConf);
             RunningJob runningJob = getRunningJob(context, action, jobClient);
@@ -1192,7 +1192,7 @@ public class JavaActionExecutor extends ActionExecutor {
     }
 
     @Override
-    public boolean isCompleted(String externalStatus) {
+    public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
         return FINAL_STATUS.contains(externalStatus);
     }
 

@@ -25,6 +25,7 @@ import org.apache.oozie.SLAEventBean;
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.action.oozie.SubWorkflowActionExecutor;
+import org.apache.oozie.executor.jpa.WorkflowJobDeleteJPAExecutor;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.UUIDService;
@@ -234,6 +235,15 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
                 else {
                     LOG.error(ErrorCode.E0610);
                     return null;
+                }
+
+		        wfInstance.setTransientVar(WorkflowStoreService.WORKFLOW_BEAN, workflow);
+
+            	try {
+                    wfInstance.prepare();
+                } catch (WorkflowException e) {
+                    jpaService.execute(new WorkflowJobDeleteJPAExecutor(workflow.getId()));
+                    throw e;
                 }
 
                 return workflow.getId();

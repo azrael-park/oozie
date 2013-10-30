@@ -37,6 +37,7 @@ import org.apache.oozie.util.ParamChecker;
 public class CompletedActionXCommand extends WorkflowXCommand<Void> {
     private final String actionId;
     private final String externalStatus;
+    private final Properties actionData;
     private JPAService jpaService;
     private WorkflowActionBean wfactionBean;
 
@@ -44,6 +45,7 @@ public class CompletedActionXCommand extends WorkflowXCommand<Void> {
         super("callback", "callback", priority);
         this.actionId = ParamChecker.notEmpty(actionId, "actionId");
         this.externalStatus = ParamChecker.notEmpty(externalStatus, "externalStatus");
+        this.actionData = actionData;
     }
 
     public CompletedActionXCommand(String actionId, String externalStatus, Properties actionData) {
@@ -96,7 +98,7 @@ public class CompletedActionXCommand extends WorkflowXCommand<Void> {
         ActionExecutor executor = Services.get().get(ActionService.class).getExecutor(this.wfactionBean.getType());
         // this is done because oozie notifications (of sub-wfs) is send
         // every status change, not only on completion.
-        if (executor.isCompleted(externalStatus)) {
+        if (executor.isCompleted(actionId, externalStatus, actionData)) {
             queue(new ActionCheckXCommand(this.wfactionBean.getId(), getPriority(), -1));
         }
         return null;

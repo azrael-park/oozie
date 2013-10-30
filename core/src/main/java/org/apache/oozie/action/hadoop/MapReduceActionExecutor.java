@@ -177,7 +177,7 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
         boolean exception = false;
         try {
             if (action.getStatus() == WorkflowAction.Status.OK) {
-                Element actionXml = XmlUtils.parseXml(action.getConf());
+                Element actionXml = context.getActionXML();
                 JobConf jobConf = createBaseHadoopConf(context, actionXml);
                 jobClient = createJobClient(context, jobConf);
                 RunningJob runningJob = jobClient.getJob(JobID.forName(action.getExternalChildIDs()));
@@ -211,7 +211,7 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
                 }
             }
         }
-        catch (Exception ex) {
+        catch (Throwable ex) {
             exception = true;
             throw convertException(ex);
         }

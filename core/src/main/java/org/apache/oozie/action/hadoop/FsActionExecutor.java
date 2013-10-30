@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -510,11 +511,11 @@ public class FsActionExecutor extends ActionExecutor {
     public void start(Context context, WorkflowAction action) throws ActionExecutorException {
         try {
             context.setStartData("-", "-", "-");
-            Element actionXml = XmlUtils.parseXml(action.getConf());
+            Element actionXml = context.getActionXML();
             doOperations(context, actionXml);
             context.setExecutionData("OK", null);
         }
-        catch (Exception ex) {
+        catch (Throwable ex) {
             throw convertException(ex);
         }
     }
@@ -537,7 +538,7 @@ public class FsActionExecutor extends ActionExecutor {
     }
 
     @Override
-    public boolean isCompleted(String externalStatus) {
+    public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
         return true;
     }
 

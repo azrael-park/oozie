@@ -208,12 +208,12 @@ public abstract class XCommand<T> implements XCallable<T> {
             if (isReQueueRequired()) {
                 //if not acquire the lock, re-queue itself with default delay
                 queue(this, getRequeueDelay());
-                LOG.debug("Could not get lock [{0}], timed out [{1}]ms, and requeue itself [{2}]", this.toString(), getLockTimeOut(), getName());
+                LOG.debug("Could not get lock [{0}], timed out [{1}]ms, and requeue itself [{2}:{3}]", getEntityKey(), getLockTimeOut(), getName(), toString());
             } else {
                 throw new CommandException(ErrorCode.E0606, this.toString(), getLockTimeOut());
             }
         } else {
-            LOG.debug("Acquired lock for [{0}] in [{1}]", getEntityKey(), getName());
+            LOG.debug("Acquired lock for [{0}] in [{1}:{2}]", getEntityKey(), getName(), toString());
         }
     }
 
@@ -223,7 +223,7 @@ public abstract class XCommand<T> implements XCallable<T> {
     private void releaseLock() {
         if (lock != null) {
             lock.release();
-            LOG.debug("Released lock for [{0}] in [{1}]", getEntityKey(), getName());
+            LOG.debug("Released lock for [{0}] in [{1}:{2}]", getEntityKey(), getName(), toString());
         }
     }
 

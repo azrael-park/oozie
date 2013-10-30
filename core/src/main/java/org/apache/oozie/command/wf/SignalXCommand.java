@@ -19,6 +19,7 @@ package org.apache.oozie.command.wf;
 
 import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.SLAEvent.SlaAppType;
 import org.apache.oozie.client.SLAEvent.Status;
@@ -35,10 +36,12 @@ import org.apache.oozie.command.wf.ActionXCommand.ActionExecutorContext;
 import org.apache.oozie.executor.jpa.BulkUpdateInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowActionUpdateJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
 import org.apache.oozie.service.ELService;
 import org.apache.oozie.service.EventHandlerService;
 import org.apache.oozie.service.JPAService;
+import org.apache.oozie.service.SchemaService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.service.WorkflowStoreService;
@@ -60,6 +63,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import org.apache.oozie.client.OozieClient;
+import org.jdom.Namespace;
 
 @SuppressWarnings("deprecation")
 public class SignalXCommand extends WorkflowXCommand<Void> {
@@ -308,13 +312,19 @@ public class SignalXCommand extends WorkflowXCommand<Void> {
                     }
                     else {
                         checkForSuspendNode(newAction);
-                        newAction.setPending();
+                        
                         String actionSlaXml = getActionSLAXml(newAction.getName(), workflowInstance.getApp()
                                 .getDefinition(), wfJob.getConf());
                         newAction.setSlaXml(actionSlaXml);
-                        insertList.add(newAction);
-                        LOG.debug("SignalXCommand: Name: "+ newAction.getName() + ", Id: " +newAction.getId() + ", Authcode:" + newAction.getCred());
-                        queue(new ActionStartXCommand(newAction.getId(), newAction.getType()));
+                        boolean startAction = newAction.getStatus() != WorkflowAction.Status.START_MANUAL;
+                        if (startAction) {
+                            newAction.setPending();
+                        }
+                        jpaService.execute(new WorkflowActionUpdateJPAExecutor(newAction));
+                        if (startAction) {
+                            LOG.debug("SignalXCommand: Name: "+ newAction.getName() + ", Id: " +newAction.getId() + ", Authcode:" + newAction.getCred());
+                            queue(new ActionStartXCommand(newAction.getId(), newAction.getType()));
+                        }
                     }
                 }
                 catch (JPAExecutorException je) {
@@ -363,7 +373,7 @@ public class SignalXCommand extends WorkflowXCommand<Void> {
                 if (action.getAttributeValue("name").equals(actionName) == false) {
                     continue;
                 }
-                Element eSla = XmlUtils.getSLAElement(action);
+                Element eSla = action.getChild("info", Namespace.getNamespace(SchemaService.SLA_NAME_SPACE_URI));
                 if (eSla != null) {
                     slaXml = XmlUtils.prettyPrint(eSla).toString();
                     break;

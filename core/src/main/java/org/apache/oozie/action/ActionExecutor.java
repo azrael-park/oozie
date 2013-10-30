@@ -27,6 +27,8 @@ import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.Services;
+import org.jdom.Element;
+import org.jdom.JDOMException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -42,6 +44,9 @@ import java.util.LinkedHashMap;
  */
 public abstract class ActionExecutor {
 
+    public static final String XML_ERROR = "XML_ERROR";
+    public static final String EL_ERROR = "EL_ERROR";
+
     /**
      * Configuration prefix for action executor (sub-classes) properties.
      */
@@ -55,6 +60,14 @@ public abstract class ActionExecutor {
     public static final String ERROR_OTHER = "OTHER";
     
     public boolean requiresNNJT = false;
+
+    public ELEvaluator preActionEvaluator(Context context, WorkflowAction action) {
+        return context.getELEvaluator();
+    }
+
+    public boolean suspendJobForFail(WorkflowAction.Status status) {
+        return true;
+    }
 
     private static class ErrorInfo {
         ActionExecutorException.ErrorType errorType;
@@ -187,11 +200,16 @@ public abstract class ActionExecutor {
          */
         String getRecoveryId();
 
+        /**
+         * Get the Action xml document
+         */
+        Element getActionXML() throws JDOMException;
+
         /*
          * @return the path that will be used to store action specific data
          * @throws IOException @throws URISyntaxException @throws HadoopAccessorException
          */
-        public Path getActionDir() throws HadoopAccessorException, IOException, URISyntaxException;
+        Path getActionDir() throws HadoopAccessorException, IOException, URISyntaxException;
 
         /**
          * @return filesystem handle for the application deployment fs.
@@ -199,9 +217,9 @@ public abstract class ActionExecutor {
          * @throws URISyntaxException
          * @throws HadoopAccessorException
          */
-        public FileSystem getAppFileSystem() throws HadoopAccessorException, IOException, URISyntaxException;
+        FileSystem getAppFileSystem() throws HadoopAccessorException, IOException, URISyntaxException;
 
-        public void setErrorInfo(String str, String exMsg);
+        void setErrorInfo(String str, String exMsg);
     }
 
 
@@ -381,7 +399,7 @@ public abstract class ActionExecutor {
      * @return ActionExecutorException converted exception.
      */
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
-    protected ActionExecutorException convertException(Exception ex) {
+    protected ActionExecutorException convertException(Throwable ex) {
         if (ex instanceof ActionExecutorException) {
             return (ActionExecutorException) ex;
         }
@@ -513,9 +531,13 @@ public abstract class ActionExecutor {
     /**
      * Return if the external status indicates that the action has completed.
      *
+     *
+     *
+     * @param actionID
      * @param externalStatus external status to check.
+     * @param actionData
      * @return if the external status indicates that the action has completed.
      */
-    public abstract boolean isCompleted(String externalStatus);
+    public abstract boolean isCompleted(String actionID, String externalStatus, Properties actionData);
 
 }

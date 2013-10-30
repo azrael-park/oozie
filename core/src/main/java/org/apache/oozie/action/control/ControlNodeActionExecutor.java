@@ -29,6 +29,7 @@ import org.jdom.JDOMException;
 import org.jdom.Namespace;
 
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Base action executor for control nodes: START/END/KILL/FORK/JOIN
@@ -63,6 +64,10 @@ public abstract class ControlNodeActionExecutor extends ActionExecutor {
     }
 
     public boolean isCompleted(String externalStatus) {
+        return true;
+    }
+
+    public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
         return true;
     }
 

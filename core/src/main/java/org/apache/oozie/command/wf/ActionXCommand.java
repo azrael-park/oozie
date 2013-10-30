@@ -48,9 +48,12 @@ import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.InstrumentUtils;
 import org.apache.oozie.util.Instrumentation;
 import org.apache.oozie.util.XConfiguration;
+import org.apache.oozie.util.XmlUtils;
 import org.apache.oozie.workflow.WorkflowException;
 import org.apache.oozie.workflow.WorkflowInstance;
 import org.apache.oozie.workflow.lite.LiteWorkflowInstance;
+import org.jdom.Element;
+import org.jdom.JDOMException;
 
 /**
  * Base class for Action execution commands. Provides common functionality to handle different types of errors while
@@ -123,7 +126,10 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
         action.resetPendingOnly();
         LOG.warn("Suspending Workflow Job id=" + id);
         try {
-            SuspendXCommand.suspendJob(Services.get().get(JPAService.class), workflow, id, action.getId(), null);
+            if (executor.suspendJobForFail(status)) {
+                LOG.warn("Suspending Workflow Job id=" + id);
+                SuspendXCommand.suspendJob(Services.get().get(JPAService.class), workflow, id, action.getId(), null);
+            }
         }
         catch (Exception e) {
             throw new CommandException(ErrorCode.E0727, id, e.getMessage());
@@ -268,6 +274,8 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
         private boolean started;
         private boolean ended;
         private boolean executed;
+
+	    private Element element;
 
 		/**
 		 * Constructing the ActionExecutorContext, setting the private members
@@ -453,6 +461,15 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
         @Override
         public String getRecoveryId() {
             return action.getId() + RECOVERY_ID_SEPARATOR + workflow.getRun();
+        }
+
+        @Override
+        public Element getActionXML() throws JDOMException {
+            return element == null ? element = XmlUtils.parseXml(action.getConf()) : element;
+        }
+
+        public void setActionXML(Element element) {
+            this.element = element;
         }
 
         /* (non-Javadoc)

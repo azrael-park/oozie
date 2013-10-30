@@ -74,11 +74,11 @@ public class EmailActionExecutor extends ActionExecutor {
     public void start(Context context, WorkflowAction action) throws ActionExecutorException {
         try {
             context.setStartData("-", "-", "-");
-            Element actionXml = XmlUtils.parseXml(action.getConf());
+            Element actionXml = context.getActionXML();
             validateAndMail(context, actionXml);
             context.setExecutionData("OK", null);
         }
-        catch (Exception ex) {
+        catch (Throwable ex) {
             throw convertException(ex);
         }
     }
@@ -209,7 +209,7 @@ public class EmailActionExecutor extends ActionExecutor {
     }
 
     @Override
-    public boolean isCompleted(String externalStatus) {
+    public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
         return true;
     }
 

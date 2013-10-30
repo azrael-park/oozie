@@ -53,7 +53,7 @@ import org.apache.oozie.util.XLog;
  * RUNNING state before executing
  * {@link ActionExecutor#check(org.apache.oozie.action.ActionExecutor.Context, org.apache.oozie.client.WorkflowAction)}
  */
-public class ActionCheckXCommand extends ActionXCommand<Void> {
+public class ActionCheckXCommand extends ActionXCommand {
     public static final String EXEC_DATA_MISSING = "EXEC_DATA_MISSING";
     private String actionId;
     private String jobId;

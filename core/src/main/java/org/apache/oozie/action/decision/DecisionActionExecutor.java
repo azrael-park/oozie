@@ -20,23 +20,45 @@ package org.apache.oozie.action.decision;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
+import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
 
+import javax.servlet.jsp.el.ELException;
 import java.util.List;
+import java.util.Properties;
+
+import static org.apache.oozie.action.ActionExecutorException.ErrorType.NON_TRANSIENT;
 
 public class DecisionActionExecutor extends ActionExecutor {
     public static final String ACTION_TYPE = "switch";
 
     private static final String TRUE = "true";
 
-    public static final String XML_ERROR = "XML_ERROR";
-
     public DecisionActionExecutor() {
         super(ACTION_TYPE);
+    }
+
+    @Override
+    public void initActionType() {
+        super.initActionType();
+        registerError(JDOMException.class.getName(), NON_TRANSIENT, XML_ERROR);
+        registerError(ELException.class.getName(), NON_TRANSIENT, EL_ERROR);
+        //FIXME : mortbay.jetty.jsp
+        //registerError(javax.el.ELException.class.getName(), NON_TRANSIENT, EL_ERROR);
+    }
+
+    @Override
+    public boolean suspendJobForFail(WorkflowAction.Status status) {
+        return false;
+    }
+
+    @Override
+    public ELEvaluator preActionEvaluator(Context context, WorkflowAction action) {
+        return null;
     }
 
     @SuppressWarnings("unchecked")
@@ -71,8 +93,8 @@ public class DecisionActionExecutor extends ActionExecutor {
             // the {@link ActionEndCommand} does the special handling of setting it as signal value.
             context.setExecutionData(externalState, null);
         }
-        catch (JDOMException ex) {
-            throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, XML_ERROR, ex.getMessage(), ex);
+        catch (Throwable ex) {
+            throw convertException(ex);
         }
         finally {
             log.trace("start() ends");
@@ -91,7 +113,7 @@ public class DecisionActionExecutor extends ActionExecutor {
         throw new UnsupportedOperationException();
     }
 
-    public boolean isCompleted(String externalStatus) {
+    public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
         return true;
     }
 
