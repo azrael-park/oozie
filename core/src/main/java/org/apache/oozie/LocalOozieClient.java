@@ -25,6 +25,7 @@ import java.util.Properties;
 import org.apache.oozie.client.HiveStatus;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.OozieClientException;
+import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.util.XConfiguration;
 
@@ -270,6 +271,23 @@ public class LocalOozieClient extends OozieClient {
             return dagEngine.getJob(jobId);
         }
         catch (DagEngineException ex) {
+            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+        }
+    }
+
+    /**
+     * Get the info of a workflow job.
+     *
+     * @param jobId job Id.
+     * @return the job info.
+     * @throws org.apache.oozie.client.OozieClientException thrown if the job info could not be retrieved.
+     */
+    @Override
+    public WorkflowAction getWorkflowActionInfo(String actionId) throws OozieClientException {
+        try {
+            return dagEngine.getWorkflowAction(actionId);
+        }
+        catch (BaseEngineException ex) {
             throw new OozieClientException(ex.getErrorCode().toString(), ex);
         }
     }
