@@ -26,6 +26,7 @@ import org.apache.oozie.XException;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
+import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XLog;
@@ -316,6 +317,31 @@ public abstract class ActionExecutor {
      */
     public String getOozieRuntimeDir() {
         return Services.get().getRuntimeDir();
+    }
+
+    protected String toAbsoluteList(Context context, String resources) throws HadoopAccessorException {
+        StringBuilder builder = new StringBuilder();
+        for (String resource : resources.split(",")) {
+            Path absolute = toAbsolute(context, resource.trim());
+            builder.append(absolute.toString()).append(' ');
+        }
+        return builder.toString();
+    }
+
+    protected Path toAbsolute(Context context, String path) throws HadoopAccessorException {
+        Path absolute = new Path(path);
+        if (!absolute.isAbsolute()) {
+            absolute = new Path(context.getWorkflow().getAppPath(), absolute);
+            if (!absolute.isAbsolute()) {
+                absolute = absolute.makeQualified(getFileSystemFor(absolute, context));
+            }
+        }
+        return absolute;
+    }
+
+    private FileSystem getFileSystemFor(Path path, Context context) throws HadoopAccessorException {
+        String user = context.getWorkflow().getUser();
+        return Services.get().get(HadoopAccessorService.class).createFileSystem(user, path.toUri(), new Configuration());
     }
 
     /**

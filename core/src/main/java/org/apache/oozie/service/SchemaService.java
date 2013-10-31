@@ -29,6 +29,7 @@ import javax.xml.validation.SchemaFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.util.IOUtils;
+import org.apache.oozie.util.XLog;
 import org.xml.sax.SAXException;
 
 /**
@@ -75,10 +76,14 @@ public class SchemaService implements Service {
     private static final String OOZIE_BUNDLE_XSD[] = { "oozie-bundle-0.1.xsd", "oozie-bundle-0.2.xsd" };
     private static final String OOZIE_SLA_SEMANTIC_XSD[] = { "gms-oozie-sla-0.1.xsd", "oozie-sla-0.2.xsd" };
 
+    private static XLog LOG = XLog.getLog(SchedulerService.class);
+
     private Schema loadSchema(Configuration conf, String[] baseSchemas, String extSchema) throws SAXException,
     IOException {
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
         List<StreamSource> sources = new ArrayList<StreamSource>();
         for (String baseSchema : baseSchemas) {
+            LOG.info("loading schema " + baseSchema + " from " + loader.getResource(baseSchema));
             sources.add(new StreamSource(IOUtils.getResourceAsStream(baseSchema, -1)));
         }
         String[] schemas = conf.getStrings(extSchema);
@@ -86,6 +91,7 @@ public class SchemaService implements Service {
             for (String schema : schemas) {
                 schema = schema.trim();
                 if (!schema.isEmpty()) {
+                    LOG.info("loading schema " + schema + " from " + loader.getResource(schema));
                     sources.add(new StreamSource(IOUtils.getResourceAsStream(schema, -1)));
                 }
             }

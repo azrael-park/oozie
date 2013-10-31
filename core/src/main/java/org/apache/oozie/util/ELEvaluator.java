@@ -34,6 +34,8 @@ import java.util.Map;
  */
 public class ELEvaluator {
 
+    static XLog LOG = XLog.getLog(ELEvaluator.class);
+
     /**
      * Provides functions and variables for the EL evaluator. <p/> All functions and variables in the context of an EL
      * evaluator are accessible from EL expressions.
@@ -102,6 +104,7 @@ public class ELEvaluator {
          * @throws ELException thrown if the variable is not defined in the context.
          */
         public Object resolveVariable(String name) throws ELException {
+            LOG.debug("resolving variable " + name + " --> " + vars.get(name));
             if (!vars.containsKey(name)) {
                 throw new ELException(XLog.format("variable [{0}] cannot be resolved", name));
             }
@@ -119,6 +122,7 @@ public class ELEvaluator {
             if (prefix.length() > 0) {
                 name = prefix + ":" + name;
             }
+            LOG.debug("resolving function " + name + " --> " + functions.get(name));
             return functions.get(name);
         }
     }
