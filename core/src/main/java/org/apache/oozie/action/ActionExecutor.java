@@ -35,14 +35,21 @@ import org.apache.oozie.service.Services;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.io.Reader;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.LinkedHashMap;
+
+import static org.apache.oozie.action.ActionExecutorException.ErrorType.NON_TRANSIENT;
 
 /**
  * Base action executor class. <p/> All the action executors should extend this class.
@@ -337,6 +344,78 @@ public abstract class ActionExecutor {
             }
         }
         return absolute;
+    }
+
+    protected List<String> getQueries(Element actionXml, Context context) throws ActionExecutorException {
+        Element script = actionXml.getChild("script", actionXml.getNamespace());
+        if (script != null) {
+            return loadScript(script.getTextTrim(), context);
+        }
+        return extractQueries(actionXml, context);
+    }
+
+    protected List<String> extractQueries(Element actionXml, Context context) throws ActionExecutorException {
+        ELEvaluator evaluator = context.getELEvaluator();
+        List<String> queries = new ArrayList<String>();
+        for (Object element : actionXml.getChildren("query", actionXml.getNamespace())) {
+            String sql = ((Element)element).getTextTrim();
+            queries.add(evaluate(evaluator, sql));
+        }
+        return queries;
+    }
+
+    protected List<String> loadScript(String script, Context context) throws ActionExecutorException {
+
+        ELEvaluator evaluator = context.getELEvaluator();
+
+        try {
+            Path path = toAbsolute(context, script);
+            FileSystem fs = getFileSystemFor(path, context);
+            return parseScript(evaluator, new InputStreamReader(fs.open(path)));
+        } catch (ActionExecutorException e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new ActionExecutorException(NON_TRANSIENT, "ACTION-002", "Failed to load script file {0}", script, e);
+        }
+    }
+
+    protected List<String> parseScript(ELEvaluator evaluator, Reader input) throws IOException, ActionExecutorException {
+
+        BufferedReader reader = new BufferedReader(input);
+
+        List<String> result = new ArrayList<String>();
+
+        String line;
+        StringBuilder builder = new StringBuilder();
+        while ((line = reader.readLine()) != null) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            if (trimmed.endsWith(";")) {
+                builder.append(line.substring(0, line.lastIndexOf(';')));
+                result.add(evaluate(evaluator, builder.toString().trim()));
+                builder.setLength(0);
+            } else {
+                builder.append(line);
+            }
+        }
+        if (builder.length() != 0) {
+            throw new ActionExecutorException(NON_TRANSIENT, "ACTION-001", "Invalid end of script");
+        }
+        return result;
+    }
+
+    protected String evaluate(ELEvaluator evaluator, String sql) throws ActionExecutorException {
+        try {
+            return evaluator == null ? sql : evaluator.evaluate(sql, String.class);
+        } catch (Throwable e) {
+            throw new ActionExecutorException(NON_TRANSIENT, "ACTION-000", "Failed to evaluate sql {0}", sql, e);
+        }
+    }
+
+    protected String descape(String aText){
+        return aText.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", "\"").replaceAll("&#039;", "\'").replaceAll("&amp;", "&");
     }
 
     private FileSystem getFileSystemFor(Path path, Context context) throws HadoopAccessorException {
