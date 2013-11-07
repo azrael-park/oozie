@@ -3,6 +3,7 @@ package org.apache.oozie.command;
 import org.apache.oozie.DagEngineException;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
+import org.apache.oozie.WorkflowsInfo;
 import org.apache.oozie.XException;
 import org.apache.oozie.client.BundleJob;
 import org.apache.oozie.client.CoordinatorJob;
@@ -10,6 +11,7 @@ import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.executor.jpa.WorkflowActionsGetJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowsJobGetJPAExecutor;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.XLog;
@@ -88,15 +90,30 @@ public class FilterResolver {
     }
 
     // actionName=hive, startedRecent=1D, status=SUCCESS
-    public static boolean exists(String conditions, boolean precondition) {
+    public static boolean actionExists(String conditions, boolean precondition) {
         try {
             Map<String, List<String>> filter = parseForAction(conditions);
             if (precondition && !filter.containsKey(OozieClient.FILTER_STATUS)) {
-                filter.put(OozieClient.FILTER_STATUS, Arrays.asList("SUCCESS"));    // default
+                filter.put(OozieClient.FILTER_STATUS, Arrays.asList("OK"));    // default
             }
             JPAService jpa = Services.get().get(JPAService.class);
             List<WorkflowActionBean> actions = jpa.execute(new WorkflowActionsGetJPAExecutor(filter));
             return !actions.isEmpty();
+        } catch (XException e) {
+            LOG.warn(e);
+        }
+        return false;
+    }
+
+    public static boolean workflowExists(String conditions, boolean precondition) {
+        try {
+            Map<String, List<String>> filter = parseForJobs(conditions);
+            if (precondition && !filter.containsKey(OozieClient.FILTER_STATUS)) {
+                filter.put(OozieClient.FILTER_STATUS, Arrays.asList("SUCCEEDED"));    // default
+            }
+            JPAService jpa = Services.get().get(JPAService.class);
+            WorkflowsInfo jobs = jpa.execute(new WorkflowsJobGetJPAExecutor(filter, 1, 1));
+            return !jobs.getWorkflows().isEmpty();
         } catch (XException e) {
             LOG.warn(e);
         }
