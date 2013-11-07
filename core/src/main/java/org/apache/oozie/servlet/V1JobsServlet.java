@@ -39,6 +39,8 @@ import org.apache.oozie.CoordinatorJobInfo;
 import org.apache.oozie.DagEngine;
 import org.apache.oozie.DagEngineException;
 import org.apache.oozie.ErrorCode;
+import org.apache.oozie.WorkflowActionBean;
+import org.apache.oozie.WorkflowActionInfo;
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.WorkflowsInfo;
 import org.apache.oozie.cli.OozieCLI;
@@ -145,14 +147,17 @@ public class V1JobsServlet extends BaseJobsServlet {
             String jobtype = request.getParameter(RestConstants.JOBTYPE_PARAM);
             jobtype = (jobtype != null) ? jobtype : "wf";
 
-            if (jobtype.contains("wf")) {
+            if (jobtype.equalsIgnoreCase("wf")) {
                 json = getWorkflowJobs(request);
             }
-            else if (jobtype.contains("coord")) {
+            else if (jobtype.equalsIgnoreCase("coord")) {
                 json = getCoordinatorJobs(request);
             }
-            else if (jobtype.contains("bundle")) {
+            else if (jobtype.equalsIgnoreCase("bundle")) {
                 json = getBundleJobs(request);
+            }
+            else if (jobtype.equalsIgnoreCase("wf-action")) {
+                json = getWorkflowActions(request);
             }
         }
         return json;
@@ -391,6 +396,38 @@ public class V1JobsServlet extends BaseJobsServlet {
         catch (BundleEngineException ex) {
             throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ex);
         }
+        return json;
+    }
+
+    /**
+     * v1 service implementation to get a list of workflows, with filtering or interested windows embedded in the
+     * request object
+     */
+    private JSONObject getWorkflowActions(HttpServletRequest request) throws XServletException {
+        JSONObject json = new JSONObject();
+        try {
+            String filter = request.getParameter(RestConstants.JOBS_FILTER_PARAM);
+            String startStr = request.getParameter(RestConstants.OFFSET_PARAM);
+            String lenStr = request.getParameter(RestConstants.LEN_PARAM);
+            String timeZoneId = request.getParameter(RestConstants.TIME_ZONE_PARAM) == null
+                    ? "GMT" : request.getParameter(RestConstants.TIME_ZONE_PARAM);
+            int start = (startStr != null) ? Integer.parseInt(startStr) : 1;
+            start = (start < 1) ? 1 : start;
+            int len = (lenStr != null) ? Integer.parseInt(lenStr) : 50;
+            len = (len < 1) ? 50 : len;
+            DagEngine dagEngine = Services.get().get(DagEngineService.class).getDagEngine(getUser(request));
+            WorkflowActionInfo jobs = dagEngine.getActions(filter, start, len);
+            List<WorkflowActionBean> actions = jobs.getActions();
+            json.put(JsonTags.WORKFLOW_ACTIONS, WorkflowActionBean.toJSONArray(actions, timeZoneId));
+            json.put(JsonTags.WORKFLOWS_TOTAL, jobs.getTotal());
+            json.put(JsonTags.WORKFLOWS_OFFSET, jobs.getStart());
+            json.put(JsonTags.WORKFLOWS_LEN, jobs.getLen());
+
+        }
+        catch (DagEngineException ex) {
+            throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ex);
+        }
+
         return json;
     }
 

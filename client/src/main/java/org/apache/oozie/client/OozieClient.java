@@ -1296,6 +1296,34 @@ public class OozieClient {
         }
     }
 
+    private class ActionsStatus extends ClientCallable<List<WorkflowAction>> {
+
+        ActionsStatus(String filter, int start, int len) {
+            super("GET", RestConstants.JOBS, "", prepareParams(RestConstants.JOBS_FILTER_PARAM, filter,
+                    RestConstants.JOBTYPE_PARAM, "wf-action", RestConstants.OFFSET_PARAM, Integer.toString(start),
+                    RestConstants.LEN_PARAM, Integer.toString(len)));
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        protected List<WorkflowAction> call(HttpURLConnection conn) throws IOException, OozieClientException {
+            conn.setRequestProperty("content-type", RestConstants.XML_CONTENT_TYPE);
+            if ((conn.getResponseCode() == HttpURLConnection.HTTP_OK)) {
+                Reader reader = new InputStreamReader(conn.getInputStream());
+                JSONObject json = (JSONObject) JSONValue.parse(reader);
+                JSONArray workflows = (JSONArray) json.get(JsonTags.WORKFLOW_ACTIONS);
+                if (workflows == null) {
+                    workflows = new JSONArray();
+                }
+                return JsonToBean.createWorkflowActionList(workflows);
+            }
+            else {
+                handleError(conn);
+            }
+            return null;
+        }
+    }
+
     private class BulkResponseStatus extends ClientCallable<List<BulkResponse>> {
 
         BulkResponseStatus(String filter, int start, int len) {
@@ -1425,6 +1453,33 @@ public class OozieClient {
      */
     public List<WorkflowJob> getJobsInfo(String filter) throws OozieClientException {
         return getJobsInfo(filter, 1, 50);
+    }
+
+    /**
+     * Return the info of the workflow actions that match the filter.
+     * <p/>
+     *
+     * @param filter action filter. Refer to the {@link OozieClient} for the filter syntax.
+     * @param start actions offset, base 1.
+     * @param len number of actions to return.
+     * @return a list of the workflow action info, without node details.
+     * @throws OozieClientException thrown if the action info could not be retrieved.
+     */
+    public List<WorkflowAction> getActionsInfo(String filter, int start, int len) throws OozieClientException {
+        return new ActionsStatus(filter, start, len).call();
+    }
+
+    /**
+     * Return the info of the workflow actions that match the filter.
+     * <p/>
+     *It returns the first 50 actions that match the filter.
+     *
+     * @param filter job filter. Refer to the {@link OozieClient} for the filter syntax.
+     * @return a list with the workflow jobs info, without node details.
+     * @throws OozieClientException thrown if the jobs info could not be retrieved.
+     */
+    public List<WorkflowAction> getActionsInfo(String filter) throws OozieClientException {
+        return getActionsInfo(filter, 1, 50);
     }
 
     /**

@@ -19,9 +19,11 @@ package org.apache.oozie;
 
 import org.apache.oozie.client.HiveStatus;
 import org.apache.oozie.client.OozieClientException;
+import org.apache.oozie.command.FilterResolver;
 import org.apache.oozie.command.wf.ActionResumeXCommand;
 import org.apache.oozie.command.wf.ActionSuspendXCommand;
 import org.apache.oozie.command.wf.ActionUpdateXCommand;
+import org.apache.oozie.command.wf.ActionsXCommand;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.HiveAccessService;
 import org.apache.oozie.service.UUIDService;
@@ -494,6 +496,15 @@ public class DagEngine extends BaseEngine {
         }
         catch (CommandException dce) {
             throw new DagEngineException(dce);
+        }
+    }
+
+    public WorkflowActionInfo getActions(String filterStr, int start, int len) throws DagEngineException {
+        Map<String, List<String>> filter = FilterResolver.parseForAction(filterStr);
+        try {
+            return new ActionsXCommand(filter, start, len).call();
+        } catch (CommandException e) {
+            throw new DagEngineException(e);
         }
     }
 

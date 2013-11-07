@@ -342,6 +342,25 @@ public class LocalOozieClient extends OozieClient {
     }
 
     /**
+     * Return the info of the workflow actions that match the filter.
+     *
+     * @param filter action filter. Refer to the {@link LocalOozieClient} for the filter syntax.
+     * @param start action offset, base 1.
+     * @param len number of action to return.
+     * @return a list of the workflow action info, without node details.
+     * @throws org.apache.oozie.client.OozieClientException thrown if the action info could not be retrieved.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<WorkflowAction> getActionsInfo(String filter, int start, int len) throws OozieClientException {
+        try {
+            return (List) dagEngine.getActions(filter, start, len).getActions();
+        } catch (DagEngineException ex) {
+            throw new OozieClientException(ex.getErrorCode().toString(), ex);
+        }
+    }
+
+    /**
      * Return the workflow job Id for an external Id. <p/> The external Id must have provided at job creation time.
      *
      * @param externalId external Id given at job creation time.

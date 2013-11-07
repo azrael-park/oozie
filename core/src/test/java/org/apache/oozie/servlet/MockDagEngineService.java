@@ -28,12 +28,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.DagEngine;
 import org.apache.oozie.DagEngineException;
 import org.apache.oozie.ErrorCode;
+import org.apache.oozie.WorkflowActionInfo;
 import org.apache.oozie.WorkflowsInfo;
+import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.rest.JMSConnectionInfoBean;
 import org.apache.oozie.client.rest.JsonWorkflowAction;
 import org.apache.oozie.client.rest.JsonWorkflowJob;
 import org.apache.oozie.client.rest.RestConstants;
+import org.apache.oozie.command.FilterResolver;
 import org.apache.oozie.service.DagEngineService;
 import org.apache.oozie.util.XmlUtils;
 import org.json.simple.JSONValue;
@@ -55,6 +58,7 @@ public class MockDagEngineService extends DagEngineService {
     public static String user = null;
     public static Properties properties;
     public static List<WorkflowJob> workflows;
+    public static List<WorkflowAction> actions;
     public static List<Boolean> started;
     public static final int INIT_WF_COUNT = 4;
 
@@ -197,6 +201,14 @@ public class MockDagEngineService extends DagEngineService {
             parseFilter(filter);
             did = RestConstants.JOBS_FILTER_PARAM;
             return new WorkflowsInfo((List) workflows, start, len, workflows.size());
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public WorkflowActionInfo getActions(String filter, int start, int len) throws DagEngineException {
+            FilterResolver.parseForAction(filter);
+            did = RestConstants.JOBS_FILTER_PARAM;
+            return new WorkflowActionInfo((List) actions, start, len, actions.size());
         }
 
         @Override
