@@ -640,7 +640,7 @@ public class CallableQueueService implements Service, Instrumentable {
                 incrCounter(INSTR_QUEUED_COUNTER, 1);
             }
             else {
-                log.warn("Could not queue callable");
+                throw new RuntimeException("Could not queue callable " + callable);
             }
         }
         return queued;
@@ -671,6 +671,8 @@ public class CallableQueueService implements Service, Instrumentable {
             queued = queue(callable, delay);
             if (queued) {
                 incrCounter(INSTR_QUEUED_COUNTER, callables.size());
+            } else {
+                throw new RuntimeException("Could not queue callable " + callables);
             }
         }
         return queued;
