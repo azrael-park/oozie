@@ -218,6 +218,9 @@ public class ActionCheckXCommand extends ActionXCommand {
                         wfAction.setStartTime(null);
                     }
                     break;
+                case NON_TRANSIENT:
+                    handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
+                    break;
             }
             wfAction.setLastCheckTime(new Date());
             updateList = new ArrayList<JsonBean>();
