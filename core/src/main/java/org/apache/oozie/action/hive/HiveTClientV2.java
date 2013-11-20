@@ -20,7 +20,7 @@ public class HiveTClientV2 implements HiveTClient {
     private transient OperationHandle operation;
 
     private transient TableSchema schema;
-    private transient Iterator<Row> iterator;
+    private transient Iterator<Object[]> iterator;
 
     public HiveTClientV2(HiveConnection connection) throws Exception {
         this.client = new ThriftCLIServiceClient(connection.getClient());
@@ -57,7 +57,7 @@ public class HiveTClientV2 implements HiveTClient {
         while (result.size() < numRows) {
             if (iterator == null || !iterator.hasNext()) {
                 RowSet rows = client.fetchResults(operation, FetchOrientation.FETCH_NEXT, numRows - result.size());
-                iterator = rows.getRows().iterator();
+                iterator = rows.iterator();
             }
             if (!iterator.hasNext()) {
                 break;
@@ -88,12 +88,11 @@ public class HiveTClientV2 implements HiveTClient {
         }
     }
 
-    private String toString(Row row) throws Exception {
+    private String toString(Object[] row) throws Exception {
         List<ColumnDescriptor> columns = schema.getColumnDescriptors();
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < columns.size(); i++) {
-            ColumnValue value = row.getValues().get(i);
-            Object eval = value.getColumnValue(columns.get(i).getType());
+            Object eval = RowSet.evaluate(columns.get(i), row[i]);
             if (builder.length() > 0) {
                 builder.append(" ");
             }
