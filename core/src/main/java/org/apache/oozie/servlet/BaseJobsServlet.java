@@ -116,7 +116,7 @@ public abstract class BaseJobsServlet extends JsonRestServlet {
             sendJsonResponse(response, HttpServletResponse.SC_OK, json);
         } else if (coordId != null) {
             stopCron();
-            JSONObject json = getJobsForCoordinatorId(request, externalId);
+            JSONObject json = getJobsForCoordinatorId(request, coordId);
             startCron();
             sendJsonResponse(response, HttpServletResponse.SC_OK, json);
         }

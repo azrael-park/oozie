@@ -285,14 +285,20 @@ public class SimpleClient {
             } else if (commands[0].equals("jobs")) {
                 FilterParams params = new FilterParams(context.getJobProperties(), commands);
                 CONTEXT context = params.getContext();
+                String targetID = params.jobID != null ? params.jobID : jobID;
                 if (params.parent && context == CONTEXT.COORD) {
-                    for (WorkflowJob child : client.getJobsForCoord(params.jobID != null ? params.jobID : jobID)) {
+                    if (targetID == null) {
+                        System.out.println("coordinator id is not set");
+                        return true;
+                    }
+                    System.out.println("Workflows originated from coordinator job " + targetID);
+                    for (WorkflowJob child : client.getJobsForCoord(targetID)) {
                         System.out.println(params.toString(child));
                     }
                     return true;
                 }
                 if (!params.all && (params.jobID != null || jobID != null)) {
-                    params.appendFilter("id=" + (params.jobID != null ? params.jobID : jobID));
+                    params.appendFilter("id=" + targetID);
                 }
 
                 jobIDs.clear();
@@ -362,8 +368,15 @@ public class SimpleClient {
     }
 
     private String getID(String[] commands) {
-        return commands.length >= 2 && commands[1].contains("@") ? commands[1] :
-                jobID != null ? commands.length == 1 ? jobID : jobID + "@" + commands[1] : commands[1];
+        if (commands.length == 2) {
+            if (isJobID(commands[1]) || isActionID(commands[1])) {
+                return commands[1];
+            }
+            if (jobID != null) {
+                return jobID + "@" + commands[1];
+            }
+        }
+        return jobID;
     }
 
     private static Pattern JOB_ID_PATTERN = Pattern.compile("\\d{7}-\\d{15}-\\S+-\\S+-[WCB]");
