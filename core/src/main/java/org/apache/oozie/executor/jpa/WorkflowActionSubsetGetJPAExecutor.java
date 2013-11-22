@@ -59,24 +59,17 @@ public class WorkflowActionSubsetGetJPAExecutor implements JPAExecutor<List<Work
     @Override
     @SuppressWarnings("unchecked")
     public List<WorkflowActionBean> execute(EntityManager em) throws JPAExecutorException {
-        List<WorkflowActionBean> actions;
-        List<WorkflowActionBean> actionList = new ArrayList<WorkflowActionBean>();
         try {
             Query q = em.createNamedQuery("GET_ACTIONS_FOR_WORKFLOW");
             OpenJPAPersistence.cast(q);
             q.setParameter("wfId", wfId);
             q.setFirstResult(start - 1);
             q.setMaxResults(length);
-            actions = q.getResultList();
-            for (WorkflowActionBean a : actions) {
-                WorkflowActionBean aa = getBeanForRunningAction(a);
-                actionList.add(aa);
-            }
+            return WorkflowActionBean.duplicate(q.getResultList(), false);
         }
         catch (Exception e) {
             throw new JPAExecutorException(ErrorCode.E0605, "null", e);
         }
-        return actionList;
     }
 
     /* (non-Javadoc)
@@ -87,39 +80,4 @@ public class WorkflowActionSubsetGetJPAExecutor implements JPAExecutor<List<Work
         return "WorkflowActionSubsetGetJPAExecutor";
     }
 
-    private WorkflowActionBean getBeanForRunningAction(WorkflowActionBean a) throws SQLException {
-        if (a != null) {
-            WorkflowActionBean action = new WorkflowActionBean();
-            action.setId(a.getId());
-            action.setConf(a.getConf());
-            action.setConsoleUrl(a.getConsoleUrl());
-            action.setData(a.getData());
-            action.setStats(a.getStats());
-            action.setExternalChildIDs(a.getExternalChildIDs());
-            action.setErrorInfo(a.getErrorCode(), a.getErrorMessage());
-            action.setExternalId(a.getExternalId());
-            action.setExternalStatus(a.getExternalStatus());
-            action.setName(a.getName());
-            action.setCred(a.getCred());
-            action.setRetries(a.getRetries());
-            action.setTrackerUri(a.getTrackerUri());
-            action.setTransition(a.getTransition());
-            action.setType(a.getType());
-            action.setEndTime(a.getEndTime());
-            action.setExecutionPath(a.getExecutionPath());
-            action.setLastCheckTime(a.getLastCheckTime());
-            action.setLogToken(a.getLogToken());
-            if (a.getPending() == true) {
-                action.setPending();
-            }
-            action.setPendingAge(a.getPendingAge());
-            action.setSignalValue(a.getSignalValue());
-            action.setSlaXml(a.getSlaXml());
-            action.setStartTime(a.getStartTime());
-            action.setStatus(a.getStatus());
-            action.setJobId(a.getWfId());
-            return action;
-        }
-        return null;
-    }
 }

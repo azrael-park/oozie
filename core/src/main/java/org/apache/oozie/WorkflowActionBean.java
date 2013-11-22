@@ -20,8 +20,13 @@ package org.apache.oozie;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 
 import javax.persistence.Basic;
@@ -645,4 +650,76 @@ public class WorkflowActionBean extends JsonWorkflowAction implements Writable {
     public String toString() {
         return super.toString() + ", pending " + pending;
     }
+
+    public static List<WorkflowActionBean> duplicate(List<WorkflowActionBean> actions, boolean  copyUserRetry) throws SQLException {
+        List<WorkflowActionBean> actionList = new ArrayList<WorkflowActionBean>();
+        for (WorkflowActionBean a : actions) {
+            WorkflowActionBean aa = getBeanForRunningAction(a, copyUserRetry);
+            actionList.add(aa);
+        }
+        return reorder(actionList);
+    }
+
+    // make not-started actions appear lastly
+    private static List<WorkflowActionBean> reorder(List<WorkflowActionBean> list){
+        Collections.sort(list, new Comparator<WorkflowActionBean>() {
+            @Override
+            public int compare(WorkflowActionBean o1, WorkflowActionBean o2) {
+                if (o1.getStartTimestamp() != null && o2.getStartTimestamp() !=null) {
+                    return o1.getStartTimestamp().compareTo(o2.getStartTimestamp());
+                }
+                if (o1.getStartTimestamp() != null) {
+                    return -1;
+                }
+                if (o2.getStartTimestamp() !=null) {
+                    return 1;
+                }
+                return o1.getName().compareTo(o2.getName());
+
+            }
+        });
+        return list;
+    }
+
+    private static WorkflowActionBean getBeanForRunningAction(WorkflowActionBean a, boolean copyUserRetry) throws SQLException {
+        if (a != null) {
+            WorkflowActionBean action = new WorkflowActionBean();
+            action.setId(a.getId());
+            action.setConf(a.getConf());
+            action.setConsoleUrl(a.getConsoleUrl());
+            action.setData(a.getData());
+            action.setStats(a.getStats());
+            action.setExternalChildIDs(a.getExternalChildIDs());
+            action.setErrorInfo(a.getErrorCode(), a.getErrorMessage());
+            action.setExternalId(a.getExternalId());
+            action.setExternalStatus(a.getExternalStatus());
+            action.setName(a.getName());
+            action.setCred(a.getCred());
+            action.setRetries(a.getRetries());
+            action.setTrackerUri(a.getTrackerUri());
+            action.setTransition(a.getTransition());
+            action.setType(a.getType());
+            action.setEndTime(a.getEndTime());
+            action.setExecutionPath(a.getExecutionPath());
+            action.setLastCheckTime(a.getLastCheckTime());
+            action.setLogToken(a.getLogToken());
+            if (a.getPending()) {
+                action.setPending();
+            }
+            action.setPendingAge(a.getPendingAge());
+            action.setSignalValue(a.getSignalValue());
+            action.setSlaXml(a.getSlaXml());
+            action.setStartTime(a.getStartTime());
+            action.setStatus(a.getStatus());
+            action.setJobId(a.getWfId());
+            if(copyUserRetry){
+                action.setUserRetryCount(a.getUserRetryCount());
+                action.setUserRetryInterval(a.getUserRetryInterval());
+                action.setUserRetryMax(a.getUserRetryMax());
+            }
+            return action;
+        }
+        return null;
+    }
+
 }
