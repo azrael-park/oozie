@@ -88,7 +88,7 @@ public class ActionKillXCommand extends ActionXCommand<Void> {
 
     @Override
     protected Void execute() throws CommandException {
-        LOG.debug("STARTED WorkflowActionKillXCommand for action " + actionId);
+        LOG.info("STARTED WorkflowActionKillXCommand for action " + actionId);
 
         if (wfAction.isPending()) {
             ActionExecutor executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());

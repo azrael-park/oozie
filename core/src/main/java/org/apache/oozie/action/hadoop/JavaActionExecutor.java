@@ -380,6 +380,14 @@ public class JavaActionExecutor extends ActionExecutor {
         try {
             Path actionDir = context.getActionDir();
             Path tempActionDir = new Path(actionDir.getParent(), actionDir.getName() + ".tmp");
+            if(actionFs.exists(actionDir)){
+                FileStatus[] chilren = actionFs.listStatus(actionDir);
+                log.info("actionDir does not cleanup : "+actionDir.toString()+", children : "+chilren.length);
+                for(FileStatus status: chilren){
+                    log.debug("---- children : "+status.getPath().toString());
+                }
+                cleanUpActionDir(actionFs, context);
+            }
             if (!actionFs.exists(actionDir)) {
                 try {
                     if (useLauncherJar) {
@@ -409,6 +417,7 @@ public class JavaActionExecutor extends ActionExecutor {
             if (!context.getProtoActionConf().getBoolean("oozie.action.keep.action.dir", false)
                     && actionFs.exists(actionDir)) {
                 actionFs.delete(actionDir, true);
+                log.info("cleanUpActionDir");
             }
         }
         catch (Exception ex) {
@@ -782,6 +791,13 @@ public class JavaActionExecutor extends ActionExecutor {
                 else {
                     log.info("No need to inject credentials.");
                 }
+
+                Path launcherJarPath = new Path(appPathRoot, getOozieLauncherJar(context));
+                if(actionFs.exists(new Path(context.getActionDir(), "output"))){
+                    actionFs.delete(new Path(context.getActionDir(), "output"), true);
+                    log.info("cleanup output directory");
+                }
+
                 runningJob = jobClient.submitJob(launcherJobConf);
                 if (runningJob == null) {
                     throw new ActionExecutorException(ActionExecutorException.ErrorType.ERROR, "JA017",
