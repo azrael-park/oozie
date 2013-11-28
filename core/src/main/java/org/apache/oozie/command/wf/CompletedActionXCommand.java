@@ -17,33 +17,27 @@
  */
 package org.apache.oozie.command.wf;
 
-import java.util.Properties;
-
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.hive.HiveActionExecutor;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
-import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
 import org.apache.oozie.service.ActionService;
-import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
-import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.ParamChecker;
+
+import java.util.Properties;
 
 /**
  * This command is executed once the Workflow command is finished.
  */
-public class CompletedActionXCommand extends WorkflowXCommand<Void> {
-    private final String actionId;
+public class CompletedActionXCommand extends ActionXCommand<Void> {
     private final String externalStatus;
     private final Properties actionData;
-    private WorkflowActionBean wfactionBean;
 
     public CompletedActionXCommand(String actionId, String externalStatus, Properties actionData, int priority) {
-        super("callback", "callback", priority);
-        this.actionId = ParamChecker.notEmpty(actionId, "actionId");
+        super(actionId, "callback", "callback", priority);
         this.externalStatus = ParamChecker.notEmpty(externalStatus, "externalStatus");
         this.actionData = actionData;
     }
@@ -60,19 +54,7 @@ public class CompletedActionXCommand extends WorkflowXCommand<Void> {
     @Override
     protected void eagerLoadState() throws CommandException {
         super.eagerLoadState();
-        try {
-            JPAService jpaService = Services.get().get(JPAService.class);
-            if (jpaService != null) {
-                this.wfactionBean = jpaService.execute(new WorkflowActionGetJPAExecutor(this.actionId));
-            }
-            else {
-                throw new CommandException(ErrorCode.E0610);
-            }
-        }
-        catch (Exception ex) {
-            throw new CommandException(ErrorCode.E0603, ex.getMessage(), ex);
-        }
-        LogUtils.setLogInfo(this.wfactionBean, logInfo);
+        loadActionBean();
     }
 
     /*
@@ -83,9 +65,9 @@ public class CompletedActionXCommand extends WorkflowXCommand<Void> {
     @Override
     protected void eagerVerifyPrecondition() throws CommandException, PreconditionException {
         super.eagerVerifyPrecondition();
-        if (this.wfactionBean.getStatus() != WorkflowActionBean.Status.RUNNING) {
-            if (!wfactionBean.getType().equals(HiveActionExecutor.ACTION_TYPE)) {
-                throw new CommandException(ErrorCode.E0800, actionId, this.wfactionBean.getStatus());
+        if (wfAction.getStatus() != WorkflowActionBean.Status.RUNNING) {
+            if (!wfAction.getType().equals(HiveActionExecutor.ACTION_TYPE)) {
+                throw new CommandException(ErrorCode.E0800, actionId, wfAction.getStatus());
             }
             // need status update for hive action.. even if not running
         }
@@ -98,11 +80,11 @@ public class CompletedActionXCommand extends WorkflowXCommand<Void> {
      */
     @Override
     protected Void execute() throws CommandException {
-        ActionExecutor executor = Services.get().get(ActionService.class).getExecutor(this.wfactionBean.getType());
+        ActionExecutor executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
         // this is done because oozie notifications (of sub-wfs) is send
         // every status change, not only on completion.
         if (executor.isCompleted(actionId, externalStatus, actionData)) {
-            queue(new ActionCheckXCommand(this.wfactionBean.getId(), getPriority(), -1));
+            queue(new ActionCheckXCommand(wfAction.getId(), getPriority(), -1));
         }
         return null;
     }
