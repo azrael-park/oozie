@@ -415,6 +415,9 @@ public abstract class ActionExecutor {
             if (trimmed.isEmpty()) {
                 continue;
             }
+            if(builder.length() > 0) {
+                builder.append("\n");
+            }
             if (trimmed.endsWith(";")) {
                 builder.append(line.substring(0, line.lastIndexOf(';')));
                 result.add(evaluate(evaluator, builder.toString().trim()));
