@@ -220,6 +220,9 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
                         workflow.getGroup(), workflow.getAppName(), LOG, evalSla);
                 workflow.setSlaXml(jobSlaXml);
                 // System.out.println("SlaXml :"+ slaXml);
+                wfInstance.setTransientVar(WorkflowStoreService.WORKFLOW_BEAN, workflow);
+                wfInstance.prepare();
+                workflow.setWfInstance(wfInstance);
 
                 //store.insertWorkflow(workflow);
                 insertList.add(workflow);
@@ -235,15 +238,6 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
                 else {
                     LOG.error(ErrorCode.E0610);
                     return null;
-                }
-
-		        wfInstance.setTransientVar(WorkflowStoreService.WORKFLOW_BEAN, workflow);
-
-            	try {
-                    wfInstance.prepare();
-                } catch (WorkflowException e) {
-                    jpaService.execute(new WorkflowJobDeleteJPAExecutor(workflow.getId()));
-                    throw e;
                 }
 
                 return workflow.getId();

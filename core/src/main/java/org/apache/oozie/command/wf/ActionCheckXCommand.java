@@ -154,8 +154,8 @@ public class ActionCheckXCommand extends ActionXCommand {
             updateList.add(wfJob);
         }
         catch (ActionExecutorException ex) {
-            LOG.warn("Exception while executing check(). Error Code [{0}], Message[{1}]", ex.getErrorCode(), ex
-                    .getMessage(), ex);
+            LOG.warn("Exception while executing check(). Error Code [{0}], Type [{1}], Message[{2}]",
+                    ex.getErrorCode(), ex.getErrorType(), ex.getMessage(), ex);
 
             wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
             switch (ex.getErrorType()) {
