@@ -200,7 +200,7 @@ public class CallableQueueService implements Service, Instrumentable {
          */
         @Override
         public String toString() {
-            return getElement().toString() + "=" + cron.elapsed();
+            return super.toString();
         }
 
         /**
@@ -372,6 +372,9 @@ public class CallableQueueService implements Service, Instrumentable {
             if (callables.size() == 0) {
                 return false;
             }
+
+            List<XCallable<?>> callablesOld = callables;
+
             for (XCallable<?> callable : callables) {
                 if (!uniqueCallables.containsKey(callable.getKey()) && !set.contains(callable.getKey())) {
                     filteredCallables.add(callable);
@@ -379,6 +382,11 @@ public class CallableQueueService implements Service, Instrumentable {
                 }
             }
             callables = filteredCallables;
+if(callablesOld.size() != callables.size()){
+                XLog.getLog(getClass()).info("removeDuplicates before: " + callablesOld.getClass() + " = " + callablesOld.toString());
+            }
+            XLog.getLog(getClass()).info("removeDuplicates after : " + callables.getClass() + " = " + callables.toString());
+
             if (callables.size() == 0) {
                 return false;
             }
@@ -454,6 +462,9 @@ public class CallableQueueService implements Service, Instrumentable {
                 @Override
                 protected void debug(String msgTemplate, Object... msgArgs) {
                     log.trace(msgTemplate, msgArgs);
+                    if(msgTemplate.contains("anti-starvation") || msgTemplate.contains("poll") || msgTemplate.contains("peek2")){
+                        log.info(msgTemplate, msgArgs);
+                    }
                 }
             };
         }
@@ -468,6 +479,9 @@ public class CallableQueueService implements Service, Instrumentable {
                 @Override
                 protected void debug(String msgTemplate, Object... msgArgs) {
                     log.trace(msgTemplate, msgArgs);
+                    if(msgTemplate.contains("anti-starvation") || msgTemplate.contains("poll") || msgTemplate.contains("peek2")){
+                        log.info(msgTemplate, msgArgs);
+                    }
                 }
 
                 @Override
@@ -604,13 +618,15 @@ public class CallableQueueService implements Service, Instrumentable {
     }
 
     private synchronized boolean queue(CallableWrapper wrapper, boolean ignoreQueueSize) {
-        log.debug(" ++ " + wrapper.getElement().getClass() + " = " + wrapper.getElement().toString());
+        log.info(" ++ " + wrapper.toString());
         if (!ignoreQueueSize && queue.size() >= queueSize) {
             log.warn("queue if full, ignoring queuing for [{0}]", wrapper.getElement());
             return false;
         }
         if (!executor.isShutdown()) {
-            if (wrapper.filterDuplicates()) {
+            boolean filterDuplicates = wrapper.filterDuplicates();
+            log.debug(" filterDuplicates : " + filterDuplicates);
+            if (filterDuplicates) {
                 wrapper.addToUniqueCallables();
                 try {
                     executor.execute(wrapper);

@@ -202,6 +202,8 @@ public class TestRecoveryService extends XDataTestCase {
      * @throws Exception
      */
     public void testWorkflowActionRecoveryUserRetry() throws Exception {
+        Services.get().get(ConfigurationService.class).getConf().set(RetryQueueService.CONF_RETRY_ENABLED, "false");
+
         final JPAService jpaService = Services.get().get(JPAService.class);
         WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
         WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.USER_RETRY);

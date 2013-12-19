@@ -70,7 +70,8 @@
         <value>
             org.apache.oozie.service.HiveAccessService,
             org.apache.oozie.service.HadoopAccessorService,
-            org.apache.oozie.service.JobRecoveryService
+            org.apache.oozie.service.JobRecoveryService,
+            org.apache.oozie.service.RetryQueueService
         </value>
         <description>
             To add/replace services defined in 'oozie.services' with custom implementations.
@@ -531,4 +532,18 @@
         </description>
     </property>
 
+    <property>
+        <name>oozie.service.LiteWorkflowStoreService.user.retry.error.code.ext</name>
+        <value>ALL</value>
+        <description>
+            Automatic retry interval for workflow action is handled for these specified extra error code.
+        </description>
+    </property>
+    <property>
+        <name>oozie.service.LiteWorkflowStoreService.user.retry.suspend</name>
+        <value>true</value>
+        <description>
+            Action is handled as NON_TRANSIENT if the user retry does not resolve the problem.
+        </description>
+    </property>
 </configuration>

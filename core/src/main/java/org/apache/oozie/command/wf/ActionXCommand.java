@@ -28,6 +28,7 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hive.service.ServiceStateChangeListener;
 import org.apache.oozie.DagELFunctions;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
@@ -44,11 +45,13 @@ import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
 import org.apache.oozie.service.ActionService;
 import org.apache.oozie.service.CallbackService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.ELService;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.LiteWorkflowStoreService;
+import org.apache.oozie.service.RetryQueueService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.ELEvaluator;
@@ -241,7 +244,14 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
 
         boolean retried = handleUserRetry(action);
         if (!retried) {
-            incrActionErrorCounter(action.getType(), "error", 1);
+            boolean suspendActionForUserRetry = Services.get().get(ConfigurationService.class).getConf()
+                    .getBoolean("oozie.service.LiteWorkflowStoreService.user.retry.suspend", false);
+            if (suspendActionForUserRetry) {
+                handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
+                retried = true;
+            } else {
+                incrActionErrorCounter(action.getType(), "error", 1);
+            }
         }
         return retried;
     }
@@ -298,7 +308,8 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
         String errorCode = action.getErrorCode();
         Set<String> allowedRetryCode = LiteWorkflowStoreService.getUserRetryErrorCode();
 
-        if (allowedRetryCode.contains(errorCode) && action.getUserRetryCount() < action.getUserRetryMax()) {
+        if ((allowedRetryCode.contains("ALL") || allowedRetryCode.contains(errorCode))
+                && action.getUserRetryCount() < action.getUserRetryMax()) {
             LOG.info("Preparing retry this action [{0}], errorCode [{1}], userRetryCount [{2}], "
                     + "userRetryMax [{3}], userRetryInterval [{4}]", action.getId(), errorCode, action
                     .getUserRetryCount(), action.getUserRetryMax(), action.getUserRetryInterval());
@@ -306,7 +317,14 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
             action.setStatus(WorkflowAction.Status.USER_RETRY);
             action.incrmentUserRetryCount();
             action.setPending();
-            queue(new ActionStartXCommand(action.getId(), action.getType()), interval);
+            if(Services.get().get(ConfigurationService.class).getConf().getBoolean(RetryQueueService.CONF_RETRY_ENABLED, false)){
+                RetryQueueService retryQueueService = Services.get().get(RetryQueueService.class);
+                if (retryQueueService != null) {
+                    retryQueueService.addWorkItem(new ActionStartXCommand(action.getId(), action.getType()), interval);
+                }
+            } else {
+                queue(new ActionStartXCommand(action.getId(), action.getType()), interval);
+            }
             return true;
         }
         return false;

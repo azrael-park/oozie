@@ -357,7 +357,20 @@ public class RecoveryService implements Service {
                         queueCallable(new SignalXCommand(action.getJobId(), action.getId()));
                     }
                     else if (action.getStatus() == WorkflowActionBean.Status.USER_RETRY) {
-                        queueCallable(new ActionStartXCommand(action.getId(), action.getType()));
+                        ActionStartXCommand startXCommand = new ActionStartXCommand(action.getId(), action.getType());
+                        boolean useRetryQueueService = Services.get().get(ConfigurationService.class).getConf()
+                            .getBoolean(RetryQueueService.CONF_RETRY_ENABLED, false);
+                        if (useRetryQueueService) {
+                            RetryQueueService retryQueueService = Services.get().get(RetryQueueService.class);
+                            if (!retryQueueService.contains(startXCommand)) {
+                              queueCallable(startXCommand);
+                            } else {
+                              log.info("RetryQueue contains : "+startXCommand.toString());
+                            }
+                        }
+                        else {
+                          queueCallable(startXCommand);
+                        }
                     }
                 }
                 catch (Exception ex) {

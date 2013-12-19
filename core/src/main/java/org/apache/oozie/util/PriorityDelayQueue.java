@@ -166,7 +166,7 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append("[").append(element).append("] priority=").append(priority).append(" delay=").
-                    append(getDelay(TimeUnit.MILLISECONDS));
+                    append(getDelay(TimeUnit.MILLISECONDS)).append(" basetime="+baseTime);
             return sb.toString();
         }
 
@@ -403,7 +403,7 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
                     currentSize.decrementAndGet();
                 }
                 e.inQueue = false;
-                debug("poll(): [{0}], from P[{1}]", e.getElement().toString(), i);
+                debug("poll(): [{0}], from P[{1}]", e.toString(), i);
             }
             return e;
         }
@@ -465,10 +465,10 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
                 }
             }
             if (e != null) {
-                debug("peek(): [{0}], from P[{1}]", e.getElement().toString(), e.getPriority());
+                debug("peek2(): [{0}], from P[{1}]", e.toString(), e.getPriority());
             }
             else {
-                debug("peek(): NULL");
+                debug("peek2(): NULL");
             }
             return e;
         }
@@ -513,6 +513,7 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
                 throw new IllegalStateException("Could not move element to higher sub-queue, element rejected");
             }
             e.priority++;
+            debug("anti-starvation, moved : "+e.getClass() + " = " + (e == null ? e : e.toString()));
             e = lowerQ.poll();
             moved++;
         }
@@ -521,7 +522,9 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
                 throw new IllegalStateException("Could not reinsert element to current sub-queue, element rejected");
             }
         }
-        debug("anti-starvation, moved {0} element(s) {1}", moved, msg);
+        if (moved > 0) {
+            debug("anti-starvation, moved {0} element(s) {1}", moved, msg);
+        }
     }
 
     /**

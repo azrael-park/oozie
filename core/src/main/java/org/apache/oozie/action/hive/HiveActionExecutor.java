@@ -187,7 +187,7 @@ public class HiveActionExecutor extends ActionExecutor {
         } else if (action.getExternalStatus().equals("ERROR")) {
             context.setEndData(WorkflowAction.Status.ERROR, "ERROR");
         } else {
-            throw new IllegalStateException("Invalid external status [" + action.getExternalStatus() + "] for Hive Node");
+            context.setEndData(WorkflowAction.Status.ERROR, "ERROR");
         }
     }
 
