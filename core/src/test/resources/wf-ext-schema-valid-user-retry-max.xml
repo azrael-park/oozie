@@ -15,11 +15,11 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<workflow-app xmlns="uri:oozie:workflow:0.3" name="test-wf">
+<workflow-app xmlns="uri:oozie:workflow:0.5" name="test-wf">
 
     <start to="a"/>
 
-    <action name="a" retry-max="0">
+    <action name="a" retry-interval="0">
         <test xmlns="uri:test">
             <signal-value>${wf:conf('signal-value')}</signal-value>
             <external-status>${wf:conf('external-status')}</external-status>

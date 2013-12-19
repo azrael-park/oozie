@@ -39,8 +39,10 @@ import org.apache.oozie.executor.jpa.CoordActionGetForExternalIdJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionsGetForJobJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
 import org.apache.oozie.service.ActionService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.LiteWorkflowStoreService;
+import org.apache.oozie.service.RetryQueueService;
 import org.apache.oozie.service.SchemaService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.WorkflowStoreService;
@@ -66,6 +68,7 @@ public class TestActionErrors extends XDataTestCase {
         services.init();
         cleanUpDBTables();
         services.get(ActionService.class).register(ForTestingActionExecutor.class);
+        Services.get().get(ConfigurationService.class).getConf().set(RetryQueueService.CONF_RETRY_ENABLED, "false");
     }
 
     @Override
@@ -218,6 +221,18 @@ public class TestActionErrors extends XDataTestCase {
         assertTrue(true);
     }
     
+    /**
+     * Tests for correct functionality when a {@link org.apache.oozie.action.ActionExecutorException.ErrorType#ERROR} is
+     * generated when executing start. </p> Checks for user retry is applied to actions for max retry count
+     * from configuration as <code>user.retry.max</code>.
+     *
+     * @throws Exception
+     */
+    public void testStartErrorWithUserRetryMax() throws Exception {
+        _testErrorWithUserRetryMax("start.error", "error", "based_on_action_status");
+        assertTrue(true);
+    }
+
     /**
      * Tests for the job to be KILLED and status set to FAILED in case an Action Handler does not call setExecutionData
      * in it's start() implementation.
@@ -582,7 +597,7 @@ public class TestActionErrors extends XDataTestCase {
         final WorkflowJobGetJPAExecutor wfJobGetCmd = new WorkflowJobGetJPAExecutor(jobId);
 
         final WorkflowActionsGetForJobJPAExecutor actionsGetExecutor = new WorkflowActionsGetForJobJPAExecutor(jobId);
-        waitFor(5000, new Predicate() {
+        waitFor(10000, new Predicate() {
             public boolean evaluate() throws Exception {
                 List<WorkflowActionBean> actions = jpaService.execute(actionsGetExecutor);
                 WorkflowActionBean action = null;
@@ -606,6 +621,68 @@ public class TestActionErrors extends XDataTestCase {
         }
         assertNotNull(action);
         assertEquals(2, action.getUserRetryCount());
+    }
+
+    /**
+     * Provides functionality to test user retry with max count from configuration.
+     *
+     * @param errorType the error type. (start.non-transient, end.non-transient)
+     * @param externalStatus the external status to set.
+     * @param signalValue the signal value to set.
+     * @throws Exception
+     */
+    private void _testErrorWithUserRetryMax(String errorType, String externalStatus, String signalValue) throws Exception {
+        String workflowPath = getTestCaseFileUri("workflow.xml");
+        Reader reader = IOUtils.getResourceAsReader("wf-ext-schema-valid-user-retry-max.xml", -1);
+        Writer writer = new FileWriter(new File(getTestCaseDir(), "workflow.xml"));
+        IOUtils.copyCharStream(reader, writer);
+
+        final DagEngine engine = new DagEngine("u");
+        Configuration conf = new XConfiguration();
+        conf.set(OozieClient.APP_PATH, workflowPath);
+        conf.set(OozieClient.USER_NAME, getTestUser());
+
+        conf.set(OozieClient.LOG_TOKEN, "t");
+        conf.set("error", errorType);
+        conf.set("external-status", externalStatus);
+        conf.set("signal-value", signalValue);
+
+        final int max = Services.get().get(ConfigurationService.class).getConf()
+                .getInt(LiteWorkflowStoreService.CONF_USER_RETRY_MAX,0);
+
+        final String jobId = engine.submitJob(conf, true);
+
+        final JPAService jpaService = Services.get().get(JPAService.class);
+        final WorkflowJobGetJPAExecutor wfJobGetCmd = new WorkflowJobGetJPAExecutor(jobId);
+
+        final WorkflowActionsGetForJobJPAExecutor actionsGetExecutor = new WorkflowActionsGetForJobJPAExecutor(jobId);
+        waitFor(5000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                List<WorkflowActionBean> actions = jpaService.execute(actionsGetExecutor);
+                WorkflowActionBean action = null;
+                for (WorkflowActionBean bean : actions) {
+                    if (bean.getType().equals("test")) {
+                        action = bean;
+                        if (action.getStatus() == WorkflowAction.Status.ERROR) {
+                            break;
+                        }
+                    }
+                }
+                return (action != null && action.getUserRetryCount() == max);
+            }
+        });
+
+        List<WorkflowActionBean> actions = jpaService.execute(actionsGetExecutor);
+        WorkflowActionBean action = null;
+        for (WorkflowActionBean bean : actions) {
+            if (bean.getType().equals("test")) {
+                action = bean;
+                break;
+            }
+        }
+        assertNotNull(action);
+        assertEquals(WorkflowAction.Status.ERROR, action.getStatus());
+        assertEquals(max, action.getUserRetryCount());
     }
 
     /**
