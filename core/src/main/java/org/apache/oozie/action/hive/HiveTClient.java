@@ -19,7 +19,7 @@ public interface HiveTClient {
 
     void clear() throws Exception;
 
-    void shutdown(boolean interanl) throws Exception;
+    void shutdown() throws Exception;
 
     void destroy();
 

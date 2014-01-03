@@ -144,12 +144,10 @@ public class HiveTClientV2 implements HiveTClient {
     }
 
     @Override
-    public void shutdown(boolean interanl) throws Exception {
+    public void shutdown() throws Exception {
         try {
-            if(!interanl){
-                clear();
-                client.closeSession(session);
-            }
+            clear();
+            client.closeSession(session);
         } finally {
             transport.close();
         }

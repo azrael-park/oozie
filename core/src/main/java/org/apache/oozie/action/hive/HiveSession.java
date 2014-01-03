@@ -134,7 +134,7 @@ public class HiveSession extends HiveStatus {
 
     private void killHiveSession() {
         try {
-            client.shutdown(true);
+            client.shutdown();
         } catch (Exception e) {
             LOG.debug("Failed to shutdown hive connection", e);
         }
@@ -232,16 +232,20 @@ public class HiveSession extends HiveStatus {
                     client.executeTransient("set hiveconf:task.notification.url=" + callback);
                 }
             }
-            client.execute();
 
-            if (LOG.isInfoEnabled()) {
-                StringBuilder builder = new StringBuilder().append("fetch dump\n");
-                for (String result : client.fetchN(maxFetch)) {
-                    builder.append(result).append('\n');
+            try {
+                client.execute();
+
+                if (LOG.isInfoEnabled()) {
+                    StringBuilder builder = new StringBuilder().append("fetch dump\n");
+                    for (String result : client.fetchN(maxFetch)) {
+                        builder.append(result).append('\n');
+                    }
+                    LOG.info(builder.toString());
                 }
-                LOG.info(builder.toString());
+            } finally {
+                client.clear();
             }
-            client.clear();
 
             if (stages != null && !stages.isEmpty()) {
                 for (Stage stage : stages) {
@@ -296,7 +300,7 @@ public class HiveSession extends HiveStatus {
 
         @Override
         public String toString() {
-            return current + "/" + queries.length;
+            return (current+1) + "/" + queries.length;
         }
     }
 

@@ -53,7 +53,7 @@ public class HiveTClientV1 implements HiveTClient {
     }
 
     @Override
-    public void shutdown(boolean interanl) throws Exception {
+    public void shutdown() throws Exception {
         client.shutdown();
     }
 
