@@ -324,7 +324,7 @@
 
     <property>
         <name>oozie.service.RecoveryService.interval</name>
-        <value>60</value>
+        <value>600</value>
         <description>
             Interval at which the RecoverService will run, in seconds.
         </description>
