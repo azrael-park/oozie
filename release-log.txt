@@ -1,3 +1,5 @@
+
+OOZIE-1664 PollablePriorityDelayQueue.poll() returns elements with +ve delay (shwethags via rohini)
 OOZIE-1491 Make sure HA works with a secure ZooKeeper (rkanter)
 OOZIE-1606 Update Curator to 2.3.0 and fix some misc minor ZK related things (rkanter)
 OOOZIE-1460 Implement and Document security for HA (rkanter)
