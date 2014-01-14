@@ -20,6 +20,9 @@ package org.apache.oozie.util;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.oozie.service.ConfigurationService;
+import org.apache.oozie.service.Services;
+import org.apache.oozie.service.XLogService;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -42,6 +45,7 @@ public class XLog implements Log {
     public static class Info {
         private static String template = "";
         private static List<String> parameterNames = new ArrayList<String>();
+        private static boolean trim = false;
 
         private static ThreadLocal<Info> tlLogInfo = new ThreadLocal<Info>() {
             @Override
@@ -167,14 +171,39 @@ public class XLog implements Log {
          * @return the <code>LogInfo</code> prefix.
          */
         public String createPrefix() {
-            String[] params = new String[parameterNames.size()];
-            for (int i = 0; i < params.length; i++) {
-                params[i] = parameters.get(parameterNames.get(i));
-                if (params[i] == null) {
-                    params[i] = "-";
+            if (Services.get() !=null && Services.get().get(ConfigurationService.class) !=null) {
+                trim = Services.get().get(ConfigurationService.class).getConf().getBoolean(XLogService.CONF_TRIM, false);
+            }
+            else {
+                trim = false;
+            }
+            return createPrefix(trim);
+        }
+
+        public String createPrefix(boolean trim) {
+            StringBuilder builder = new StringBuilder();
+            if (!trim) {
+                String[] params = new String[parameterNames.size()];
+                for (int i = 0; i < params.length; i++) {
+                    params[i] = parameters.get(parameterNames.get(i));
+                    if (params[i] == null) {
+                        params[i] = "-";
+                    }
+                }
+                builder.append(MessageFormat.format(template, (Object[]) params));
+            } else {
+                for (int i = 0; i < parameterNames.size(); i++) {
+                    String param = parameters.get(parameterNames.get(i));
+                    if (param !=null && !param.isEmpty()) {
+                        builder.append(parameterNames.get(i)).append("[").append(param).append("]").append(" ");
+                    }
                 }
             }
-            return MessageFormat.format(template, (Object[]) params);
+            return builder.toString();
+        }
+
+        public static boolean isTrim() {
+            return trim;
         }
 
     }

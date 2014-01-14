@@ -412,7 +412,12 @@ public class DagEngine extends BaseEngine {
         if (id.contains("@")) {
             String name = Services.get().get(UUIDService.class).getChildName(id);
             jobId = Services.get().get(UUIDService.class).getId(id);
-            filter.setParameter(DagXLogInfoService.ACTION, name);
+            if (XLog.Info.isTrim()) {
+                filter.setParameter(DagXLogInfoService.ACTION, name);
+            }
+            else {
+                filter.setParameter(DagXLogInfoService.ACTION, id);
+            }
         } else {
             jobId = id;
         }

@@ -163,11 +163,19 @@ public class XLogStreamer {
             else {
                 sb.append("(.* ");
                 for (int i = 0; i < parameters.size(); i++) {
+                    String param = filterParams.get(parameters.get(i));
+                    if (param == null || param.equals(DEFAULT_REGEX)) {
+                        sb.append("(?:");
+                    }
                     sb.append(parameters.get(i) + "\\[");
                     sb.append(filterParams.get(parameters.get(i)) + "\\] ");
+                    if (param == null || param.equals(DEFAULT_REGEX)) {
+                        sb.append(")?");
+                    }
                 }
                 sb.append(".*)");
             }
+            System.out.println("---- pattern : "+sb.toString());
             filterPattern = Pattern.compile(sb.toString());
         }
 

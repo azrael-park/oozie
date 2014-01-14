@@ -515,4 +515,12 @@
             this "interval" (in seconds).</description>
     </property>
 
+    <property>
+        <name>oozie.service.XLogService.trim</name>
+        <value>true</value>
+        <description>
+            If set to true, log does not display if parameter is null and use the action name instead id.
+        </description>
+    </property>
+
 </configuration>

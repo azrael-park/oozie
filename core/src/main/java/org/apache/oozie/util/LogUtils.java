@@ -85,7 +85,12 @@ public class LogUtils {
     public static void setLogInfo(WorkflowActionBean action, XLog.Info logInfo) {
         logInfo.setParameter(DagXLogInfoService.JOB, action.getJobId());
         logInfo.setParameter(DagXLogInfoService.TOKEN, action.getLogToken());
-        logInfo.setParameter(DagXLogInfoService.ACTION, action.getId());
+        if (XLog.Info.isTrim()) {
+            logInfo.setParameter(DagXLogInfoService.ACTION, action.getName());
+        }
+        else {
+            logInfo.setParameter(DagXLogInfoService.ACTION, action.getId());
+        }
         XLog.Info.get().setParameters(logInfo);
     }
 

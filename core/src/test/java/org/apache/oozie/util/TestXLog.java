@@ -18,9 +18,14 @@
 package org.apache.oozie.util;
 
 import org.apache.commons.logging.impl.SimpleLog;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.oozie.service.ConfigurationService;
+import org.apache.oozie.service.Services;
+import org.apache.oozie.service.XLogService;
 import org.apache.oozie.test.XTestCase;
 
 public class TestXLog extends XTestCase {
+
 
     protected void setUp() throws Exception {
         super.setUp();
@@ -73,6 +78,19 @@ public class TestXLog extends XTestCase {
         assertEquals("A[a] B[-]", logInfo.createPrefix());
         logInfo.setParameter("B", "b");
         assertEquals("A[a] B[b]", logInfo.createPrefix());
+    }
+
+    public void testInfoParametersTrim() {
+        XLog.Info logInfo = new XLog.Info();
+        assertEquals("", logInfo.createPrefix(true));
+        XLog.Info.defineParameter("A");
+        assertEquals("", logInfo.createPrefix(true));
+        XLog.Info.defineParameter("B");
+        assertEquals("", logInfo.createPrefix(true));
+        logInfo.setParameter("A", "a");
+        assertEquals("A[a] ", logInfo.createPrefix(true));
+        logInfo.setParameter("B", "b");
+        assertEquals("A[a] B[b] ", logInfo.createPrefix(true));
     }
 
     public void testInfoConstructorPropagation() {

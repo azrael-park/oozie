@@ -60,6 +60,11 @@ import java.util.regex.Pattern;
  * value is 10 seconds.
  */
 public class XLogService implements Service, Instrumentable {
+
+    public static final String CONF_PREFIX = Service.CONF_PREFIX + "XLogService.";
+
+    public static final String CONF_TRIM = CONF_PREFIX + "trim";
+
     private static final String INSTRUMENTATION_GROUP = "logging";
 
     /**
