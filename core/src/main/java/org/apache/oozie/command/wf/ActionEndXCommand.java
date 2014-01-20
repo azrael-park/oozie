@@ -26,6 +26,7 @@ import org.apache.oozie.DagELFunctions;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.SLAEventBean;
 import org.apache.oozie.WorkflowActionBean;
+import org.apache.oozie.XException;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.action.control.ControlNodeActionExecutor;
 import org.apache.oozie.client.OozieClient;
@@ -119,105 +120,11 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
         ActionExecutorContext context = new ActionXCommand.ActionExecutorContext(wfJob, wfAction, isRetry, isUserRetry);
         try {
 
-            LOG.debug(
-                    "End, name [{0}] type [{1}] status[{2}] external status [{3}] signal value [{4}]",
-                    wfAction.getName(), wfAction.getType(), wfAction.getStatus(), wfAction.getExternalStatus(),
-                    wfAction.getSignalValue());
-
-            Instrumentation.Cron cron = new Instrumentation.Cron();
-            cron.start();
-            executor.end(context, wfAction);
-            cron.stop();
-            addActionCron(wfAction.getType(), cron);
-
-            WorkflowInstance wfInstance = wfJob.getWorkflowInstance();
-            DagELFunctions.setActionInfo(wfInstance, wfAction);
-            wfJob.setWorkflowInstance(wfInstance);
-            incrActionCounter(wfAction.getType(), 1);
-
-            if (!context.isEnded()) {
-                LOG.warn(XLog.OPS, "Action Ended, ActionExecutor [{0}] must call setEndData()",
-                        executor.getType());
-                wfAction.setErrorInfo(END_DATA_MISSING, "Execution Ended, but End Data Missing from Action");
-                failJob(context);
-            } else {
-                wfAction.setRetries(0);
-                wfAction.setEndTime(new Date());
-
-                boolean shouldHandleUserRetry = false;
-                Status slaStatus = null;
-                switch (wfAction.getStatus()) {
-                    case OK:
-                        slaStatus = Status.SUCCEEDED;
-                        break;
-                    case KILLED:
-                        slaStatus = Status.KILLED;
-                        break;
-                    case FAILED:
-                        slaStatus = Status.FAILED;
-                        shouldHandleUserRetry = true;
-                        break;
-                    case ERROR:
-                        LOG.info("ERROR is considered as FAILED for SLA");
-                        slaStatus = Status.KILLED;
-                        shouldHandleUserRetry = true;
-                        break;
-                    default:
-                        slaStatus = Status.FAILED;
-                        shouldHandleUserRetry = true;
-                        break;
-                }
-                if (!shouldHandleUserRetry || !handleUserRetry(wfAction)) {
-                    SLAEventBean slaEvent = SLADbXOperations.createStatusEvent(wfAction.getSlaXml(), wfAction.getId(), slaStatus, SlaAppType.WORKFLOW_ACTION);
-                    LOG.debug("Queuing commands for action=" + actionId + ", status=" + wfAction.getStatus()
-                            + ", Set pending=" + wfAction.getPending());
-                    if(slaEvent != null) {
-                        insertList.add(slaEvent);
-                    }
-                    queue(new SignalXCommand(jobId, actionId));
-                }
-                sendActionNotification();
-            }
-            updateList.add(wfAction);
-            wfJob.setLastModifiedTime(new Date());
-            updateList.add(wfJob);
+            execute(context);
+            onSuccess(context);
         }
-        catch (ActionExecutorException ex) {
-            LOG.warn(
-                    "Error ending action [{0}]. ErrorType [{1}], ErrorCode [{2}], Message [{3}]",
-                    wfAction.getName(), ex.getErrorType(), ex.getErrorCode(), ex.getMessage());
-            wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
-            wfAction.setEndTime(null);
-
-            switch (ex.getErrorType()) {
-                case TRANSIENT:
-                    if (!handleTransient(context, executor, WorkflowAction.Status.END_RETRY)) {
-                        handleNonTransient(context, executor, WorkflowAction.Status.END_MANUAL);
-                        wfAction.setPendingAge(new Date());
-                        wfAction.setRetries(0);
-                    }
-                    wfAction.setEndTime(null);
-                    break;
-                case NON_TRANSIENT:
-                    handleNonTransient(context, executor, WorkflowAction.Status.END_MANUAL);
-                    wfAction.setEndTime(null);
-                    break;
-                case ERROR:
-                    handleError(context, executor, COULD_NOT_END, false, WorkflowAction.Status.ERROR);
-                    queue(new SignalXCommand(jobId, actionId));
-                    break;
-                case FAILED:
-                    failJob(context);
-                    break;
-            }
-
-            WorkflowInstance wfInstance = wfJob.getWorkflowInstance();
-            DagELFunctions.setActionInfo(wfInstance, wfAction);
-            wfJob.setWorkflowInstance(wfInstance);
-
-            updateList.add(wfAction);
-            wfJob.setLastModifiedTime(new Date());
-            updateList.add(wfJob);
+        catch (Throwable ex) {
+            onFailure(context, ex);
         }
         finally {
             try {
@@ -234,6 +141,121 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
 
         LOG.debug("ENDED ActionEndXCommand for action " + actionId);
         return null;
+    }
+
+    private void execute(ActionExecutorContext context) throws ActionExecutorException {
+        LOG.debug("End, name [{0}] type [{1}] status[{2}] external status [{3}] signal value [{4}]",
+                wfAction.getName(), wfAction.getType(), wfAction.getStatus(), wfAction.getExternalStatus(),
+                wfAction.getSignalValue());
+
+        Instrumentation.Cron cron = new Instrumentation.Cron();
+        cron.start();
+        executor.end(context, wfAction);
+        cron.stop();
+        addActionCron(wfAction.getType(), cron);
+    }
+
+    private void onSuccess(ActionExecutorContext context) throws XException {
+        WorkflowInstance wfInstance = wfJob.getWorkflowInstance();
+        DagELFunctions.setActionInfo(wfInstance, wfAction);
+        wfJob.setWorkflowInstance(wfInstance);
+        incrActionCounter(wfAction.getType(), 1);
+
+        if (!context.isEnded()) {
+            LOG.warn(XLog.OPS, "Action Ended, ActionExecutor [{0}] must call setEndData()", executor.getType());
+            wfAction.setErrorInfo(END_DATA_MISSING, "Execution Ended, but End Data Missing from Action");
+            failJob(context);
+        } else {
+            wfAction.setRetries(0);
+            wfAction.setEndTime(new Date());
+
+            boolean shouldHandleUserRetry = false;
+            Status slaStatus = null;
+            switch (wfAction.getStatus()) {
+                case OK:
+                    slaStatus = Status.SUCCEEDED;
+                    break;
+                case KILLED:
+                    slaStatus = Status.KILLED;
+                    break;
+                case FAILED:
+                    slaStatus = Status.FAILED;
+                    shouldHandleUserRetry = true;
+                    break;
+                case ERROR:
+                    LOG.info("ERROR is considered as FAILED for SLA");
+                    slaStatus = Status.KILLED;
+                    shouldHandleUserRetry = true;
+                    break;
+                default:
+                    slaStatus = Status.FAILED;
+                    shouldHandleUserRetry = true;
+                    break;
+            }
+            if (!shouldHandleUserRetry || !handleUserRetry(wfAction)) {
+                SLAEventBean slaEvent = SLADbXOperations.createStatusEvent(wfAction.getSlaXml(), wfAction.getId(), slaStatus, SlaAppType.WORKFLOW_ACTION);
+                LOG.debug("Queuing commands for action=" + actionId + ", status=" + wfAction.getStatus()
+                        + ", Set pending=" + wfAction.getPending());
+                if(slaEvent != null) {
+                    insertList.add(slaEvent);
+                }
+                queue(new SignalXCommand(jobId, actionId));
+            }
+
+        }
+        updateList.add(wfAction);
+        wfJob.setLastModifiedTime(new Date());
+        updateList.add(wfJob);
+    }
+
+    protected void onFailure(ActionExecutorContext context, Throwable t) throws CommandException {
+        if (t instanceof ActionExecutorException) {
+            onActionException(context, (ActionExecutorException) t);
+        } else {
+            divergeOnError(context, ActionExecutorException.ErrorType.NON_TRANSIENT);
+            LOG.warn("Unhandled exception", t);
+        }
+    }
+
+    private void onActionException(ActionExecutorContext context, ActionExecutorException ex) throws CommandException {
+        LOG.warn("Error ending action [{0}]. ErrorType [{1}], ErrorCode [{2}], Message [{3}]",
+                wfAction.getName(), ex.getErrorType(), ex.getErrorCode(), ex.getMessage());
+        wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
+        wfAction.setEndTime(null);
+
+        divergeOnError(context, ex.getErrorType());
+    }
+
+    private void divergeOnError(ActionExecutorContext context, ActionExecutorException.ErrorType type) throws CommandException {
+        switch (type) {
+            case TRANSIENT:
+                if (!handleTransient(context, executor, WorkflowAction.Status.END_RETRY)) {
+                    handleNonTransient(context, executor, WorkflowAction.Status.END_MANUAL);
+                    wfAction.setPendingAge(new Date());
+                    wfAction.setRetries(0);
+                }
+                wfAction.setEndTime(null);
+                break;
+            case NON_TRANSIENT:
+                handleNonTransient(context, executor, WorkflowAction.Status.END_MANUAL);
+                wfAction.setEndTime(null);
+                break;
+            case ERROR:
+                handleError(context, executor, COULD_NOT_END, false, WorkflowAction.Status.ERROR);
+                queue(new SignalXCommand(jobId, actionId));
+                break;
+            case FAILED:
+                failJob(context);
+                break;
+        }
+
+        WorkflowInstance wfInstance = wfJob.getWorkflowInstance();
+        DagELFunctions.setActionInfo(wfInstance, wfAction);
+        wfJob.setWorkflowInstance(wfInstance);
+
+        updateList.add(wfAction);
+        wfJob.setLastModifiedTime(new Date());
+        updateList.add(wfJob);
     }
 
 }
