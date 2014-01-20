@@ -164,15 +164,11 @@ public class ActionCheckXCommand extends ActionXCommand {
                     generateEvent = true;
                     break;
                 case ERROR:
-                    handleUserRetry(wfAction);
+                    handleError(context, executor, "", wfAction.getStatus());
                     break;
                 case TRANSIENT:                 // retry N times, then suspend workflow
-                    if (!handleTransient(context, executor, WorkflowAction.Status.RUNNING)) {
-                        handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
-                        generateEvent = true;
-                        wfAction.setPendingAge(new Date());
-                        wfAction.setRetries(0);
-                        wfAction.setStartTime(null);
+                    if (!handleTransient(context, executor, WorkflowAction.Status.RUNNING)){
+                         generateEvent = true;
                     }
                     break;
                 case NON_TRANSIENT:
@@ -200,6 +196,19 @@ public class ActionCheckXCommand extends ActionXCommand {
 
         LOG.debug("ENDED ActionCheckXCommand for wf actionId=" + actionId + ", jobId=" + jobId);
         return null;
+    }
+
+    @Override
+    protected boolean handleTransient(ActionExecutor.Context context, ActionExecutor executor,
+                                      WorkflowAction.Status status) throws CommandException {
+        if (!super.handleTransient(context, executor, WorkflowAction.Status.RUNNING)) {
+            handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
+            wfAction.setPendingAge(new Date());
+            wfAction.setRetries(0);
+            wfAction.setStartTime(null);
+            return false;
+        }
+        return true;
     }
 
     protected long getRetryInterval() {

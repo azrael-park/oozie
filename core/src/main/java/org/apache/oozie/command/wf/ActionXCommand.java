@@ -229,27 +229,22 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
      * @param context the execution context.
      * @param executor the executor instance being used.
      * @param message
-     * @param isStart whether the error was generated while starting or ending an action.
      * @param status the status to be set for the action.
+     * @return true if the action is scheduled for user retry. false if the number of retries has exceeded the
+     *         maximum number of configured retries.
      * @throws CommandException thrown if unable to handle action error
      */
-    protected void handleError(ActionExecutor.Context context, ActionExecutor executor, String message,
-            boolean isStart, WorkflowAction.Status status) throws CommandException {
+    protected boolean handleError(ActionExecutor.Context context, ActionExecutor executor, String message,
+                                  WorkflowAction.Status status) throws CommandException {
         LOG.warn("Setting Action Status to [{0}]", status);
         ActionExecutorContext aContext = (ActionExecutorContext) context;
         WorkflowActionBean action = (WorkflowActionBean) aContext.getAction();
 
-        if (!handleUserRetry(action)) {
+        boolean retried = handleUserRetry(action);
+        if (!retried) {
             incrActionErrorCounter(action.getType(), "error", 1);
-            action.setPending();
-            if (isStart) {
-                action.setExecutionData(message, null);
-                queue(new ActionEndXCommand(action.getId(), action.getType()));
-            }
-            else {
-                action.setEndData(status, WorkflowAction.Status.ERROR.toString());
-            }
         }
+        return retried;
     }
 
     /**

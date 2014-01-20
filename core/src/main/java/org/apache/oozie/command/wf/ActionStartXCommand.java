@@ -234,19 +234,13 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
         switch (ex.getErrorType()) {
             case TRANSIENT:
-                if (!handleTransient(context, executor, WorkflowAction.Status.START_RETRY)) {
-                    handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
-                    wfAction.setPendingAge(new Date());
-                    wfAction.setRetries(0);
-                    wfAction.setStartTime(null);
-                }
+                handleTransient(context, executor, WorkflowAction.Status.START_RETRY);
                 break;
             case NON_TRANSIENT:
                 handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
                 break;
             case ERROR:
-                handleError(context, executor, WorkflowAction.Status.ERROR.toString(), true,
-                        WorkflowAction.Status.DONE);
+                handleError(context, executor, WorkflowAction.Status.ERROR.toString(), WorkflowAction.Status.DONE);
                 break;
             case FAILED:
                 try {
@@ -325,6 +319,31 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         }
 
         return caught;
+    }
+
+    @Override
+    protected boolean handleTransient(ActionExecutor.Context context, ActionExecutor executor,
+                                      WorkflowAction.Status status) throws CommandException {
+        if (!super.handleTransient(context, executor, WorkflowAction.Status.START_RETRY)) {
+            handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
+            wfAction.setPendingAge(new Date());
+            wfAction.setRetries(0);
+            wfAction.setStartTime(null);
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    protected boolean handleError(ActionExecutor.Context context, ActionExecutor executor, String message,
+                                  WorkflowAction.Status status) throws CommandException {
+        if(!super.handleError(context, executor, message, status)) {
+            wfAction.setPending();
+            wfAction.setExecutionData(message, null);
+            queue(new ActionEndXCommand(wfAction.getId(), wfAction.getType()));
+            return false;
+        }
+        return true;
     }
 
     private void handleError(ActionExecutorContext context, WorkflowJobBean workflow, WorkflowActionBean action)

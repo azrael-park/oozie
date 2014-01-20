@@ -27,6 +27,7 @@ import org.apache.oozie.ErrorCode;
 import org.apache.oozie.SLAEventBean;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.XException;
+import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.action.control.ControlNodeActionExecutor;
 import org.apache.oozie.client.OozieClient;
@@ -229,11 +230,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
     private void divergeOnError(ActionExecutorContext context, ActionExecutorException.ErrorType type) throws CommandException {
         switch (type) {
             case TRANSIENT:
-                if (!handleTransient(context, executor, WorkflowAction.Status.END_RETRY)) {
-                    handleNonTransient(context, executor, WorkflowAction.Status.END_MANUAL);
-                    wfAction.setPendingAge(new Date());
-                    wfAction.setRetries(0);
-                }
+                handleTransient(context, executor, WorkflowAction.Status.END_RETRY);
                 wfAction.setEndTime(null);
                 break;
             case NON_TRANSIENT:
@@ -241,7 +238,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
                 wfAction.setEndTime(null);
                 break;
             case ERROR:
-                handleError(context, executor, COULD_NOT_END, false, WorkflowAction.Status.ERROR);
+                handleError(context, executor, COULD_NOT_END, WorkflowAction.Status.ERROR);
                 queue(new SignalXCommand(jobId, actionId));
                 break;
             case FAILED:
@@ -256,6 +253,29 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
         updateList.add(wfAction);
         wfJob.setLastModifiedTime(new Date());
         updateList.add(wfJob);
+    }
+
+    @Override
+    protected boolean handleTransient(ActionExecutor.Context context, ActionExecutor executor,
+                                      WorkflowAction.Status status) throws CommandException {
+        if (!super.handleTransient(context, executor, status)) {
+            handleNonTransient(context, executor, WorkflowAction.Status.END_MANUAL);
+            wfAction.setPendingAge(new Date());
+            wfAction.setRetries(0);
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    protected boolean handleError(ActionExecutor.Context context, ActionExecutor executor, String message,
+                                  WorkflowAction.Status status) throws CommandException {
+        if (!super.handleError(context, executor, message, status)) {
+            wfAction.setPending();
+            wfAction.setEndData(status, WorkflowAction.Status.ERROR.toString());
+            return false;
+        }
+        return true;
     }
 
 }
