@@ -335,7 +335,7 @@ public class JsonWorkflowAction implements WorkflowAction, JsonBean {
 
     @Override
     public String toString() {
-        return MessageFormat.format("Action name[{0}] status[{1}]", getName(), getStatus());
+        return MessageFormat.format("WF Action name[{0}] status[{1}]", getName(), getStatus());
     }
 
     /**

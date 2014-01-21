@@ -40,8 +40,13 @@ import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.executor.jpa.BulkUpdateInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
 import org.apache.oozie.service.EventHandlerService;
+import org.apache.oozie.service.JPAService;
+import org.apache.oozie.service.Services;
 import org.apache.oozie.util.Instrumentation;
+import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.db.SLADbXOperations;
 import org.apache.oozie.workflow.WorkflowInstance;
@@ -97,7 +102,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
 
     @Override
     protected Void execute() throws CommandException {
-        LOG.debug("STARTED ActionEndXCommand for action " + actionId);
+        LOG.info("STARTED ActionEndXCommand : status[{0}]", wfAction.getStatus());
 
         Configuration conf = wfJob.getWorkflowInstance().getConf();
 
@@ -140,7 +145,8 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
             }
         }
 
-        LOG.debug("ENDED ActionEndXCommand for action " + actionId);
+        LOG.info("ENDED ActionEndXCommand : status[{0}]", wfAction.getStatus());
+
         return null;
     }
 
@@ -195,8 +201,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
             }
             if (!shouldHandleUserRetry || !handleUserRetry(wfAction)) {
                 SLAEventBean slaEvent = SLADbXOperations.createStatusEvent(wfAction.getSlaXml(), wfAction.getId(), slaStatus, SlaAppType.WORKFLOW_ACTION);
-                LOG.debug("Queuing commands for action=" + actionId + ", status=" + wfAction.getStatus()
-                        + ", Set pending=" + wfAction.getPending());
+                LOG.info("Queuing signal commands, status=" + wfAction.getStatus() + ", Set pending=" + wfAction.getPending());
                 if(slaEvent != null) {
                     insertList.add(slaEvent);
                 }
@@ -219,8 +224,8 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
     }
 
     private void onActionException(ActionExecutorContext context, ActionExecutorException ex) throws CommandException {
-        LOG.warn("Error ending action [{0}]. ErrorType [{1}], ErrorCode [{2}], Message [{3}]",
-                wfAction.getName(), ex.getErrorType(), ex.getErrorCode(), ex.getMessage());
+        LOG.info("Action execution exception. ErrorType [{0}], ErrorCode [{1}], Message [{2}]",
+                ex.getErrorType(), ex.getErrorCode(), ex.getMessage(), ex);
         wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
         wfAction.setEndTime(null);
 
@@ -228,6 +233,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
     }
 
     private void divergeOnError(ActionExecutorContext context, ActionExecutorException.ErrorType type) throws CommandException {
+        LOG.info("DivergeOnStatus, wfAction.status [{0}]", wfAction.getStatus());
         switch (type) {
             case TRANSIENT:
                 handleTransient(context, executor, WorkflowAction.Status.END_RETRY);

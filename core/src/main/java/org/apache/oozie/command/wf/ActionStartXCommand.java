@@ -43,7 +43,10 @@ import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.command.coord.CoordActionUpdateXCommand;
 import org.apache.oozie.executor.jpa.BulkUpdateInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
 import org.apache.oozie.service.EventHandlerService;
+import org.apache.oozie.service.JPAService;
+import org.apache.oozie.service.Services;
 import org.apache.oozie.util.ELEvaluationException;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.Instrumentation;
@@ -51,6 +54,7 @@ import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.apache.oozie.util.db.SLADbXOperations;
 import org.jdom.Document;
+import org.jdom.JDOMException;
 
 @SuppressWarnings("deprecation")
 public class ActionStartXCommand extends ActionXCommand<Void> {
@@ -106,7 +110,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
     @Override
     protected Void execute() throws CommandException {
 
-        LOG.debug("STARTED ActionStartXCommand for wf actionId=" + actionId);
+        LOG.info("STARTED ActionStartXCommand : status[{0}]", wfAction.getStatus());
         Configuration conf = wfJob.getWorkflowInstance().getConf();
 
         int maxRetries = 0;
@@ -155,17 +159,16 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
             }
         }
 
-        LOG.debug("ENDED ActionStartXCommand for wf actionId=" + actionId + ", jobId=" + jobId);
+        LOG.info("ENDED ActionStartXCommand : status[{0}]", wfAction.getStatus());
 
         return null;
     }
 
-    private boolean execute(ActionExecutor executor, ActionExecutorContext context) throws ActionExecutorException, CommandException {
-        incrActionCounter(wfAction.getType(), 1);
+    private boolean execute(ActionExecutor executor, ActionExecutorContext context) throws ActionExecutorException, CommandException, JDOMException {
 
-        LOG.info("Start action [{0}] with user-retry state : userRetryCount [{1}], userRetryMax [{2}], userRetryInterval [{3}]",
-                wfAction.getId(), wfAction.getUserRetryCount(), wfAction.getUserRetryMax(), wfAction
-                .getUserRetryInterval());
+        LOG.debug("Start, name [{0}] type [{1}] configuration{E}{E}{2}{E}", wfAction.getName(), wfAction.getType(), wfAction.getConf());
+
+        incrActionCounter(wfAction.getType(), 1);
 
         Instrumentation.Cron cron = new Instrumentation.Cron();
         cron.start();
@@ -216,7 +219,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         if(slaEvent != null) {
             insertList.add(slaEvent);
         }
-        LOG.warn(XLog.STD, "[***" + wfAction.getId() + "***]" + "Action updated in DB!");
+        LOG.warn(XLog.STD, "[*** " + wfAction.getId() + " ***]" + "Action updated in DB!");
     }
 
     protected void onFailure(ActionExecutorContext context, Throwable t) throws CommandException {
@@ -278,8 +281,6 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
                 String tmpActionConf = XmlUtils.removeComments(wfAction.getConf());
                 String actionConf = context.getELEvaluator().evaluate(tmpActionConf, String.class);
                 wfAction.setConf(actionConf);
-                LOG.debug("Start, name [{0}] type [{1}] configuration{E}{E}{2}{E}", wfAction.getName(), wfAction
-                        .getType(), actionConf);
 
                 //FIXME how to set action XML
                 ELEvaluator evaluator = action.preActionEvaluator(context, wfAction);
@@ -287,8 +288,6 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
 
                 if (document != null){
                     context.setActionXML(document.getRootElement());
-                    LOG.debug("Start, name [{0}] type [{1}] configuration{E}{E}{2}{E}", wfAction.getName(), wfAction
-                            .getType(), XmlUtils.prettyPrint(document.getRootElement()));
                 }
 
             }
