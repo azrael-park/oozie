@@ -148,7 +148,7 @@ public class SimpleClient {
     private static final String CURRENT_JOB_ID = "$CUR";
 
     private static enum COMMAND {
-        submit, start, run, rerun, kill, killall, suspend, resume, update, status, poll, cancel, log, xml, jobs, actions, use, context, quit
+        submit, start, run, rerun, kill, killall, suspend, resume, update, status, poll, cancel, log, xml, jobs, actions, use, context, reset, quit
     }
 
     CONTEXT context = CONTEXT.WF;
@@ -180,7 +180,7 @@ public class SimpleClient {
         }
 
         String line;
-        while ((line = reader.readLine(context + ">")) != null) {
+        while ((line = reader.readLine(context + (jobID != null ? ":" + idPart(jobID) : "") + ">")) != null) {
             line = line.trim();
             if (line.isEmpty()) {
                 continue;
@@ -285,11 +285,17 @@ public class SimpleClient {
             } else if (commands[0].equals("jobs")) {
                 FilterParams params = new FilterParams(context.getJobProperties(), commands);
                 CONTEXT context = params.getContext();
-                if (params.jobID != null) {
-                    params.appendFilter("id=" + params.jobID);
+                if (params.parent && context == CONTEXT.COORD) {
+                    for (WorkflowJob child : client.getJobsForCoord(params.jobID != null ? params.jobID : jobID)) {
+                        System.out.println(params.toString(child));
+                    }
+                    return true;
                 }
-                jobIDs.clear();
+                if (!params.all && (params.jobID != null || jobID != null)) {
+                    params.appendFilter("id=" + (params.jobID != null ? params.jobID : jobID));
+                }
 
+                jobIDs.clear();
                 int index = 0;
                 for (Object job : context.getJobsInfo(client, params.filter, params.start, params.length)) {
                     System.out.printf("[%1$2d] %2$s\n", index++, params.toString(job));
@@ -298,10 +304,11 @@ public class SimpleClient {
                         System.out.println(XmlUtils.prettyPrint(context.getJobConf(job)).toString());
                     }
                 }
+
             } else if (commands[0].equals("actions")) {
                 FilterParams params = new FilterParams(context.getActionProperties(), commands);
                 CONTEXT context = params.getContext();
-                if (params.jobID != null || jobID != null) {
+                if (!params.all && (params.jobID != null || jobID != null)) {
                     params.appendFilter("wfId=" + (params.jobID != null ? params.jobID : jobID));
                 }
                 List actions = context.getActionsInfo(client, params.filter, params.start, params.length);
@@ -329,13 +336,21 @@ public class SimpleClient {
                 }
                 System.out.println("set default job : " + newJobID + (jobID == null ? "" : ", replacing " + jobID));
                 jobID = newJobID;
+            } else if (commands[0].equals("reset")) {
+                jobID = null;
             } else if (commands[0].equals("quit")) {
                 return false;
             } else if (commands[0].equals("context")) {
+                CONTEXT newContext;
                 try {
-                    context = CONTEXT.valueOf(commands[1].toUpperCase());
+                    newContext = CONTEXT.valueOf(commands[1].toUpperCase());
                 } catch (IllegalArgumentException e) {
                     System.out.println("supports " + Arrays.toString(CONTEXT.values()) + " only");
+                    return true;
+                }
+                if (context != newContext) {
+                    context = newContext;
+                    jobID = null;
                 }
             } else {
                 System.err.println("invalid command " + line);
@@ -362,6 +377,10 @@ public class SimpleClient {
         return ACTION_ID_PATTERN.matcher(string).matches();
     }
 
+    private static String idPart(String jobID) {
+        return jobID.substring(0, jobID.indexOf('-', jobID.indexOf('-') + 1));
+    }
+
     private CONTEXT getContext(String id) {
         if (id.contains("@")) {
             id = id.substring(0, id.indexOf("@"));
@@ -382,6 +401,9 @@ public class SimpleClient {
     private class FilterParams {
 
         boolean dumpXML;
+        boolean parent;
+        boolean count;
+        boolean all;
         String filter = "";
         String jobID;
         String actionID;
@@ -390,55 +412,43 @@ public class SimpleClient {
         Object[] props;
 
         FilterParams(Map<String, Method> maps, String[] command) {
-            int i = 1;
-            for (; i < command.length; i++) {
-                if (command[i].equals("-xml")) {
+            List<String> column = new ArrayList<String>();
+            for (int i = 1; i < command.length; i++) {
+                if (command[i].equals("-x") || command[i].equals("--xml")) {
                     dumpXML = true;
+                } else if (command[i].equals("-p") || command[i].equals("--parent")) {
+                    parent = true;
+                } else if (command[i].equals("-c") || command[i].equals("--count")) {
+                    count = true;
+                } else if (command[i].equals("-a") || command[i].equals("--all")) {
+                    all = true;
+                } else if (command[i].equals("-s") || command[i].equals("--start")) {
+                    start = Integer.valueOf(command[++i]);
+                } else if (command[i].equals("-l") || command[i].equals("--length")) {
+                    length = Integer.valueOf(command[++i]);
                 } else if (isJobID(command[i])) {
                     jobID = command[i];
                 } else if (isActionID(command[i])) {
                     actionID = command[i];
-                } else if (isNumeric(command[i])) {
-                    if (start < 0) {
-                        start = Integer.valueOf(command[i]);
-                    } else if (length < 0) {
-                        length = Integer.valueOf(command[i]);
-                    } else {
-                        throw new IllegalArgumentException("what is this for ? " + command[i]);
-                    }
+                } else if (command[i].contains("=")) {
+                    appendFilter(command[i]);
                 } else {
-                    if (command[i].contains("=")) {
-                        appendFilter(command[i]);
-                    } else {
-                        throw new IllegalArgumentException("what is this for ? " + command[i]);
-                    }
+                    column.add(command[i]);
                 }
             }
-            if (start < 0 && length < 0) {
-                start = 1; length = 50;
+            if (count && (dumpXML || parent || start >= 0 || length >= 0)) {
+                throw new IllegalArgumentException("-s, -l, -p and -x options are not allowed with -c option");
             }
-            if (start >= 0 && length < 0 || start < 0 && length >= 0) {
-                throw new IllegalArgumentException();
-            }
-            props = accessor(maps, Arrays.copyOfRange(command, i, command.length));
+            props = accessor(maps, column);
         }
 
         public void appendFilter(String append) {
             filter = filter.isEmpty() ? append : filter + ";" + append;
         }
 
-        private boolean isNumeric(String string) {
-            for (char achar : string.toCharArray()) {
-                if (!Character.isDigit(achar)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private Object[] accessor(Map<String, Method> maps, String... keys) {
+        private Object[] accessor(Map<String, Method> maps, List<String> props) {
             List<Object> methods = new ArrayList<Object>();
-            for (String key : keys) {
+            for (String key : props) {
                 if (maps.containsKey(key)) {
                     methods.add(key);
                     methods.add(maps.get(key));

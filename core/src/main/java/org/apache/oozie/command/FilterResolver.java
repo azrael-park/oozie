@@ -1,8 +1,10 @@
 package org.apache.oozie.command;
 
+import org.apache.oozie.BaseEngineException;
+import org.apache.oozie.BundleEngineException;
+import org.apache.oozie.CoordinatorEngineException;
 import org.apache.oozie.DagEngineException;
 import org.apache.oozie.ErrorCode;
-import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowActionInfo;
 import org.apache.oozie.WorkflowsInfo;
 import org.apache.oozie.XException;
@@ -111,9 +113,8 @@ public class FilterResolver {
                 filter.put(OozieClient.FILTER_STATUS, Arrays.asList("OK"));    // default
             }
             JPAService jpa = Services.get().get(JPAService.class);
-            WorkflowActionInfo actions = jpa.execute(new WorkflowActionsGetJPAExecutor(filter, 1, 1));
-            List<WorkflowActionBean> beans = actions.getActions();
-            return !beans.isEmpty();
+            WorkflowActionInfo actions = jpa.execute(new WorkflowActionsGetJPAExecutor(filter, true));
+            return actions.getTotal() > 0;
         } catch (XException e) {
             LOG.warn(e);
         }
@@ -127,8 +128,8 @@ public class FilterResolver {
                 filter.put(OozieClient.FILTER_STATUS, Arrays.asList("SUCCEEDED"));    // default
             }
             JPAService jpa = Services.get().get(JPAService.class);
-            WorkflowsInfo jobs = jpa.execute(new WorkflowsJobGetJPAExecutor(filter, 1, 1));
-            return !jobs.getWorkflows().isEmpty();
+            WorkflowsInfo jobs = jpa.execute(new WorkflowsJobGetJPAExecutor(filter, true));
+            return jobs.getTotal() > 0;
         } catch (XException e) {
             LOG.warn(e);
         }
@@ -136,22 +137,39 @@ public class FilterResolver {
     }
 
     public static Map<String, List<String>> parseForWFAction(String conditions) throws DagEngineException {
-        return parseFilter(WF_ACTIONS_FILTER.class, conditions);
+        try {
+            return parseFilter(WF_ACTIONS_FILTER.class, conditions);
+        } catch (BaseEngineException e) {
+            throw new DagEngineException(e);
+        }
     }
 
-    public static Map<String, List<String>> parseForCoordAction(String conditions) throws DagEngineException {
-        return parseFilter(COORD_ACTIONS_FILTER.class, conditions);
+    public static Map<String, List<String>> parseForCoordAction(String conditions) throws CoordinatorEngineException {
+        try {
+            return parseFilter(COORD_ACTIONS_FILTER.class, conditions);
+        } catch (BaseEngineException e) {
+            throw new CoordinatorEngineException(e);
+        }
     }
 
     public static Map<String, List<String>> parseForJobs(String conditions) throws DagEngineException {
-        return parseFilter(JOBS_FILTER.class, conditions);
+        try {
+            return parseFilter(JOBS_FILTER.class, conditions);
+        } catch (BaseEngineException e) {
+            throw new DagEngineException(e);
+        }
     }
 
-    public static Map<String, List<String>> parseForCoords(String conditions) throws DagEngineException {
-        Map<String, List<String>> result = parseFilter(COORD_FILTER.class, conditions);
+    public static Map<String, List<String>> parseForCoords(String conditions) throws CoordinatorEngineException {
+        Map<String, List<String>> result;
+        try {
+            result = parseFilter(COORD_FILTER.class, conditions);
+        } catch (BaseEngineException e) {
+            throw new CoordinatorEngineException(e);
+        }
         if (!result.containsKey("frequency") && result.containsKey("timeUnitStr")) {
-            throw new DagEngineException(ErrorCode.E0420, conditions, "time unit should be added only when "
-                    + "frequency is specified. Either specify frequency also or else remove the time unit");
+            throw new CoordinatorEngineException(ErrorCode.E0420, conditions, "time unit should be added only when "
+                        + "frequency is specified. Either specify frequency also or else remove the time unit");
         }
         if (result.containsKey("frequency") && !result.containsKey("timeUnitStr")) {
             result.put("timeUnitStr", Arrays.asList("MINUTE"));
@@ -159,8 +177,12 @@ public class FilterResolver {
         return result;
     }
 
-    public static Map<String, List<String>> parseForBundles(String conditions) throws DagEngineException {
-        return parseFilter(BUNDLE_FILTER.class, conditions);
+    public static Map<String, List<String>> parseForBundles(String conditions) throws BundleEngineException {
+        try {
+            return parseFilter(BUNDLE_FILTER.class, conditions);
+        } catch (BaseEngineException e) {
+            throw new BundleEngineException(e);
+        }
     }
 
     /**
@@ -170,7 +192,7 @@ public class FilterResolver {
      * @return the parsed conditions.
      * @throws org.apache.oozie.DagEngineException thrown if the conditions is invalid.
      */
-    private static <T extends Enum<T> & FilterSet> Map<String, List<String>> parseFilter(Class<T> filter, String conditions) throws DagEngineException {
+    private static <T extends Enum<T> & FilterSet> Map<String, List<String>> parseFilter(Class<T> filter, String conditions) throws BaseEngineException {
         Map<String, List<String>> result = new HashMap<String, List<String>>();
         if (conditions == null || conditions.isEmpty()) {
             return result;
@@ -178,7 +200,7 @@ public class FilterResolver {
         for (String condition : conditions.split(";")) {
             String[] keyValue = condition.split("=");
             if (keyValue.length != 2) {
-                throw new DagEngineException(ErrorCode.E0420, conditions, "elements must be name=value pairs");
+                throw new BaseEngineException(ErrorCode.E0420, conditions, "elements must be consist of name=value pairs");
             }
             FilterSet key = valueOf(filter, keyValue[0].trim());
             List<String> list = result.get(key.field());
@@ -192,23 +214,23 @@ public class FilterResolver {
         return result;
     }
 
-    private static <T extends Enum<T> & FilterSet> T valueOf(Class<T> filter, String key) throws DagEngineException {
+    private static <T extends Enum<T> & FilterSet> T valueOf(Class<T> filter, String key) throws BaseEngineException {
         try {
             return Enum.valueOf(filter, key);
         } catch (Exception e) {
-            throw new DagEngineException(ErrorCode.E0421, key);
+            throw new BaseEngineException(ErrorCode.E0421, key);
         }
     }
 
-    private static String validate(FilterSet filter, String value) throws DagEngineException {
+    private static String validate(FilterSet filter, String value) throws BaseEngineException {
         String validate;
         try {
             validate = filter.validate(value);
         } catch (Exception e) {
-            throw new DagEngineException(ErrorCode.E0422, value);
+            throw new BaseEngineException(ErrorCode.E0422, value);
         }
         if (validate == null) {
-            throw new DagEngineException(ErrorCode.E0422, value);
+            throw new BaseEngineException(ErrorCode.E0422, value);
         }
         return validate;
     }

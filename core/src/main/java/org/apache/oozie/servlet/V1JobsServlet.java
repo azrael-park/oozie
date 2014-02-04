@@ -335,7 +335,7 @@ public class V1JobsServlet extends BaseJobsServlet {
             String filter = request.getParameter(RestConstants.JOBS_FILTER_PARAM);
             String startStr = request.getParameter(RestConstants.OFFSET_PARAM);
             String lenStr = request.getParameter(RestConstants.LEN_PARAM);
-            String timeZoneId = request.getParameter(RestConstants.TIME_ZONE_PARAM) == null 
+            String timeZoneId = request.getParameter(RestConstants.TIME_ZONE_PARAM) == null
                     ? "GMT" : request.getParameter(RestConstants.TIME_ZONE_PARAM);
             int start = (startStr != null) ? Integer.parseInt(startStr) : 1;
             start = (start < 1) ? 1 : start;
@@ -368,7 +368,7 @@ public class V1JobsServlet extends BaseJobsServlet {
             String filter = request.getParameter(RestConstants.JOBS_FILTER_PARAM);
             String startStr = request.getParameter(RestConstants.OFFSET_PARAM);
             String lenStr = request.getParameter(RestConstants.LEN_PARAM);
-            String timeZoneId = request.getParameter(RestConstants.TIME_ZONE_PARAM) == null 
+            String timeZoneId = request.getParameter(RestConstants.TIME_ZONE_PARAM) == null
                     ? "GMT" : request.getParameter(RestConstants.TIME_ZONE_PARAM);
             int start = (startStr != null) ? Integer.parseInt(startStr) : 1;
             start = (start < 1) ? 1 : start;
@@ -397,7 +397,7 @@ public class V1JobsServlet extends BaseJobsServlet {
             String filter = request.getParameter(RestConstants.JOBS_FILTER_PARAM);
             String startStr = request.getParameter(RestConstants.OFFSET_PARAM);
             String lenStr = request.getParameter(RestConstants.LEN_PARAM);
-            String timeZoneId = request.getParameter(RestConstants.TIME_ZONE_PARAM) == null 
+            String timeZoneId = request.getParameter(RestConstants.TIME_ZONE_PARAM) == null
                     ? "GMT" : request.getParameter(RestConstants.TIME_ZONE_PARAM);
             int start = (startStr != null) ? Integer.parseInt(startStr) : 1;
             start = (start < 1) ? 1 : start;

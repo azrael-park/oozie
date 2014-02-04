@@ -14,39 +14,55 @@ import java.util.Map;
 
 public class FilteredQueryGenerator {
 
-    String select;
-    String count;
-    int fetchSize;
+    private final String select;
+    private final String count;
+    private final String selectAll;
+    private final String countAll;
+    private final int fetchSize;
 
-    public FilteredQueryGenerator(String select, String count, int fetchSize) {
+    public FilteredQueryGenerator(String select, String count, String selectAll, String countAll, int fetchSize) {
         this.select = select;
         this.count = count;
+        this.selectAll = selectAll;
+        this.countAll = countAll;
         this.fetchSize = fetchSize;
     }
 
-    public Query[] generate(EntityManager em, Map<String, List<String>> filter) {
-        return generate(em, filter, 1, 1);
-    }
+    public Query[] generate(EntityManager em, Map<String, List<String>> filter, int start, int length, boolean sizeOnly) {
 
-    public Query[] generate(EntityManager em, Map<String, List<String>> filter, int start, int len) {
+        Query[] queries = new Query[2];
+        if (filter == null || filter.isEmpty()) {
+            if (!sizeOnly) {
+                queries[0] = em.createNamedQuery(selectAll);
+            }
+            queries[1] = em.createNamedQuery(countAll);
+            return paging(queries, start, length);
+        }
 
         PredicateGenerator generator = new PredicateGenerator();
-        String[] queries = generator.generate(filter, select, count);
+        String[] generated = generator.generate(filter, select, count);
 
-        Query q = em.createQuery(queries[0]);
-        q.setFirstResult(start - 1);
-        q.setMaxResults(len);
-        Query qTotal = em.createQuery(queries[1]);
+        if (!sizeOnly) {
+            queries[0] = em.createQuery(generated[0]);
+            OpenJPAQuery kq = OpenJPAPersistence.cast(queries[0]);
+            JDBCFetchPlan fetch = (JDBCFetchPlan) kq.getFetchPlan();
+            fetch.setFetchBatchSize(fetchSize);
+            fetch.setResultSetType(ResultSetType.SCROLL_INSENSITIVE);
+            fetch.setFetchDirection(FetchDirection.FORWARD);
+            fetch.setLRSSizeAlgorithm(LRSSizeAlgorithm.LAST);
+        }
+        queries[1] = em.createQuery(generated[1]);
 
-        generator.setParams(q, qTotal);
+        generator.setParams(queries);
 
-        OpenJPAQuery kq = OpenJPAPersistence.cast(q);
-        JDBCFetchPlan fetch = (JDBCFetchPlan) kq.getFetchPlan();
-        fetch.setFetchBatchSize(fetchSize);
-        fetch.setResultSetType(ResultSetType.SCROLL_INSENSITIVE);
-        fetch.setFetchDirection(FetchDirection.FORWARD);
-        fetch.setLRSSizeAlgorithm(LRSSizeAlgorithm.LAST);
+        return paging(queries, start, length);
+    }
 
-        return new Query[]{q, qTotal};
+    private Query[] paging(Query[] result, int start, int length) {
+        if (result[0] != null && start > 0) {
+            result[0].setFirstResult(start - 1);
+            result[0].setMaxResults(length);
+        }
+        return result;
     }
 }

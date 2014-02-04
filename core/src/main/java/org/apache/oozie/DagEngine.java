@@ -505,16 +505,16 @@ public class DagEngine extends BaseEngine {
     public List<WorkflowJobBean> getJobsForCoord(String coordId) throws DagEngineException {
         try {
             return new JobsForCoordXCommand(coordId).call();
-        } catch (CommandException e) {
+        } catch (XException e) {
             throw new DagEngineException(e);
         }
     }
 
     public WorkflowActionInfo getActions(String filterStr, int start, int len) throws DagEngineException {
-        Map<String, List<String>> filter = FilterResolver.parseForWFAction(filterStr);
         try {
+            Map<String, List<String>> filter = FilterResolver.parseForWFAction(filterStr);
             return new ActionsXCommand(filter, start, len).call();
-        } catch (CommandException e) {
+        } catch (XException e) {
             throw new DagEngineException(e);
         }
     }

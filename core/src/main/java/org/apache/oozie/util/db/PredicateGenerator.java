@@ -103,7 +103,9 @@ public class PredicateGenerator {
     public void setParams(Query... queries) {
         for (int i = 0; i < colArray.size(); i++) {
             for (Query query : queries) {
-                query.setParameter(colArray.get(i), valArray.get(i));
+                if (query != null) {
+                    query.setParameter(colArray.get(i), valArray.get(i));
+                }
             }
         }
     }
