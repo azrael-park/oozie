@@ -20,6 +20,7 @@ package org.apache.oozie;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.OozieClient;
+import org.apache.oozie.command.FilterResolver;
 import org.apache.oozie.service.ActionService;
 import org.apache.oozie.service.SchemaService;
 import org.apache.oozie.service.WorkflowStoreService;
@@ -42,6 +43,7 @@ import java.io.StringReader;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.util.List;
+import java.util.Map;
 
 public class TestDagEngine extends XTestCase {
     private EmbeddedServletContainer container;
@@ -170,10 +172,11 @@ public class TestDagEngine extends XTestCase {
         Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
         IOUtils.copyCharStream(reader, writer);
 
-        final DagEngine engine = new DagEngine(getTestUser());
+        String testUser = "jobstest-user";
+        final DagEngine engine = new DagEngine(testUser);
         Configuration conf = new XConfiguration();
         conf.set(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
-        conf.set(OozieClient.USER_NAME, getTestUser());
+        conf.set(OozieClient.USER_NAME, testUser);
 
         conf.set(OozieClient.LOG_TOKEN, "t");
         conf.set("signal-value", "OK");
@@ -182,31 +185,17 @@ public class TestDagEngine extends XTestCase {
 
         final String jobId1 = engine.submitJob(conf, true);
         String jobId2 = engine.submitJob(conf, false);
-/*
-        WorkflowsInfo wfInfo = engine.getJobs("group=" + getTestGroup(), 1, 1);
+        WorkflowsInfo wfInfo = engine.getJobs("user=" + testUser, 1, 5);
         List<WorkflowJobBean> workflows = wfInfo.getWorkflows();
-        assertEquals(1, workflows.size());
-        assertEquals(getTestGroup(), workflows.get(0).getGroup());
-        assertEquals(jobId1, workflows.get(0).getId());
-
-        wfInfo = engine.getJobs("group=" + getTestGroup(), 1, 5);
-        workflows = wfInfo.getWorkflows();
         assertEquals(2, workflows.size());
-        assertEquals(getTestGroup(), workflows.get(0).getGroup());
-        assertEquals(jobId1, workflows.get(0).getId());
-        assertEquals(jobId2, workflows.get(1).getId());
-
-        wfInfo = engine.getJobs("user=" + getTestUser(), 1, 1);
-        workflows = wfInfo.getWorkflows();
-        assertEquals(1, workflows.size());
-        assertEquals(getTestUser(), workflows.get(0).getUser());
-        assertEquals(jobId1, workflows.get(0).getId());
-
-        wfInfo = engine.getJobs("user=" + getTestUser(), 2, 5);
-        workflows = wfInfo.getWorkflows();
-        assertEquals(1, workflows.size());
-        assertEquals(getTestUser(), workflows.get(0).getUser());
+        assertEquals(testUser, workflows.get(0).getUser());
         assertEquals(jobId2, workflows.get(0).getId());
+
+        wfInfo = engine.getJobs("user=" + testUser, 2, 5);
+        workflows = wfInfo.getWorkflows();
+        assertEquals(1, workflows.size());
+        assertEquals(testUser, workflows.get(0).getUser());
+        assertEquals(jobId1, workflows.get(0).getId());
 
         waitFor(5000, new Predicate() {
             public boolean evaluate() throws Exception {
@@ -215,21 +204,52 @@ public class TestDagEngine extends XTestCase {
             }
         });
 
-        wfInfo = engine.getJobs("status=PREP", 1, 5);
+        wfInfo = engine.getJobs("user=" + testUser + ";status=PREP", 1, 5);
         workflows = wfInfo.getWorkflows();
         assertEquals(1, workflows.size());
         assertEquals(jobId2, workflows.get(0).getId());
 
-        wfInfo = engine.getJobs("name=test-wf", 1, 5);
+        wfInfo = engine.getJobs("user=" + testUser + ";name=test-wf", 1, 5);
         workflows = wfInfo.getWorkflows();
         assertEquals(2, workflows.size());
-        assertEquals(jobId1, workflows.get(0).getId());
-        assertEquals(jobId2, workflows.get(1).getId());
+        assertEquals(jobId2, workflows.get(0).getId());
+        assertEquals(jobId1, workflows.get(1).getId());
 
-        wfInfo = engine.getJobs("name=test-wf;status=PREP", 1, 5);
+        wfInfo = engine.getJobs("user=" + testUser + ";name=test-wf;status=PREP", 1, 5);
         workflows = wfInfo.getWorkflows();
         assertEquals(1, workflows.size());
         assertEquals(jobId2, workflows.get(0).getId());
-*/
+    }
+
+    public void testParseFilter() throws Exception {
+
+        String filterStr = "user=test;name=test-wf;status=PREP";
+
+        final DagEngine engine = new DagEngine(getTestUser());
+        Map<String, List<String>> filterMap = engine.parseFilter(filterStr);
+        assertEquals(3, filterMap.size());
+        assertTrue(filterMap.containsKey("user"));
+        assertTrue(filterMap.containsKey("name"));
+        assertTrue(filterMap.containsKey("status"));
+        List<String> statusList = filterMap.get("status");
+        assertEquals(1, statusList.size());
+        assertEquals("PREP", statusList.get(0));
+
+    }
+
+    public void testParseFilterResolver() throws Exception {
+
+        String filterStr = "user=test;name=test-wf;status=PREP";
+
+        final DagEngine engine = new DagEngine(getTestUser());
+        Map<String, List<String>> filterMap = FilterResolver.parseForJobs(filterStr);
+        assertEquals(3, filterMap.size());
+        assertTrue(filterMap.containsKey("user"));
+        assertTrue(filterMap.containsKey("name"));
+        assertTrue(filterMap.containsKey("status"));
+        List<String> statusList = filterMap.get("status");
+        assertEquals(1, statusList.size());
+        assertEquals("PREP", statusList.get(0));
+
     }
 }
