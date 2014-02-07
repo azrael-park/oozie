@@ -66,7 +66,7 @@ public class ActionResumeXCommand extends ActionXCommand<Void> {
 
     // job should be in RUNNING or SUSPENDED status (also used by ResumeXCommand)
     static ActionXCommand resumeAction(WorkflowJobBean job, WorkflowInstance instance, WorkflowActionBean action) {
-        if (job.getStatus() != RUNNING || !isExecutionHead(instance, action)) {
+        if ( !(job.getStatus() == RUNNING || job.getStatus() == SUSPENDED) || !isExecutionHead(instance, action)) {
             action.resetPending();
             action.setStatus(WorkflowAction.Status.PREP);
             return null;

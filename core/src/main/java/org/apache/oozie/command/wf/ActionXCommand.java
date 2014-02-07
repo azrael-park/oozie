@@ -205,7 +205,6 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
         String id = workflow.getId();
         action.setStatus(status);
         action.resetPendingOnly();
-        LOG.warn("Suspending Workflow Job id=" + id);
         try {
             if (executor.suspendJobForNonTransients(status)) {
                 LOG.warn("Suspending Workflow Job id=" + id);

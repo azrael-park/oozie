@@ -292,10 +292,17 @@ public class TestActionCheckXCommand extends XDataTestCase {
                 assertEquals("START_MANUAL", action1b.getStatusStr());
 
                 WorkflowJobBean job1 = jpaService.execute(new WorkflowJobGetJPAExecutor(jobId));
-                assertEquals("SUSPENDED", job1.getStatusStr());
+                assertEquals("RUNNING", job1.getStatusStr());
 
                 // At this point, the action has gotten a transient error, even after maxRetries tries so the workflow has been
                 // SUSPENDED
+            }
+        });
+        waitFor(1000, new Predicate() {
+            @Override
+            public boolean evaluate() throws Exception {
+                new SuspendXCommand(jobId).call();
+                return true;
             }
         });
         // Now, lets bring the job tracker back up and resume the workflow (which will restart the current action)
@@ -425,10 +432,17 @@ public class TestActionCheckXCommand extends XDataTestCase {
                 assertEquals("START_MANUAL", action1b.getStatusStr());
 
                 WorkflowJobBean job1 = jpaService.execute(new WorkflowJobGetJPAExecutor(jobId));
-                assertEquals("SUSPENDED", job1.getStatusStr());
+                assertEquals("RUNNING", job1.getStatusStr());
 
                 // At this point, the action has gotten a transient error, even after maxRetries tries so the workflow has been
                 // SUSPENDED
+            }
+        });
+        waitFor(3000, new Predicate() {
+            @Override
+            public boolean evaluate() throws Exception {
+                new SuspendXCommand(jobId).call();
+                return true;
             }
         });
         // Now, lets bring the job tracker back up and resume the workflow (which will restart the current action)
