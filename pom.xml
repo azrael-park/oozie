@@ -117,6 +117,7 @@
     </modules>
 
     <distributionManagement>
+        <!--
         <repository>
           <id>apache.staging.https</id>
           <name>Apache Release Distribution Repository</name>
@@ -127,7 +128,7 @@
           <name>${distMgmtSnapshotsName}</name>
           <url>${distMgmtSnapshotsUrl}</url>
         </snapshotRepository>
-        <!--
+        -->
         <repository>
             <id>nexus-releases</id>
             <name>Nexus Release Repo</name>
@@ -138,7 +139,6 @@
             <name>Nexus Snapshot Repo</name>
             <url>http://nexus.nexrcorp.com:8080/nexus/content/repositories/snapshots/</url>
         </snapshotRepository>
-        -->
     </distributionManagement>
 
     <repositories>
