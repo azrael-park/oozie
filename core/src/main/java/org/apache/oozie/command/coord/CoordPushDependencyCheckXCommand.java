@@ -326,7 +326,8 @@ public class CoordPushDependencyCheckXCommand extends CoordinatorXCommand<Void> 
 
     @Override
     public String getEntityKey() {
-        return coordAction.getJobId();
+        return actionId.substring(0, actionId.indexOf("@"));
+        //return coordAction.getJobId();
     }
 
     @Override
