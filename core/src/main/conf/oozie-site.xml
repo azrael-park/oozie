@@ -546,4 +546,19 @@
             Action is handled as NON_TRANSIENT if the user retry does not resolve the problem.
         </description>
     </property>
+
+    <property>
+        <name>oozie.service.HiveAccessService.passwd.provider</name>
+        <value>NONE</value>
+        <description>Specifies hive password provider method.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.HiveAccessService.passwd.provider.custom.class</name>
+        <value>org.apache.oozie.action.hive.NdapHivePasswdProvider</value>
+        <description>Specifies hive password provider.
+        </description>
+    </property>
+
 </configuration>

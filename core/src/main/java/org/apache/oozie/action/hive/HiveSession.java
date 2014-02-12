@@ -89,13 +89,13 @@ public class HiveSession extends HiveStatus {
         lastPing = System.currentTimeMillis();
     }
 
-    public void checkConnection() {
+    public void checkConnection(String user) {
         long current = System.currentTimeMillis();
         if (current > lastPing + timeout) {
             LOG.info("check connection for {0}", executor.toString());
             lastPing = current;
             try {
-                if (!access.ping(client.getConnectionParams(), PING_TIMEOUT)) {
+                if (!access.ping(client.getConnectionParams(), PING_TIMEOUT, user)) {
                     timeout = Math.min(timeout << 1, MAXIMUM_TIMEOUT);
                 }
             } catch (Exception e) {

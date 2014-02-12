@@ -6,6 +6,8 @@ import org.apache.hive.jdbc.HiveConnection;
 import org.apache.hive.jdbc.Utils;
 import org.apache.oozie.HiveQueryStatusBean;
 import org.apache.oozie.action.ActionExecutorException;
+import org.apache.oozie.action.hive.HivePasswdProvider;
+import org.apache.oozie.action.hive.HivePasswdProviderFactory;
 import org.apache.oozie.action.hive.HiveSession;
 import org.apache.oozie.action.hive.HiveStatus;
 import org.apache.oozie.action.hive.HiveTClient;
@@ -19,6 +21,7 @@ import org.apache.thrift.transport.TSocket;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -33,6 +36,13 @@ import static org.apache.oozie.action.ActionExecutorException.ErrorType;
 public class HiveAccessService implements Service {
 
     final XLog LOG = XLog.getLog(HiveAccessService.class);
+
+    public static final String CONF_PREFIX = Service.CONF_PREFIX + "HiveAccessService.";
+
+    public static final String CONF_PASSWD_PROVIDER_METHOD = CONF_PREFIX + "passwd.provider";
+
+    public static final String CONF_PASSWD_PROVIDER_CLASS = CONF_PREFIX + "passwd.provider.custom.class";
+
 
     // wfID : action --> HiveStatus
     final Map<String, Map<String, HiveStatus>> hiveStatus = new HashMap<String, Map<String, HiveStatus>>();
@@ -214,17 +224,17 @@ public class HiveAccessService implements Service {
         return result != null && !result.isEmpty() ? result.get(0) : null;
     }
 
-    public HiveTClient clientFor(String address) throws ActionExecutorException {
-        return getHiveTClient(Utils.parseURI(URI.create(address)));
+    public HiveTClient clientFor(String address, String user) throws ActionExecutorException {
+        return getHiveTClient(Utils.parseURI(URI.create(address)), user);
     }
 
-    private HiveTClient getHiveTClient(Utils.JdbcConnectionParams connParams) throws ActionExecutorException {
+    private HiveTClient getHiveTClient(Utils.JdbcConnectionParams connParams, String user) throws ActionExecutorException {
         if (connParams.getScheme() != null && !connParams.getScheme().isEmpty() && !connParams.getScheme().equals("hive")) {
             Configuration conf = Services.get().get(ConfigurationService.class).getConf();
             if(conf.getBoolean(HiveSession.PING_ENABLED, false)){
                 checkSocketForV2(connParams);
             }
-            return createClientForV2(connParams);
+            return createClientForV2(connParams, user);
         }
         return createClientForV1(connParams);
     }
@@ -239,10 +249,19 @@ public class HiveAccessService implements Service {
         }
     }
 
-    public HiveTClient createClientForV2(Utils.JdbcConnectionParams params) throws ActionExecutorException {
+    public HiveTClient createClientForV2(Utils.JdbcConnectionParams params, String user) throws ActionExecutorException {
+        String hivePasswdProviderMethod = Services.get().get(ConfigurationService.class).getConf()
+                .get(HiveAccessService.CONF_PASSWD_PROVIDER_METHOD, "NONE");
+        Properties info = new Properties();
+        if (user != null && !user.isEmpty()
+                && !hivePasswdProviderMethod.equals(HivePasswdProviderFactory.ProviderMethods.NONE.name())) {
+            String passwd = getHivePassword(user, hivePasswdProviderMethod);
+            info.put(HIVE_AUTH_USER, user);
+            info.put(HIVE_AUTH_PASSWD, passwd);
+        }
         HiveConnection connection = new HiveConnection();
         try {
-            connection.initialize(params, new Properties());
+            connection.initialize(params, info);
             return new HiveTClientV2(connection, params);
         } catch (Throwable e) {
             throw new ActionExecutorException(ErrorType.TRANSIENT, "HIVE-002", "failed to connect hive server {0}", toAddress(params), e);
@@ -276,26 +295,26 @@ public class HiveAccessService implements Service {
         }
     }
 
-    public boolean ping(Utils.JdbcConnectionParams params, int timeout) throws Exception {
+    public boolean ping(Utils.JdbcConnectionParams params, int timeout, String user) throws Exception {
         final String key = toStringKey(params);
         final AdminConnection connection = getAdminConnection(key);
         if (!connection.lock.tryLock(timeout, TimeUnit.MILLISECONDS)) {
             return false;
         }
         try {
-            return pingInLock(params, timeout, connection);
+            return pingInLock(params, timeout, connection, user);
         } finally {
             connection.lock.unlock();
         }
     }
 
-    private boolean pingInLock(Utils.JdbcConnectionParams params, int timeout, AdminConnection connection)
+    private boolean pingInLock(Utils.JdbcConnectionParams params, int timeout, AdminConnection connection, String user)
             throws Exception {
         if (connection.lastSuccess + timeout > System.currentTimeMillis()) {
             return true;
         }
         if (connection.client == null) {
-            connection.client = getHiveTClient(params);
+            connection.client = getHiveTClient(params, user);
         }
         try {
             if (connection.client.ping(timeout)) {
@@ -324,9 +343,10 @@ public class HiveAccessService implements Service {
         long lastSuccess;
     }
 
-    private static final java.lang.String HIVE_AUTH_TYPE = "auth";
-    private static final java.lang.String HIVE_AUTH_USER = "user";
-    private static final java.lang.String HIVE_AUTH_PRINCIPAL = "principal";
+    private static final String HIVE_AUTH_TYPE = "auth";
+    private static final String HIVE_AUTH_USER = "user";
+    private static final String HIVE_AUTH_PRINCIPAL = "principal";
+    private static final String HIVE_AUTH_PASSWD = "password";
 
     private String toAddress(Utils.JdbcConnectionParams params) {
         StringBuilder builder = new StringBuilder();
@@ -344,5 +364,18 @@ public class HiveAccessService implements Service {
         builder.append(sessionVars.get(HIVE_AUTH_USER)).append(':');
         builder.append(sessionVars.get(HIVE_AUTH_PRINCIPAL));
         return builder.toString();
+    }
+
+    public String getHivePassword(String user, String hivePasswdProviderMethod) {
+        String passwd = "";
+        try {
+            HivePasswdProvider hivePasswdProvider = HivePasswdProviderFactory.getHivePasswdProvider(hivePasswdProviderMethod);
+            passwd = hivePasswdProvider.getPassword(user);
+        } catch (AuthorizationException ae) {
+            LOG.warn("Fail to get access password to hive {0}-{1} ", user, hivePasswdProviderMethod);
+            LOG.warn(ae);
+        }
+
+        return passwd;
     }
 }

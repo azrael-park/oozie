@@ -109,6 +109,10 @@ public class HiveActionExecutor extends ActionExecutor {
         LOG.trace("start() begins");
 
         try {
+            WorkflowJob workflow = context.getWorkflow();
+            String wfID = workflow.getId();
+            String actionName = action.getName();
+
             context.setStartData("-", "-", "-");
             Element actionXml = context.getActionXML();
 
@@ -118,15 +122,12 @@ public class HiveActionExecutor extends ActionExecutor {
             Attribute maxFetchAttr = actionXml.getAttribute("max-fetch");
             Attribute monitorAttr = actionXml.getAttribute("monitoring");
 
-            HiveTClient client = initialize(context, service.clientFor(addressAttr.getValue()));
+            HiveTClient client = initialize(context, service.clientFor(addressAttr.getValue(), workflow.getUser()));
 
             String[] queries = getQueries(actionXml, context);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("On executing queries : " + Arrays.toString(queries));
             }
-            WorkflowJob workflow = context.getWorkflow();
-            String wfID = workflow.getId();
-            String actionName = action.getName();
 
             int maxPatch = maxFetchAttr == null ? DEFAULT_MAX_FETCH : maxFetchAttr.getIntValue();
             boolean monitoring = monitorAttr == null ? DEFAULT_MONITORING : monitorAttr.getBooleanValue();
@@ -202,7 +203,8 @@ public class HiveActionExecutor extends ActionExecutor {
                 if (!session.check(context)) {
                     Configuration conf = Services.get().get(ConfigurationService.class).getConf();
                     if(conf.getBoolean(HiveSession.PING_ENABLED, false)){
-                        session.checkConnection();
+                        WorkflowJob workflow = context.getWorkflow();
+                        session.checkConnection(workflow.getUser());
                     }
                 }
             } catch (Exception e) {
