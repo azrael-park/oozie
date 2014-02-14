@@ -7,9 +7,9 @@
   to you under the Apache License, Version 2.0 (the
   "License"); you may not use this file except in compliance
   with the License.  You may obtain a copy of the License at
-  
+
        http://www.apache.org/licenses/LICENSE-2.0
-  
+
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,10 +18,43 @@
 -->
 <configuration>
 
-    <!--
-        Refer to the oozie-default.xml file for the complete list of
-        Oozie configuration properties and their default values.
-    -->
+    <property>
+        <name>oozie.service.JPAService.jdbc.driver</name>
+        <value>com.mysql.jdbc.Driver</value>
+        <description>
+            JDBC driver class.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.JPAService.jdbc.url</name>
+        <value>jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/oozie?useUnicode=true&amp;characterEncoding=UTF-8</value>
+        <description>
+            JDBC URL.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.JPAService.jdbc.username</name>
+        <value>${MYSQL_USER}</value>
+        <description>
+            DB user name.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.JPAService.jdbc.password</name>
+        <value>${MYSQL_PASSWORD}</value>
+        <description>
+            DB user password.
+
+            IMPORTANT: if password is emtpy leave a 1 space string, the service trims the value,
+            if empty Configuration assumes it is NULL.
+
+            IMPORTANT: if the StoreServicePasswordService is active, it will reset this value with the value given in
+            the console.
+        </description>
+    </property>
 
     <property>
         <name>oozie.services</name>
@@ -41,15 +74,11 @@
             org.apache.oozie.service.LiteWorkflowAppService,
             org.apache.oozie.service.JPAService,
             org.apache.oozie.service.StoreService,
-            <!--org.apache.oozie.service.CoordinatorStoreService,-->
-            <!--org.apache.oozie.service.SLAStoreService,-->
             org.apache.oozie.service.DBLiteWorkflowStoreService,
             org.apache.oozie.service.CallbackService,
             org.apache.oozie.service.ActionService,
             org.apache.oozie.service.ActionCheckerService,
-            <!-- Fix pending coordinator actions after oozie reboot: Disable RecoveryService -->
             org.apache.oozie.service.RecoveryService,
-            <!--org.apache.oozie.service.PurgeService,-->
             org.apache.oozie.service.CoordinatorEngineService,
             org.apache.oozie.service.BundleEngineService,
             org.apache.oozie.service.DagEngineService,
@@ -99,38 +128,7 @@
         </value>
     </property>
 
-    <property>
-        <name>oozie.system.id</name>
-        <value>oozie-${user.name}</value>
-        <description>
-            The Oozie system ID.
-        </description>
-    </property>
 
-    <property>
-        <name>oozie.systemmode</name>
-        <value>NORMAL</value>
-        <description>
-            System mode for  Oozie at startup.
-        </description>
-    </property>
-
-    <property>
-        <name>oozie.service.AuthorizationService.security.enabled</name>
-        <value>false</value>
-        <description>
-            Specifies whether security (user name/admin role) is enabled or not.
-            If disabled any user can manage Oozie system and manage any job.
-        </description>
-    </property>
-
-    <property>
-        <name>oozie.service.PurgeService.older.than</name>
-        <value>30</value>
-        <description>
-            Jobs older than this value, in days, will be purged by the PurgeService.
-        </description>
-    </property>
 
     <property>
         <name>oozie.service.PurgeService.purge.interval</name>
@@ -148,7 +146,7 @@
 
     <property>
         <name>oozie.service.CallableQueueService.threads</name>
-        <value>10</value>
+        <value>30</value>
         <description>Number of threads used for executing callables</description>
     </property>
 
@@ -165,12 +163,12 @@
     </property>
 
     <property>
-		<name>oozie.service.coord.normal.default.timeout
-		</name>
-		<value>120</value>
-		<description>Default timeout for a coordinator action input check (in minutes) for normal job.
+        <name>oozie.service.coord.normal.default.timeout
+        </name>
+        <value>120</value>
+        <description>Default timeout for a coordinator action input check (in minutes) for normal job.
             -1 means infinite timeout</description>
-	</property>
+    </property>
 
     <property>
         <name>oozie.db.schema.name</name>
@@ -181,8 +179,8 @@
     </property>
 
     <property>
-        <name>oozie.service.JPAService.create.db.schema</name>
-        <value>false</value>
+        <name>oozie.service.StoreService.create.db.schema</name>
+        <value>true</value>
         <description>
             Creates Oozie DB.
 
@@ -192,37 +190,13 @@
     </property>
 
     <property>
-        <name>oozie.service.JPAService.jdbc.driver</name>
-        <value>org.apache.derby.jdbc.EmbeddedDriver</value>
+        <name>oozie.service.JPAService.create.db.schema</name>
+        <value>true</value>
         <description>
-            JDBC driver class.
-        </description>
-    </property>
+            Creates Oozie DB.
 
-    <property>
-        <name>oozie.service.JPAService.jdbc.url</name>
-        <value>jdbc:derby:${oozie.data.dir}/${oozie.db.schema.name}-db;create=true</value>
-        <description>
-            JDBC URL.
-        </description>
-    </property>
-
-    <property>
-        <name>oozie.service.JPAService.jdbc.username</name>
-        <value>sa</value>
-        <description>
-            DB user name.
-        </description>
-    </property>
-
-    <property>
-        <name>oozie.service.JPAService.jdbc.password</name>
-        <value> </value>
-        <description>
-            DB user password.
-
-            IMPORTANT: if password is emtpy leave a 1 space string, the service trims the value,
-                       if empty Configuration assumes it is NULL.
+            If set to true, it creates the DB schema if it does not exist. If the DB schema exists is a NOP.
+            If set to false, it does not create the DB schema. If the DB schema does not exist it fails start up.
         </description>
     </property>
 
@@ -230,8 +204,13 @@
         <name>oozie.service.JPAService.pool.max.active.conn</name>
         <value>10</value>
         <description>
-             Max number of connections.
+            Max number of connections.
         </description>
+    </property>
+
+    <property>
+        <name>oozie.service.JPAService.validate.db.connection</name>
+        <value>true</value>
     </property>
 
     <property>
@@ -422,13 +401,13 @@
     </property>
 
     <property>
-      <name>oozie.authentication.cookie.domain</name>
-      <value></value>
-      <description>
-        The domain to use for the HTTP cookie that stores the authentication token.
-        In order to authentiation to work correctly across multiple hosts
-        the domain must be correctly set.
-      </description>
+        <name>oozie.authentication.cookie.domain</name>
+        <value></value>
+        <description>
+            The domain to use for the HTTP cookie that stores the authentication token.
+            In order to authentiation to work correctly across multiple hosts
+            the domain must be correctly set.
+        </description>
     </property>
 
     <property>
@@ -513,51 +492,6 @@
         <value>60</value>
         <description> Coordinator Job Lookup trigger command is scheduled at
             this "interval" (in seconds).</description>
-    </property>
-
-    <property>
-        <name>oozie.service.XLogService.trim</name>
-        <value>true</value>
-        <description>
-            If set to true, log does not display if parameter is null and use the action name instead id.
-        </description>
-    </property>
-
-    <property>
-        <name>oozie.action.hive.ping.enabled</name>
-        <value>true</value>
-        <description>Specifies whether ping check is enabled or not.
-            If disabled hive action can be indefinitely waiting when hive server is not shutdown gracefully.
-        </description>
-    </property>
-
-    <property>
-        <name>oozie.service.LiteWorkflowStoreService.user.retry.error.code.ext</name>
-        <value>ALL</value>
-        <description>
-            Automatic retry interval for workflow action is handled for these specified extra error code.
-        </description>
-    </property>
-    <property>
-        <name>oozie.service.LiteWorkflowStoreService.user.retry.suspend</name>
-        <value>true</value>
-        <description>
-            Action is handled as NON_TRANSIENT if the user retry does not resolve the problem.
-        </description>
-    </property>
-
-    <property>
-        <name>oozie.service.HiveAccessService.passwd.provider</name>
-        <value>NONE</value>
-        <description>Specifies hive password provider method.
-        </description>
-    </property>
-
-    <property>
-        <name>oozie.service.HiveAccessService.passwd.provider.custom.class</name>
-        <value>org.apache.oozie.action.hive.NdapHivePasswdProvider</value>
-        <description>Specifies hive password provider.
-        </description>
     </property>
 
 </configuration>
