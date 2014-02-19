@@ -86,7 +86,9 @@
             org.apache.oozie.service.StatusTransitService,
             org.apache.oozie.service.PauseTransitService,
             org.apache.oozie.service.GroupsService,
-            org.apache.oozie.service.ProxyUserService
+            org.apache.oozie.service.ProxyUserService,
+            org.apache.oozie.service.XLogStreamingService,
+            org.apache.oozie.service.JobsConcurrencyService
         </value>
         <description>
             All services to be created and managed by Oozie Services singleton.
@@ -492,6 +494,14 @@
         <value>60</value>
         <description> Coordinator Job Lookup trigger command is scheduled at
             this "interval" (in seconds).</description>
+    </property>
+
+    <property>
+        <name>oozie.service.XLogService.trim</name>
+        <value>true</value>
+        <description>
+            If set to true, log does not display if parameter is null and use the action name instead id.
+        </description>
     </property>
 
 </configuration>
