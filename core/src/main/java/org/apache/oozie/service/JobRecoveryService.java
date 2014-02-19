@@ -27,16 +27,17 @@ public class JobRecoveryService implements Service {
             manager.getTransaction().begin();
             try {
                 for (WorkflowJobBean workflow : jpa.execute(new WorkflowJobsRunningJPAExecutor())) {
-                    workflow.setStatus(WorkflowJob.Status.SUSPENDED);
-                    LiteWorkflowInstance instance = (LiteWorkflowInstance) workflow.getWorkflowInstance();
-                    instance.setStatus(WorkflowInstance.Status.SUSPENDED);
-                    workflow.setWfInstance(instance);
-                    jpa.execute(new WorkflowJobUpdateJPAExecutor(workflow));
-                    for (WorkflowActionBean action : jpa.execute(new WorkflowActionsRunningInWorkFlowGetJPAExecutor(workflow.getId()))) {
-                        action.resetPending();
-                        action.setStatus(WorkflowAction.Status.START_MANUAL);
-                        jpa.execute(new WorkflowActionUpdateJPAExecutor(action));
-                    }
+                    // FIXME : remove JobRecoveryService at oozie-site.xml
+//                    workflow.setStatus(WorkflowJob.Status.SUSPENDED);
+//                    LiteWorkflowInstance instance = (LiteWorkflowInstance) workflow.getWorkflowInstance();
+//                    instance.setStatus(WorkflowInstance.Status.SUSPENDED);
+//                    workflow.setWfInstance(instance);
+//                    jpa.execute(new WorkflowJobUpdateJPAExecutor(workflow));
+//                    for (WorkflowActionBean action : jpa.execute(new WorkflowActionsRunningInWorkFlowGetJPAExecutor(workflow.getId()))) {
+//                        action.resetPending();
+//                        action.setStatus(WorkflowAction.Status.START_MANUAL);
+//                        jpa.execute(new WorkflowActionUpdateJPAExecutor(action));
+//                    }
                 }
             } catch (Throwable e) {
                 manager.getTransaction().rollback();

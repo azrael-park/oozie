@@ -30,9 +30,7 @@ import org.jdom.Element;
 import org.jdom.JDOMException;
 
 import javax.servlet.jsp.el.ELException;
-import java.io.StringReader;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -197,6 +195,11 @@ public class HiveActionExecutor extends ActionExecutor {
         LOG.debug("Action check requested");
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveStatus status = service.peekRunningStatus(action.getId());
+        if (status == null) {
+            LOG.info("Can not find HiveSession");
+            context.setExecutionData("FAILED", null);
+            throw convertException(new IllegalArgumentException("No Running HiveSession"));
+        }
         if (status instanceof HiveSession) {
             try {
                 HiveSession session = (HiveSession) status;
