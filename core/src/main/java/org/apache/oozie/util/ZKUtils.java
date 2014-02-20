@@ -73,6 +73,8 @@ import org.apache.zookeeper.data.Stat;
  * "service" will be used for the ACLs).
  */
 public class ZKUtils {
+
+    public XLog LOG = XLog.getLog(ZKUtils.class);
     /**
      * oozie-site property for specifying the ZooKeeper connection string.  Comma-separated values of host:port pairs of the
      * ZooKeeper servers.
@@ -194,6 +196,7 @@ public class ZKUtils {
         sCache.start();
 
         zkRegTime = sDiscovery.queryForInstance(ZK_OOZIE_SERVICE, zkId).getRegistrationTimeUTC();
+        LOG.info("register server : "+getMetadataInstance().toString());
     }
 
     private void unadvertiseService() throws Exception {
@@ -203,6 +206,7 @@ public class ZKUtils {
         // Unadvertise on the service discovery
         sDiscovery.unregisterService(getMetadataInstance());
         sDiscovery.close();
+        LOG.info("unregister server : "+getMetadataInstance().toString());
     }
 
     private void teardown() {

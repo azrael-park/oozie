@@ -149,6 +149,7 @@ public class ZKXLogStreamingService extends XLogStreamingService implements Serv
      * @throws IOException
      */
     private void collateLogs(XLogStreamer.Filter filter, Date startTime, Date endTime, Writer writer) throws IOException {
+        XLog.getLog(ZKXLogStreamingService.class).info("Start collateLogs");
         XLogService xLogService = Services.get().get(XLogService.class);
         List<String> badOozies = new ArrayList<String>();
         List<ServiceInstance<Map>> oozies = null;

@@ -175,6 +175,7 @@ public class SimpleClient {
         queue { String help() { return "queue : dump executor queue"; } },
         definition { String help() { return "definition <job-id> : shows defintion of the job"; } },
         url { String help() { return "url : shows url of oozie server"; } },
+        servers { String help() { return "list available Oozie servers"; }},
         quit { String help() { return "quit : quit the shell"; } };
         abstract String help();
     }
@@ -442,6 +443,11 @@ public class SimpleClient {
                 }
             } else if (commands[0].equals("url")) {
                 System.out.println(client.getOozieUrl());
+            } else if (commands[0].equals("servers")) {
+                Map<String, String> servers = client.getAvailableOozieServers();
+                for (Map.Entry entry: servers.entrySet()) {
+                    System.out.println(entry.getKey() + " : " + entry.getValue());
+                }
             } else {
                 System.err.println("invalid command " + line);
             }
