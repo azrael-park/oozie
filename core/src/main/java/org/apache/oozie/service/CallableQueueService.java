@@ -27,7 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -150,16 +153,17 @@ public class CallableQueueService implements Service, Instrumentable {
         }
 
         public void run() {
-            if (Services.get().getSystemMode() == SYSTEM_MODE.SAFEMODE) {
-                log.info("Oozie is in SAFEMODE, requeuing callable [{0}] with [{1}]ms delay", getElement().getType(),
-                        SAFE_MODE_DELAY);
-                setDelay(SAFE_MODE_DELAY, TimeUnit.MILLISECONDS);
-                removeFromUniqueCallables();
-                queue(this, true);
-                return;
-            }
-            XCallable<?> callable = getElement();
+            XCallable<?> callable = null;
             try {
+                removeFromUniqueCallables();
+                if (Services.get().getSystemMode() == SYSTEM_MODE.SAFEMODE) {
+                    log.info("Oozie is in SAFEMODE, requeuing callable [{0}] with [{1}]ms delay", getElement().getType(),
+                            SAFE_MODE_DELAY);
+                    setDelay(SAFE_MODE_DELAY, TimeUnit.MILLISECONDS);
+                    queue(this, true);
+                    return;
+                }
+                callable = getElement();
                 if (callableBegin(callable)) {
                     cron.stop();
                     addInQueueCron(cron);
@@ -167,7 +171,6 @@ public class CallableQueueService implements Service, Instrumentable {
                     XLog log = XLog.getLog(getClass());
                     log.trace("executing callable [{0}]", callable.getName());
 
-                    removeFromUniqueCallables();
                     try {
                         callable.call();
                         incrCounter(INSTR_EXECUTED_COUNTER, 1);
@@ -185,13 +188,19 @@ public class CallableQueueService implements Service, Instrumentable {
                     log.warn("max concurrency for callable [{0}] exceeded, requeueing with [{1}]ms delay", callable
                             .getType(), CONCURRENCY_DELAY);
                     setDelay(CONCURRENCY_DELAY, TimeUnit.MILLISECONDS);
-                    removeFromUniqueCallables();
                     queue(this, true);
                     incrCounter(callable.getType() + "#exceeded.concurrency", 1);
                 }
             }
+            catch (Throwable t) {
+                incrCounter(INSTR_FAILED_COUNTER, 1);
+                log.warn("exception callable [{0}], {1}", callable == null ? "N/A" : callable.getName(),
+                        t.getMessage(), t);
+            }
             finally {
-                callableEnd(callable);
+                if (callable != null) {
+                    callableEnd(callable);
+                }
             }
         }
 
@@ -631,9 +640,9 @@ if(callablesOld.size() != callables.size()){
                 try {
                     executor.execute(wrapper);
                 }
-                catch (RejectedExecutionException ree) {
+                catch (Throwable ree) {
                     wrapper.removeFromUniqueCallables();
-                    throw ree;
+                    throw new RuntimeException(ree);
                 }
             }
         }
