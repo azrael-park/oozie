@@ -1,4 +1,5 @@
 
+OOZIE-1699 Some of the commands submitted to Oozie internal queue are never executed (sriksun via virag)
 OOZIE-1664 PollablePriorityDelayQueue.poll() returns elements with +ve delay (shwethags via rohini)
 OOZIE-1491 Make sure HA works with a secure ZooKeeper (rkanter)
 OOZIE-1606 Update Curator to 2.3.0 and fix some misc minor ZK related things (rkanter)
