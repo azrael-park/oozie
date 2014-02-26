@@ -278,13 +278,14 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         boolean caught = false;
         try {
             if (!(executor instanceof ControlNodeActionExecutor)) {
+                String tmpConf = wfAction.getConf();
                 String tmpActionConf = XmlUtils.removeComments(wfAction.getConf());
                 String actionConf = context.getELEvaluator().evaluate(tmpActionConf, String.class);
                 wfAction.setConf(actionConf);
 
                 //FIXME how to set action XML
                 ELEvaluator evaluator = action.preActionEvaluator(context, wfAction);
-                Document document = XmlUtils.removeComments(wfAction.getConf(), evaluator);
+                Document document = XmlUtils.removeComments(tmpConf, evaluator);
 
                 if (document != null){
                     context.setActionXML(document.getRootElement());
