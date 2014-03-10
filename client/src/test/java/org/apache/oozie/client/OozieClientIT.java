@@ -1279,7 +1279,55 @@ public class OozieClientIT {
         }
         LOG.info("    >>>> Pass testDecisionV31 \n");
     }
-    
+
+    /**
+     * Test very simple FS action .
+     *
+     */
+    @Test
+    public void testFSV40() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            String appName = "fs";
+            String appPath = baseAppPath + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+
+            uploadApps(appPath, appName, "v31");
+
+            String jobID = run(configs);
+            String status = monitorJob(jobID);
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowJob.Status.SUCCEEDED.toString(), status);
+
+            WorkflowAction hdfsAction = null;
+            WorkflowJob wfJob = getClient().getJobInfo(jobID);
+            List<WorkflowAction> actionList = wfJob.getActions();
+            for (WorkflowAction action : actionList) {
+                if (action.getName().equals("hdfscommands")) {
+                    hdfsAction = action;
+                }
+            }
+            Assert.assertNotNull(hdfsAction);
+            LOG.debug(" ---- JOB LOG ----");
+            LOG.debug(getClient().getLog(jobID));
+            LOG.debug(" ---- JOB LOG end ----");
+            LOG.debug(" ---- Action LOG ----");
+            LOG.debug(getClient().getLog(hdfsAction.getId()));
+            LOG.debug(" ---- Action LOG end ----");
+
+
+        } catch (Exception e) {
+            LOG.info("Fail to testFSV31", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testFSV31 \n");
+    }
+
+
     private void uploadApps(String appPath, String appName, String version) throws Exception {
         
         Path appDir = new Path(appPath);

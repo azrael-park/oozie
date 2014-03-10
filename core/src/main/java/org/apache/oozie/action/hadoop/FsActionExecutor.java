@@ -193,6 +193,17 @@ public class FsActionExecutor extends ActionExecutor {
                                         boolean dirFiles = (str == null) || Boolean.parseBoolean(str);
                                         chgrp(context, fsConf, nameNodePath, path, context.getWorkflow().getUser(),
                                                 group, dirFiles, recursive);
+                                    } else {
+                                        if (command.equals("chown")) {
+                                            Path path = getPath(commandElement, "path");
+                                            boolean recursive = commandElement.getChild("recursive",
+                                                    commandElement.getNamespace()) != null;
+                                            String user = commandElement.getAttributeValue("user");
+                                            String group = commandElement.getAttributeValue("group");
+                                            String str = commandElement.getAttributeValue("dir-files");
+                                            boolean dirFiles = (str == null) || Boolean.parseBoolean(str);
+                                            chgrp(context, fsConf, nameNodePath, path, user, group, dirFiles, recursive);
+                                        }
                                     }
                                 }
                             }
