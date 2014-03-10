@@ -186,10 +186,18 @@
 
     <xs:complexType name="FS">
         <xs:sequence>
-            <xs:element name="delete" type="workflow:DELETE" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="mkdir" type="workflow:MKDIR" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="move" type="workflow:MOVE" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="chmod" type="workflow:CHMOD" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="name-node" type="xs:string" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="job-xml" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="configuration" type="workflow:CONFIGURATION" minOccurs="0" maxOccurs="1"/>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="delete" type="workflow:DELETE"/>
+                <xs:element name="mkdir" type="workflow:MKDIR"/>
+                <xs:element name="move" type="workflow:MOVE"/>
+                <xs:element name="chmod" type="workflow:CHMOD"/>
+                <xs:element name="touchz" type="workflow:TOUCHZ"/>
+                <xs:element name="chgrp" type="workflow:CHGRP"/>
+                <xs:element name="chown" type="workflow:CHOWN"/>
+            </xs:choice>
         </xs:sequence>
     </xs:complexType>
 
@@ -303,6 +311,8 @@
         <xs:attribute name="dump" type="xs:boolean"/>
     </xs:complexType>
 
+    <xs:complexType name="FLAG"/>
+
     <xs:complexType name="CONFIGURATION">
         <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:element name="properties" minOccurs="1" maxOccurs="unbounded"/>
@@ -362,8 +372,34 @@
     </xs:complexType>
 
     <xs:complexType name="CHMOD">
+        <xs:sequence>
+            <xs:element name="recursive" type="workflow:FLAG" minOccurs="0" maxOccurs="1"></xs:element>
+        </xs:sequence>
         <xs:attribute name="path" type="xs:string" use="required"/>
         <xs:attribute name="permissions" type="xs:string" use="required"/>
+        <xs:attribute name="dir-files" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="TOUCHZ">
+        <xs:attribute name="path" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="CHGRP">
+        <xs:sequence>
+            <xs:element name="recursive" type="workflow:FLAG" minOccurs="0" maxOccurs="1"></xs:element>
+        </xs:sequence>
+        <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="group" type="xs:string" use="required"/>
+        <xs:attribute name="dir-files" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="CHOWN">
+        <xs:sequence>
+            <xs:element name="recursive" type="workflow:FLAG" minOccurs="0" maxOccurs="1"></xs:element>
+        </xs:sequence>
+        <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="user" type="xs:string" use="required"/>
+        <xs:attribute name="group" type="xs:string" use="required"/>
         <xs:attribute name="dir-files" type="xs:string"/>
     </xs:complexType>
 
