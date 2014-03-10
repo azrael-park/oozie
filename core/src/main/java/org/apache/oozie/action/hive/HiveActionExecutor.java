@@ -22,6 +22,7 @@ import org.apache.oozie.service.HiveAccessService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.ELEvaluator;
+import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.apache.thrift.TException;
@@ -30,6 +31,7 @@ import org.jdom.Element;
 import org.jdom.JDOMException;
 
 import javax.servlet.jsp.el.ELException;
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
@@ -108,6 +110,7 @@ public class HiveActionExecutor extends ActionExecutor {
 
         try {
             WorkflowJob workflow = context.getWorkflow();
+
             String wfID = workflow.getId();
             String actionName = action.getName();
 
@@ -120,7 +123,9 @@ public class HiveActionExecutor extends ActionExecutor {
             Attribute maxFetchAttr = actionXml.getAttribute("max-fetch");
             Attribute monitorAttr = actionXml.getAttribute("monitoring");
 
-            HiveTClient client = initialize(context, service.clientFor(addressAttr.getValue(), workflow.getUser()));
+            String hiveAccessUser = new XConfiguration(new StringReader(context.getWorkflow().getConf()))
+                    .get("hive.user.name", workflow.getUser());
+            HiveTClient client = initialize(context, service.clientFor(addressAttr.getValue(), hiveAccessUser));
 
             String[] queries = getQueries(actionXml, context);
             if (LOG.isDebugEnabled()) {
@@ -206,8 +211,9 @@ public class HiveActionExecutor extends ActionExecutor {
                 if (!session.check(context)) {
                     Configuration conf = Services.get().get(ConfigurationService.class).getConf();
                     if(conf.getBoolean(HiveSession.PING_ENABLED, false)){
-                        WorkflowJob workflow = context.getWorkflow();
-                        session.checkConnection(workflow.getUser());
+                        String hiveAccessUser = new XConfiguration(new StringReader(context.getWorkflow().getConf()))
+                                .get("hive.user.name", context.getWorkflow().getUser());
+                        session.checkConnection(hiveAccessUser);
                     }
                 }
             } catch (Exception e) {
