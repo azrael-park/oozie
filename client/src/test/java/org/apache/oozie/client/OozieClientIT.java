@@ -845,6 +845,42 @@ public class OozieClientIT {
     }
 
     /**
+     * Test very simple Sqoop action .
+     *
+     */
+    @Test
+    public void testSqoopV40() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            String appName = "sqoop";
+            String appPath = baseAppPath + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+            configs.put("oozie.use.system.libpath", "true");
+            configs.put("import_source_table", "HIVE_STATUS");
+            configs.put("hive_table_dir", "/user/hive/warehouse/sqoop_hive");
+            configs.put("jobOutput", "hdfs://localhost:9000/user/hive/warehouse/sqoop_hive");
+
+            uploadApps(appPath, appName, "v31");
+
+            String jobID = run(configs);
+            String status = monitorJob(jobID);
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowJob.Status.SUCCEEDED.toString(), status);
+
+
+        } catch (Exception e) {
+            LOG.info("Fail to testSqoopV40", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testSqoopV40 \n");
+    }
+
+
+    /**
      * Test hive action of which query include hangle. Need manual test to check query result.
      * 
      */
