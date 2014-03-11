@@ -22,6 +22,7 @@ import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
@@ -42,6 +43,7 @@ import org.apache.oozie.util.XLog;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
+
 
 public class SqoopActionExecutor extends JavaActionExecutor {
 
@@ -130,81 +132,83 @@ public class SqoopActionExecutor extends JavaActionExecutor {
     @Override
     public void end(Context context, WorkflowAction action) throws ActionExecutorException {
         super.end(context, action);
-        JobClient jobClient = null;
 
-        boolean exception = false;
-        try {
-            if (action.getStatus() == WorkflowAction.Status.OK) {
-                Element actionXml = XmlUtils.parseXml(action.getConf());
-                JobConf jobConf = createBaseHadoopConf(context, actionXml);
-                jobClient = createJobClient(context, jobConf);
-
-                // Cumulative counters for all Sqoop mapreduce jobs
-                Counters counters = null;
-
-                String externalIds = action.getExternalChildIDs();
-                String []jobIds = externalIds.split(",");
-
-                for(String jobId : jobIds) {
-                    RunningJob runningJob = jobClient.getJob(JobID.forName(jobId));
-                    if (runningJob == null) {
-                      throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "SQOOP001",
-                        "Unknown hadoop job [{0}] associated with action [{1}].  Failing this action!", action
-                        .getExternalId(), action.getId());
-                    }
-
-                    Counters taskCounters = runningJob.getCounters();
-                    if(taskCounters != null) {
-                        if(counters == null) {
-                          counters = taskCounters;
-                        } else {
-                          counters.incrAllCounters(taskCounters);
-                        }
-                    } else {
-                      XLog.getLog(getClass()).warn("Could not find Hadoop Counters for job: [{0}]", jobId);
-                    }
-                }
-
-                if (counters != null) {
-                    ActionStats stats = new MRStats(counters);
-                    String statsJsonString = stats.toJSON();
-                    context.setVar(MapReduceActionExecutor.HADOOP_COUNTERS, statsJsonString);
-
-                    // If action stats write property is set to false by user or
-                    // size of stats is greater than the maximum allowed size,
-                    // do not store the action stats
-                    if (Boolean.parseBoolean(evaluateConfigurationProperty(actionXml,
-                            OOZIE_ACTION_EXTERNAL_STATS_WRITE, "true"))
-                            && (statsJsonString.getBytes().length <= getMaxExternalStatsSize())) {
-                        context.setExecutionStats(statsJsonString);
-                        log.debug(
-                          "Printing stats for sqoop action as a JSON string : [{0}]", statsJsonString);
-                    }
-                } else {
-                    context.setVar(MapReduceActionExecutor.HADOOP_COUNTERS, "");
-                    XLog.getLog(getClass()).warn("Can't find any associated Hadoop job counters");
-                }
-            }
-        }
-        catch (Exception ex) {
-            exception = true;
-            throw convertException(ex);
-        }
-        finally {
-            if (jobClient != null) {
-                try {
-                    jobClient.close();
-                }
-                catch (Exception e) {
-                    if (exception) {
-                        log.error("JobClient error: ", e);
-                    }
-                    else {
-                        throw convertException(e);
-                    }
-                }
-            }
-        }
+//        JobClient jobClient = null;
+//
+//        boolean exception = false;
+//        try {
+//            if (action.getStatus() == WorkflowAction.Status.OK) {
+//                Element actionXml = XmlUtils.parseXml(action.getConf());
+//                JobConf jobConf = createBaseHadoopConf(context, actionXml);
+//                jobClient = createJobClient(context, jobConf);
+//
+//                // Cumulative counters for all Sqoop mapreduce jobs
+//                Counters counters = null;
+//
+//                String externalIds = action.getExternalChildIDs();
+//                XLog.getLog(getClass()).info("---- externalIds : "+externalIds);
+//                String []jobIds = externalIds.split(",");
+//
+//                for(String jobId : jobIds) {
+//                    RunningJob runningJob = jobClient.getJob(JobID.forName(jobId));
+//                    if (runningJob == null) {
+//                      throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "SQOOP001",
+//                        "Unknown hadoop job [{0}] associated with action [{1}].  Failing this action!", action
+//                        .getExternalId(), action.getId());
+//                    }
+//
+//                    Counters taskCounters = runningJob.getCounters();
+//                    if(taskCounters != null) {
+//                        if(counters == null) {
+//                          counters = taskCounters;
+//                        } else {
+//                          counters.incrAllCounters(taskCounters);
+//                        }
+//                    } else {
+//                      XLog.getLog(getClass()).warn("Could not find Hadoop Counters for job: [{0}]", jobId);
+//                    }
+//                }
+//
+//                if (counters != null) {
+//                    ActionStats stats = new MRStats(counters);
+//                    String statsJsonString = stats.toJSON();
+//                    context.setVar(MapReduceActionExecutor.HADOOP_COUNTERS, statsJsonString);
+//
+//                    // If action stats write property is set to false by user or
+//                    // size of stats is greater than the maximum allowed size,
+//                    // do not store the action stats
+//                    if (Boolean.parseBoolean(evaluateConfigurationProperty(actionXml,
+//                            OOZIE_ACTION_EXTERNAL_STATS_WRITE, "true"))
+//                            && (statsJsonString.getBytes().length <= getMaxExternalStatsSize())) {
+//                        context.setExecutionStats(statsJsonString);
+//                        log.debug(
+//                          "Printing stats for sqoop action as a JSON string : [{0}]", statsJsonString);
+//                    }
+//                } else {
+//                    context.setVar(MapReduceActionExecutor.HADOOP_COUNTERS, "");
+//                    XLog.getLog(getClass()).warn("Can't find any associated Hadoop job counters");
+//                }
+//            }
+//        }
+//        catch (Exception ex) {
+//            exception = true;
+//            throw convertException(ex);
+//        }
+//        finally {
+//            if (jobClient != null) {
+//                try {
+//                    jobClient.close();
+//                }
+//                catch (Exception e) {
+//                    if (exception) {
+//                        log.error("JobClient error: ", e);
+//                    }
+//                    else {
+//                        throw convertException(e);
+//                    }
+//                }
+//            }
+//        }
     }
 
     // Return the value of the specified configuration property
@@ -242,9 +246,15 @@ public class SqoopActionExecutor extends JavaActionExecutor {
             throws HadoopAccessorException, JDOMException, IOException, URISyntaxException{
         super.getActionData(actionFs, runningJob, action, context);
 
+        XLog.getLog(getClass()).info("---- getActionData ");
+
         // Load stored Hadoop jobs ids and promote them as external child ids
         action.getData();
         Properties props = new Properties();
+        for (Map.Entry entry: props.entrySet()) {
+            XLog.getLog(getClass()).info("---- props "+entry.getKey() +" , "+entry.getValue());
+        }
+
         props.load(new StringReader(action.getData()));
         context.setExternalChildIDs((String)props.get(LauncherMain.HADOOP_JOBS));
     }
