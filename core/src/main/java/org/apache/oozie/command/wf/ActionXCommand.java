@@ -65,6 +65,7 @@ import org.apache.oozie.workflow.WorkflowInstance;
 import org.apache.oozie.workflow.lite.LiteWorkflowInstance;
 import org.jdom.Element;
 import org.jdom.JDOMException;
+import org.mortbay.log.Log;
 
 /**
  * Base class for Action execution commands. Provides common functionality to handle different types of errors while
@@ -561,7 +562,16 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
 
         @Override
         public Element getActionXML() throws JDOMException {
-            return element == null ? element = XmlUtils.parseXml(action.getConf()) : element;
+            //return element == null ? element = XmlUtils.parseXml(action.getConf()) : element;
+
+            if (element != null) {
+                return element;
+            }
+            try {
+                return element = XmlUtils.parseXml(action.getConf());
+            } catch (Exception e) {
+                throw new JDOMException("Fail to parseXML : actionConf : " + action.getConf(), e);
+            }
         }
 
         public void setActionXML(Element element) {

@@ -32,6 +32,7 @@ import org.apache.oozie.XException;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.action.control.ControlNodeActionExecutor;
+import org.apache.oozie.action.decision.DecisionActionExecutor;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
@@ -278,19 +279,19 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         boolean caught = false;
         try {
             if (!(executor instanceof ControlNodeActionExecutor)) {
-                String tmpConf = wfAction.getConf();
-                String tmpActionConf = XmlUtils.removeComments(wfAction.getConf());
-                String actionConf = context.getELEvaluator().evaluate(tmpActionConf, String.class);
-                wfAction.setConf(actionConf);
+                String orgConf = wfAction.getConf();
 
                 //FIXME how to set action XML
                 ELEvaluator evaluator = action.preActionEvaluator(context, wfAction);
-                Document document = XmlUtils.removeComments(tmpConf, evaluator);
-
-                if (document != null){
+                Document document = XmlUtils.removeComments(orgConf, evaluator);
+                if (document != null && !(executor instanceof DecisionActionExecutor)){
                     context.setActionXML(document.getRootElement());
+                    wfAction.setConf(XmlUtils.prettyPrint(document.getRootElement()).toString());
+                } else {
+                    String tmpActionConf = XmlUtils.removeComments(orgConf);
+                    String actionConf = context.getELEvaluator().evaluate(tmpActionConf, String.class);
+                    wfAction.setConf(actionConf);
                 }
-
             }
         }
         catch (ELEvaluationException ex) {

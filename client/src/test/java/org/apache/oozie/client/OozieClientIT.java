@@ -847,6 +847,70 @@ public class OozieClientIT {
     }
 
     /**
+     * Test standard out and standard err of Custom Java ActionMain - JavaMainTest.
+     * To test, create jar include JavaMainTest and place it into hadoop/lib/.
+     * </p> standard out
+     * <li>1. run test case and pass</li>
+     * </p> standard err
+     * <li>1. set "echooo" for command.</li>
+     * <li>2. run test case and fail</li>
+     * <li>3. search in oozie.log and find <code>'stderr dump-xxx javamain-hello-error-azrael'</code> manually</li>
+     *
+     */
+    @Test
+    public void testJavaMainRHiveV31() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            // ehco
+            String appName = "java-main-rhive";
+            String appPath = baseAppPath + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+
+            uploadApps(appPath, appName, "v31");
+
+            String jobID = run(configs);
+            String status = "";
+            String capture = "";
+            try {
+                for (int i = 0; i < 50; i++) {
+                    WorkflowJob wfJob = getClient().getJobInfo(jobID);
+                    LOG.debug(wfJob.getId() + " [" + wfJob.getStatus().toString() + "]");
+                    List<WorkflowAction> actionList = wfJob.getActions();
+                    for (WorkflowAction action : actionList) {
+                        if (action.getName().equals("java1")) {
+                            LOG.debug("    " + action.getName() + " [" + action.getStatus().toString() + "]");
+                            LOG.debug("    " + "capture >> \n " + action.getData() + "\n");
+                            capture = action.getData();
+                        }
+                    }
+                    status = wfJob.getStatus().toString();
+                    if (wfJob.getStatus().equals(WorkflowJob.Status.SUCCEEDED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.KILLED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.FAILED)) {
+                        break;
+                    }
+                    Thread.sleep(POLLING);
+                }
+            } catch (Exception e) {
+                LOG.debug("Fail to monitor : " + jobID, e);
+            }
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowJob.Status.SUCCEEDED.toString(), status);
+
+            Assert.assertTrue(capture.contains("hello-azrael="));
+
+        } catch (Exception e) {
+            LOG.info("Fail to testJavaMainV31", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testJavaMainV31 \n");
+    }
+
+    /**
      * Test hive action include mr job.
      *
      */
