@@ -74,7 +74,7 @@
             <property name="openjpa.jdbc.DBDictionary" value="UseSetBytesForBlobs=true"/>
             <property name="openjpa.jdbc.DBDictionary" value="BlobBufferSize=500000"/>
             <property name="openjpa.jdbc.DBDictionary" value="batchLimit=50"/>
-            <property name="openjpa.RuntimeUnenhancedClasses" value="unsupported"/>
+            <property name="openjpa.RuntimeUnenhancedClasses" value="supported"/>
             <property name="openjpa.Log" value="log4j"/>
         </properties>
     </persistence-unit>
@@ -135,7 +135,7 @@
             <property name="openjpa.jdbc.DBDictionary" value="batchLimit=50"/>
             <property name="openjpa.jdbc.DBDictionary" value="ClobTypeName=MEDIUMTEXT"/>
             <property name="openjpa.jdbc.DBDictionary" value="BlobTypeName=MEDIUMBLOB"/>
-            <property name="openjpa.RuntimeUnenhancedClasses" value="unsupported"/>
+            <property name="openjpa.RuntimeUnenhancedClasses" value="supported"/>
             <property name="openjpa.Log" value="log4j"/>
         </properties>
     </persistence-unit>
@@ -194,7 +194,7 @@
             <property name="openjpa.jdbc.DBDictionary" value="UseSetBytesForBlobs=true"/>
             <property name="openjpa.jdbc.DBDictionary" value="BlobBufferSize=500000"/>
             <property name="openjpa.jdbc.DBDictionary" value="batchLimit=50"/>
-            <property name="openjpa.RuntimeUnenhancedClasses" value="unsupported"/>
+            <property name="openjpa.RuntimeUnenhancedClasses" value="supported"/>
             <property name="openjpa.Log" value="log4j"/>
         </properties>
     </persistence-unit>
@@ -254,7 +254,7 @@
             <property name="openjpa.jdbc.DBDictionary" value="BlobBufferSize=500000"/>
             <property name="openjpa.jdbc.DBDictionary" value="batchLimit=50"/>
             <property name="openjpa.jdbc.DBDictionary" value="TimestampTypeName=TIMESTAMP"/>
-            <property name="openjpa.RuntimeUnenhancedClasses" value="unsupported"/>
+            <property name="openjpa.RuntimeUnenhancedClasses" value="supported"/>
             <property name="openjpa.Log" value="log4j"/>
         </properties>
     </persistence-unit>
@@ -313,7 +313,7 @@
             <property name="openjpa.jdbc.DBDictionary" value="UseSetBytesForBlobs=true"/>
             <property name="openjpa.jdbc.DBDictionary" value="BlobBufferSize=500000"/>
             <property name="openjpa.jdbc.DBDictionary" value="batchLimit=50"/>
-            <property name="openjpa.RuntimeUnenhancedClasses" value="unsupported"/>
+            <property name="openjpa.RuntimeUnenhancedClasses" value="supported"/>
             <property name="openjpa.Log" value="log4j"/>
         </properties>
     </persistence-unit>

@@ -17,6 +17,9 @@ test-patch
 .project
 .settings
 
+# IntelliJ
+.idea
+
 # Oozie build
 core/pig*
 core/hive-*
