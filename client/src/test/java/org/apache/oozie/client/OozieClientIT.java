@@ -146,7 +146,7 @@ public class OozieClientIT {
             String appPath = baseAppPath + "/" + appName;
             configs.put(OozieClient.APP_PATH, appPath);
             configs.put("appName", appName);
-            
+
             uploadApps(appPath, appName, "v31");
             
             String jobID = run(configs);
@@ -521,6 +521,38 @@ public class OozieClientIT {
             Assert.fail();
         }
         LOG.info("    >>>> Pass testForkJoin2V31 \n");
+    }
+
+    /**
+     * Test Decision-ForkJoin. Decision contains same transition.
+     *
+     */
+    @Test
+    public void testDecisionForkJoin1V31() {
+
+        try {
+            Properties configs = getDefaultProperties();
+
+            // simple hive actions in fork-join
+            String appName = "decision-forkjoin1";
+            String appPath = baseAppPath + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+            configs.put("abc", "15");
+
+            uploadApps(appPath, appName, "v31");
+
+            String jobID = run(configs);
+            String status = monitorJob(jobID);
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowJob.Status.SUCCEEDED.toString(), status);
+        } catch (Exception e) {
+            LOG.info("Fail to testDecisionForkJoin3V31", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testDecisionForkJoin3V31 \n");
     }
     
     /**
