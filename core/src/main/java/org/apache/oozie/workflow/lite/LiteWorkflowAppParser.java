@@ -102,6 +102,11 @@ public class LiteWorkflowAppParser {
     private List<String> visitedOkNodes = new ArrayList<String>();
     private List<String> visitedJoinNodes = new ArrayList<String>();
 
+
+    // decisionName_index, [childnodes]
+    private Map<String, List<String>> decisionMap = new HashMap<String, List<String>>();
+    private String decisionName = null;
+
     public LiteWorkflowAppParser(Schema schema,
                                  Class<? extends ControlNodeHandler> controlNodeHandler,
                                  Class<? extends DecisionNodeHandler> decisionHandlerClass,
@@ -171,6 +176,8 @@ public class LiteWorkflowAppParser {
         if (!forkList.isEmpty()) {
             visitedOkNodes.clear();
             visitedJoinNodes.clear();
+            decisionMap.clear();
+            decisionName = null;
             validateForkJoin(startNode, app, new LinkedList<String>(), new LinkedList<String>(), new LinkedList<String>(), true);
         }
     }
@@ -202,8 +209,16 @@ public class LiteWorkflowAppParser {
         // traverse through join nodes multiple times, we have to make sure not to throw an exception here when we're really just
         // re-walking the same execution path (this is why we need the visitedJoinNodes list used later)
         if (okTo && !(node instanceof KillNodeDef) && !(node instanceof JoinNodeDef) && !(node instanceof EndNodeDef)) {
-            if (visitedOkNodes.contains(node.getName())) {
-                throw new WorkflowException(ErrorCode.E0743, node.getName());
+            if (decisionName == null) {
+                if (visitedOkNodes.contains(node.getName())) {
+                    throw new WorkflowException(ErrorCode.E0743, node.getName());
+                }
+            } else {
+                List<String> decisionChildren = decisionMap.get(decisionName);
+                if (decisionChildren.contains(node.getName())) {
+                    throw new WorkflowException(ErrorCode.E0743, node.getName());
+                }
+                decisionChildren.add(node.getName());
             }
             visitedOkNodes.add(node.getName());
         }
@@ -222,9 +237,16 @@ public class LiteWorkflowAppParser {
             validateForkJoin(tranNode, app, forkNodes, joinNodes, path, false); // use false
         }
         else if (node instanceof DecisionNodeDef) {
-            for(String transition : (new HashSet<String>(node.getTransitions()))) {
+            for (int i = 0; i < node.getTransitions().size(); i++ ) {
+                String transition = node.getTransitions().get(i);
                 NodeDef tranNode = app.getNode(transition);
+                decisionName = node.getName() + "_" + i;
+                List<String> decisionChildren = decisionMap.get(decisionName);
+                if (decisionChildren == null) {
+                    decisionMap.put(decisionName, decisionChildren = new ArrayList<String>());
+                }
                 validateForkJoin(tranNode, app, forkNodes, joinNodes, path, okTo);
+                decisionName = null;
             }
         }
         else if (node instanceof ForkNodeDef) {
