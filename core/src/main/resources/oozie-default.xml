@@ -1694,7 +1694,7 @@
 
     <property>
         <name>oozie.service.LiteWorkflowStoreService.user.retry.max</name>
-        <value>3</value>
+        <value>0</value>
         <description>
             Automatic retry max count for workflow action is 3 in default.
         </description>

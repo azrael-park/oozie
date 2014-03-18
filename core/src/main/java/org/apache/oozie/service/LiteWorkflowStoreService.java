@@ -169,9 +169,6 @@ public abstract class LiteWorkflowStoreService extends WorkflowStoreService {
                 throw new WorkflowException(ErrorCode.E0700, nfe.getMessage(), nfe);
             }
         }
-        else {
-            ret = 0;
-        }
         return ret;
     }
 
