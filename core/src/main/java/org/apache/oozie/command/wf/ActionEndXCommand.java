@@ -138,11 +138,11 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
                 if (!(executor instanceof ControlNodeActionExecutor) && EventHandlerService.isEnabled()) {
                     generateEvent(wfAction, wfJob.getUser());
                 }
-                sendActionNotification();
             }
             catch (JPAExecutorException e) {
                 throw new CommandException(e);
             }
+            queue(new SignalXCommand(jobId, actionId));
         }
 
         LOG.info("ENDED ActionEndXCommand : status[{0}]", wfAction.getStatus());
@@ -205,7 +205,6 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
                 if(slaEvent != null) {
                     insertList.add(slaEvent);
                 }
-                queue(new SignalXCommand(jobId, actionId));
             }
 
         }
