@@ -463,7 +463,7 @@ if(callablesOld.size() != callables.size()){
                 protected void debug(String msgTemplate, Object... msgArgs) {
                     log.trace(msgTemplate, msgArgs);
                     if(msgTemplate.contains("anti-starvation") || msgTemplate.contains("poll") || msgTemplate.contains("peek2")){
-                        log.info(msgTemplate, msgArgs);
+                        log.trace(msgTemplate, msgArgs);
                     }
                 }
             };
@@ -480,7 +480,7 @@ if(callablesOld.size() != callables.size()){
                 protected void debug(String msgTemplate, Object... msgArgs) {
                     log.trace(msgTemplate, msgArgs);
                     if(msgTemplate.contains("anti-starvation") || msgTemplate.contains("poll") || msgTemplate.contains("peek2")){
-                        log.info(msgTemplate, msgArgs);
+                        log.trace(msgTemplate, msgArgs);
                     }
                 }
 
