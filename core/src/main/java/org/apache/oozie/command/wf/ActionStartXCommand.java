@@ -296,27 +296,27 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         }
         catch (ELEvaluationException ex) {
             caught = true;
-            sendActionNotification();
-            throw new ActionExecutorException(ActionExecutorException.ErrorType.TRANSIENT, EL_EVAL_ERROR, ex
-                    .getMessage(), ex);
+            context.setErrorInfo(EL_EVAL_ERROR, ex.getMessage());
+            LOG.warn("ELEvaluationException in ActionStartXCommand ", ex.getMessage(), ex);
+            handleError(ActionExecutorException.ErrorType.TRANSIENT, context, wfJob, wfAction);
         }
         catch (ELException ex) {
             caught = true;
             context.setErrorInfo(EL_ERROR, ex.getMessage());
             LOG.warn("ELException in ActionStartXCommand ", ex.getMessage(), ex);
-            handleError(context, wfJob, wfAction);
+            handleError(ActionExecutorException.ErrorType.NON_TRANSIENT, context, wfJob, wfAction);
         }
         catch (org.jdom.JDOMException je) {
             caught = true;
             context.setErrorInfo("ParsingError", je.getMessage());
             LOG.warn("JDOMException in ActionStartXCommand ", je.getMessage(), je);
-            handleError(context, wfJob, wfAction);
+            handleError(ActionExecutorException.ErrorType.NON_TRANSIENT, context, wfJob, wfAction);
         }
         catch (Exception ex) {
             caught = true;
             context.setErrorInfo(EL_ERROR, ex.getMessage());
             LOG.warn("Exception in ActionStartXCommand ", ex.getMessage(), ex);
-            handleError(context, wfJob, wfAction);
+            handleError(ActionExecutorException.ErrorType.NON_TRANSIENT, context, wfJob, wfAction);
         }
 
         return caught;
@@ -347,10 +347,9 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         return true;
     }
 
-    private void handleError(ActionExecutorContext context, WorkflowJobBean workflow, WorkflowActionBean action)
-            throws CommandException {
+    private ActionExecutorException handleError(ActionExecutorException.ErrorType type, ActionExecutorContext context,
+        WorkflowJobBean workflow, WorkflowActionBean action) throws CommandException {
         sendActionNotification();
-        failJob(context);
         updateList.add(wfAction);
         wfJob.setLastModifiedTime(new Date());
         updateList.add(wfJob);
@@ -366,6 +365,8 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         }
 
         new WfEndXCommand(wfJob).call(); //To delete the WF temp dir
+
+        return new ActionExecutorException(type, wfAction.getErrorCode(), wfAction.getErrorMessage());
     }
 
     /* (non-Javadoc)
