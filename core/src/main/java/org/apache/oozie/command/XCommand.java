@@ -231,7 +231,7 @@ public abstract class XCommand<T> implements XCallable<T> {
      * Implements the XCommand life-cycle.
      *
      * @return the {link #execute} return value.
-     * @throws Exception thrown if the command could not be executed.
+     * @throws CommandException thrown if the command could not be executed.
      */
     @Override
     public final T call() throws CommandException {
@@ -284,7 +284,11 @@ public abstract class XCommand<T> implements XCallable<T> {
                 if (commandQueue != null) {
                     CallableQueueService callableQueueService = Services.get().get(CallableQueueService.class);
                     for (Map.Entry<Long, List<XCommand<?>>> entry : commandQueue.entrySet()) {
-                        LOG.debug("Queuing [{0}] commands with delay [{1}]ms", entry.getValue().size(), entry.getKey());
+                        if (LOG.isDebugEnabled()) {
+                            for (XCommand<?> command : entry.getValue()) {
+                                LOG.debug("Queuing [{0}] with delay [{1}]ms", command, entry.getKey());
+                            }
+                        }
                         if (!callableQueueService.queueSerial(entry.getValue(), entry.getKey())) {
                             LOG.warn("Could not queue [{0}] commands with delay [{1}]ms, queue full", entry.getValue()
                                     .size(), entry.getKey());
@@ -322,6 +326,7 @@ public abstract class XCommand<T> implements XCallable<T> {
             FaultInjection.deactivate("org.apache.oozie.command.SkipCommitFaultInjection");
             callCron.stop();
             instrumentation.addCron(INSTRUMENTATION_GROUP, getName() + ".call", callCron);
+            XLog.Info.get().clear();
         }
     }
 

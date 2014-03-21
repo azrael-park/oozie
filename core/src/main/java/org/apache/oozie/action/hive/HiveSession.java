@@ -65,6 +65,9 @@ public class HiveSession extends HiveStatus {
     }
 
     public synchronized void execute(ActionExecutor.Context context, WorkflowAction action) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("enqueuing work {0}", executor.order());
+        }
         CallableQueueService executors = Services.get().get(CallableQueueService.class);
         if (executor.ex == null && hasMore()) {
             resetTimer();
@@ -77,7 +80,7 @@ public class HiveSession extends HiveStatus {
     public synchronized boolean check(ActionExecutor.Context context) throws Exception {
         if (executor.ex != null) {
             cleanup(context, "FAILED");
-            LOG.info("failed to execute query {0}", executor.toString(), executor.ex);
+            LOG.info("failed to execute query {0}", executor.order(), executor.ex);
             throw executor.ex;
         }
         if (!isCompleted()) {
@@ -95,7 +98,7 @@ public class HiveSession extends HiveStatus {
     public void checkConnection(String user) {
         long current = System.currentTimeMillis();
         if (current > lastPing + timeout) {
-            LOG.info("check connection for {0}", executor.toString());
+            LOG.info("check connection for {0}", executor.order());
             lastPing = current;
             try {
                 if (!access.ping(client.getConnectionParams(), PING_TIMEOUT, user)) {
@@ -180,22 +183,22 @@ public class HiveSession extends HiveStatus {
         @Override
         public void run() {
             XLog.Info.get().setParameters(logInfo);
-            LOG.info("Executing query " + this);
+            LOG.info("Executing query " + order());
             try {
                 executeSQL();
             } catch (Exception e) {
                 ex = e;
                 if (killed) {
-                    LOG.info("Failed to execute query {0} cause the action is killed", this);
+                    LOG.info("Failed to execute query {0} cause the action is killed", order());
                 } else {
-                    LOG.warn("Failed to execute query {0}", this, e);
+                    LOG.warn("Failed to execute query {0}", order(), e);
                 }
             } finally {
-                LOG.info("Executed " + this + " with " + resultCode());
+                executed = true;
+                LOG.info("Executed " + order() + " with " + resultCode());
                 if (Thread.currentThread().isInterrupted()) {
                     LOG.debug("Thread was interrupted");
                 }
-                executed = true;
                 execute(context, action);
             }
         }
@@ -204,7 +207,7 @@ public class HiveSession extends HiveStatus {
 
             Query plan = client.compile(queries[current]);
             if (plan == null) {
-                LOG.info("Query " + this + " is not SQL command");
+                LOG.info("Query " + order() + " is not SQL command");
                 client.clear();
                 return false;
             }
@@ -310,9 +313,13 @@ public class HiveSession extends HiveStatus {
             }
         }
 
+        public String order() {
+            return (current + 1) + "/" + queries.length;
+        }
+
         @Override
         public String toString() {
-            return (current+1) + "/" + queries.length;
+            return actionID + "[" + order() + "]";
         }
     }
 

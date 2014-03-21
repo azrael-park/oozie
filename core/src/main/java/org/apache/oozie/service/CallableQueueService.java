@@ -377,7 +377,7 @@ public class CallableQueueService implements Service, Instrumentable {
          */
         public boolean removeDuplicates() {
             Set<String> set = new HashSet<String>();
-            List<XCallable<?>> filteredCallables = new ArrayList<XCallable<?>>();
+            List<XCallable<?>> filtered = new ArrayList<XCallable<?>>();
             if (callables.size() == 0) {
                 return false;
             }
@@ -386,20 +386,18 @@ public class CallableQueueService implements Service, Instrumentable {
 
             for (XCallable<?> callable : callables) {
                 if (!uniqueCallables.containsKey(callable.getKey()) && !set.contains(callable.getKey())) {
-                    filteredCallables.add(callable);
+                    filtered.add(callable);
                     set.add(callable.getKey());
                 }
             }
-            callables = filteredCallables;
-if(callablesOld.size() != callables.size()){
-                XLog.getLog(getClass()).info("removeDuplicates before: " + callablesOld.getClass() + " = " + callablesOld.toString());
-            }
-            XLog.getLog(getClass()).info("removeDuplicates after : " + callables.getClass() + " = " + callables.toString());
+            callables = filtered;
 
-            if (callables.size() == 0) {
-                return false;
+            if(callablesOld.size() != callables.size()){
+                XLog.getLog(getClass()).info("removeDuplicates before = " + callablesOld.toString());
             }
-            return true;
+            XLog.getLog(getClass()).debug("removeDuplicates after = " + callables.toString());
+
+            return !filtered.isEmpty();
         }
 
         /**
@@ -474,6 +472,9 @@ if(callablesOld.size() != callables.size()){
                     if(msgTemplate.contains("anti-starvation") || msgTemplate.contains("poll") || msgTemplate.contains("peek2")){
                         log.trace(msgTemplate, msgArgs);
                     }
+                    if(msgTemplate.contains("poll()3")){
+                        log.info(msgTemplate, msgArgs);
+                    }
                 }
             };
         }
@@ -490,6 +491,9 @@ if(callablesOld.size() != callables.size()){
                     log.trace(msgTemplate, msgArgs);
                     if(msgTemplate.contains("anti-starvation") || msgTemplate.contains("poll") || msgTemplate.contains("peek2")){
                         log.trace(msgTemplate, msgArgs);
+                    }
+                    if(msgTemplate.contains("poll()3")){
+                        log.info(msgTemplate, msgArgs);
                     }
                 }
 
@@ -579,8 +583,10 @@ if(callablesOld.size() != callables.size()){
 
     public synchronized boolean queue(Runnable runnable) {
         if (executor.isShutdown()) {
+            log.warn("Executor shutting down, ignoring queueing of [{0}]", runnable.toString());
             return false;
         }
+        log.info(" +++ " + runnable.toString());
         executor.execute(new RunnableWrapper(runnable));
         incrCounter(INSTR_QUEUED_COUNTER, 1);
         return true;
