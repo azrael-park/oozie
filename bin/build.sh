@@ -68,7 +68,7 @@ setRevUrl
 MVN_OPTS="-Dbuild.time=${DATETIME} -Dvc.revision=${VC_REV} -Dvc.url=${VC_URL} -DincludeHadoopJars -Dtest=skip"
 
 export DATETIME2=`date -u "+%Y%m%d-%H%M%SGMT"`
-mvn package -Pmr1 ${MVN_OPTS}
+mvn package -Pmr1.2.1 ${MVN_OPTS}
 
 if [ "$?" != "0" ]; then
   echo

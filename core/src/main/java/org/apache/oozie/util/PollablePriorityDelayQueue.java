@@ -51,7 +51,7 @@ public class PollablePriorityDelayQueue<E> extends PriorityDelayQueue<E> {
                 }
                 else {
                     if (e != null) {
-                        debug("poll()2: the peek element [{0}], from P[{1}] is not eligible to poll", e.toString(), i);
+                        debug("poll(): the peek element [{0}], from P[{1}] is not eligible to poll", e.toString(), i);
                     }
                     e = null;
                     Iterator<QueueElement<E>> iter = queues[i - 1].iterator();
@@ -61,7 +61,7 @@ public class PollablePriorityDelayQueue<E> extends PriorityDelayQueue<E> {
                             queues[i - 1].remove(e);
                         }
                         else {
-                            debug("poll()2: the iterator element [{0}], from P[{1}] is not eligible to poll", e.toString(), i);
+                            debug("poll(): the iterator element [{0}], from P[{1}] is not eligible to poll", e.toString(), i);
                             e = null;
                         }
                     }
@@ -72,7 +72,7 @@ public class PollablePriorityDelayQueue<E> extends PriorityDelayQueue<E> {
                     currentSize.decrementAndGet();
                 }
                 e.inQueue = false;
-                debug("poll()2: [{0}], from P[{1}]", e.toString(), i);
+                debug("poll()3: [{0}], from P[{1}]", e.toString(), i);
             }
             return e;
         }

@@ -28,7 +28,6 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hive.service.ServiceStateChangeListener;
 import org.apache.oozie.DagELFunctions;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
@@ -617,5 +616,10 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
         WorkflowActionBean action = Services.get().get(JPAService.class).execute(new WorkflowActionGetJPAExecutor(actionId));
 
         return new ActionExecutorContext(workflow, action, false, false);
+    }
+
+    @Override
+    public String toString() {
+        return getName() + "[" + actionId + "]";
     }
 }
