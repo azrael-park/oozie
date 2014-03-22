@@ -146,7 +146,7 @@ public class SimpleClient {
     private static final Map<String, Method> BUNDLE_ACTION_PROPS = parse(BundleActionBean.class);
 
     private static final long DEFAULT_POLL_INTERVAL = 2000;
-    private static final String ACTION_ALL = "$ALL";
+    private static final String ACTION_ALL = "ALL";
     private static final String CURRENT_JOB_ID = "$CUR";
 
     private static enum COMMAND {
@@ -173,7 +173,7 @@ public class SimpleClient {
         reset { String help() { return "reset : remove context job id"; } },
         version { String help() { return "version : shows current version of oozie"; } },
         queue { String help() { return "queue : dump executor queue"; } },
-        definition { String help() { return "definition <job-id> : shows defintion of the job"; } },
+        def { String help() { return "def <job-id|action-id> : shows defintion of the job or action"; } },
         url { String help() { return "url : shows url of oozie server"; } },
         servers { String help() { return "list available Oozie servers"; }},
         quit { String help() { return "quit : quit the shell"; } };
@@ -273,7 +273,7 @@ public class SimpleClient {
                 jobID = runJobId;
                 poll(runJobId);
             } else if (commands[0].equals("kill")) {
-                client.kill(getID(commands, 1));
+                client.kill(getID(commands, 1)[0]);
             } else if (commands[0].equals("killall")) {
                 for (Object job : context.getJobsInfo(client, commands.length > 1 ? commands[1] : "", 1, 1000)) {
                     if (!context.isJobTerminal(job)) {
@@ -282,13 +282,13 @@ public class SimpleClient {
                     }
                 }
             } else if (commands[0].equals("suspend")) {
-                client.suspend(getID(commands, 1));
+                client.suspend(getID(commands, 1)[0]);
             } else if (commands[0].equals("resume")) {
-                client.resume(getID(commands, 1));
+                client.resume(getID(commands, 1)[0]);
             } else if (commands[0].equals("update")) {
-                String actionID = getID(commands, 1);
+                String[] id = getID(commands, 1);
                 String remain = line.substring(line.indexOf(commands[1]) + commands[1].length());
-                client.update(actionID, parseParams(remain));
+                client.update(id[0] + "@" + id[1], parseParams(remain));
             } else if (commands[0].equals("status")) {
                 System.out.println(getStatus(getJobID(commands, 1)));
             } else if (commands[0].equals("poll")) {
@@ -299,36 +299,35 @@ public class SimpleClient {
                     pollings.get(0).join();
                 }
             } else if (commands[0].equals("log")) {
-                client.getLog(getID(commands, 1), System.out);
+                String[] id = getID(commands, 1);
+                client.getLog(id[0] + "@" + id[1], System.out);
             } else if (commands[0].equals("xml")) {
-                String ID = getID(commands, 1);
-                int index = ID.indexOf('@');
-                if (index >= 0) {
-                    if (ID.substring(index + 1).equals(ACTION_ALL)) {
-                      WorkflowJob job = client.getJobInfo(ID.substring(0, index));
+                String[] id = getID(commands, 1);
+                if (id[1] != null) {
+                    if (id[1].equals(ACTION_ALL)) {
+                      WorkflowJob job = client.getJobInfo(id[0]);
                       for (WorkflowAction action : job.getActions()) {
                         System.out.println("---------------------- " + action.getName() + " ----------------------");
                         System.out.println(XmlUtils.prettyPrint(action.getConf()).toString());
                       }
                     } else {
-                      WorkflowAction action = client.getWorkflowActionInfo(ID);
+                      WorkflowAction action = client.getWorkflowActionInfo(id[0] + "@" + id[1]);
                       System.out.println("---------------------- " + action.getName() + " ----------------------");
                       System.out.println(XmlUtils.prettyPrint(action.getConf()).toString());
                     }
                 } else {
-                    System.out.println(XmlUtils.prettyPrint(context.getJobConf(context.getJobInfo(client, ID))));
+                    System.out.println(XmlUtils.prettyPrint(context.getJobConf(context.getJobInfo(client, id[0]))));
                 }
             } else if (commands[0].equals("data")) {
-                String ID = getID(commands, 1);
-                int index = ID.indexOf('@');
-                if (index >= 0 && !ID.substring(index + 1).equals(ACTION_ALL)) {
-                    WorkflowAction action = client.getWorkflowActionInfo(ID);
+                String[] id = getID(commands, 1);
+                if (id[1] != null && id[1].equals(ACTION_ALL)) {
+                    WorkflowAction action = client.getWorkflowActionInfo(id[0]);
                     if (action.getData() != null && !action.getData().isEmpty()) {
                         System.out.println("---------------------- " + action.getName() + " ----------------------");
                         System.out.println(action.getData());
                     }
                 } else {
-                    WorkflowJob job = client.getJobInfo(index < 0 ? ID : ID.substring(0, index));
+                    WorkflowJob job = client.getJobInfo(id[0]);
                     for (WorkflowAction action : job.getActions()) {
                         if (action.getData() != null && !action.getData().isEmpty()) {
                             System.out.println("---------------------- " + action.getName() + " ----------------------");
@@ -354,17 +353,31 @@ public class SimpleClient {
                 if (!params.all && params.jobID != null) {
                     params.appendFilter("id=" + params.jobID);
                 }
-
                 jobIDs.clear();
                 int index = 0;
                 for (Object job : context.getJobsInfo(client, params.filter, params.start, params.length)) {
-                    System.out.printf("[%1$2d] %2$s\n", index++, params.toString(job));
+                    StringBuilder pendingActions = new StringBuilder();
+                    if (job instanceof WorkflowJob) {
+                        WorkflowJob workflow = client.getJobInfo(((WorkflowJob)job).getId());
+                        for (WorkflowAction wfAction : workflow.getActions()) {
+                            if (wfAction.getStatus() == WorkflowAction.Status.START_MANUAL ||
+                                wfAction.getStatus() == WorkflowAction.Status.END_MANUAL) {
+                                if (pendingActions.length() > 0) {
+                                    pendingActions.append(',');
+                                }
+                                pendingActions.append(wfAction.getName());
+                            }
+                        }
+                    }
+                    System.out.printf("[%1$2d] %2$s\n", index++,
+                        pendingActions.length() > 0 ?
+                            params.toString(job, " pending-on[" + pendingActions + "]") :
+                            params.toString(job));
                     jobIDs.add(context.getJobId(job));
                     if (params.dumpXML) {
                         System.out.println(XmlUtils.prettyPrint(context.getJobConf(job)).toString());
                     }
                 }
-
             } else if (commands[0].equals("actions")) {
                 FilterParams params = new FilterParams(context.getActionProperties(), commands);
                 CONTEXT context = params.getContext();
@@ -379,16 +392,12 @@ public class SimpleClient {
                     }
                 }
             } else if (commands[0].equals("failed")) {
-                String targetID = getID(commands, 1);
-                if (targetID == null) {
-                    System.out.println("target id is not specified");
-                } else {
-                    Map<String, List<String>> result = client.getFailedTaskURLs(targetID);
-                    for (Map.Entry<String, List<String>> entry : result.entrySet()) {
-                        System.out.println(entry.getKey());
-                        for (String value : entry.getValue()) {
-                            System.out.println("    " + value);
-                        }
+                String[] id = getID(commands, 1);
+                Map<String, List<String>> result = client.getFailedTaskURLs(id[0] + "@" + id[1]);
+                for (Map.Entry<String, List<String>> entry : result.entrySet()) {
+                    System.out.println(entry.getKey());
+                    for (String value : entry.getValue()) {
+                        System.out.println("    " + value);
                     }
                 }
             } else if (commands[0].equals("use")) {
@@ -435,11 +444,15 @@ public class SimpleClient {
                 if (dump != null) {
                     System.out.println(dump);
                 }
-            } else if (commands[0].equals("definition")) {
-                String jobID = getJobID(commands, 1);
-                String definition = client.getJobDefinition(jobID);
+            } else if (commands[0].equals("def")) {
+                String[] id = getID(commands, 1);
+                String definition = client.getJobDefinition(id[0]);
                 if (definition != null) {
-                    System.out.println(XmlUtils.prettyPrint(definition));
+                    if (id[1] == null) {
+                        System.out.println(XmlUtils.prettyPrint(definition));
+                    } else {
+                        System.out.println(XmlUtils.prettyPrint(definition, "action", "name", id[1]));
+                    }
                 }
             } else if (commands[0].equals("url")) {
                 System.out.println(client.getOozieUrl());
@@ -484,19 +497,23 @@ public class SimpleClient {
         return jobID;
     }
 
-    private String getID(String[] commands, int start) {
+    private String[] getID(String[] commands, int start) {
         if (commands.length > start) {
-            if (isJobID(commands[start]) || isActionID(commands[start])) {
-                return commands[start];
+            if (isJobID(commands[start])) {
+                return new String[] { commands[start], null};
+            }
+            if (isActionID(commands[start])) {
+                int index = commands[start].indexOf('@');
+                return new String[] {commands[start].substring(0, index), commands[start].substring(index + 1)};
             }
             if (jobID != null) {
-                return jobID + "@" + commands[1];
+                return new String[] {jobID, commands[1]};
             }
         }
         if (jobID == null) {
             throw new IllegalArgumentException("(job/action)Id is missing");
         }
-        return jobID;
+        return new String[] {jobID, null};
     }
 
     private static Pattern JOB_ID_PATTERN = Pattern.compile("\\d{7}-\\d{15}-\\S+-\\S+-[WCB]");
@@ -599,9 +616,16 @@ public class SimpleClient {
         }
 
         private String toString(Object instance) throws Exception {
+            return toString(instance, null);
+        }
+
+        private String toString(Object instance, String append) throws Exception {
             StringBuilder builder = new StringBuilder(instance.toString());
             for (int i = 0; i < props.length;) {
                 builder.append(", ").append(props[i++]).append('=').append(((Method) props[i++]).invoke(instance));
+            }
+            if (append != null) {
+                builder.append(append);
             }
             return builder.toString();
         }

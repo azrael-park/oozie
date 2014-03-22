@@ -178,6 +178,12 @@ public class XmlUtils {
         removeComments(doc.getContent());
     }
 
+    
+    public static Element parseXml(String xmlStr) throws JDOMException {
+        return parseXml(xmlStr, null, null, null);
+    }
+
+
     /**
      * Parse a string assuming it is a valid XML document and return an JDOM Element for it.
      *
@@ -185,12 +191,40 @@ public class XmlUtils {
      * @return JDOM element for the parsed XML string.
      * @throws JDOMException thrown if an error happend while XML parsing.
      */
-    public static Element parseXml(String xmlStr) throws JDOMException {
+    public static Element parseXml(String xmlStr, String element, String attributeKey, String attributeValue)
+        throws JDOMException {
         ParamChecker.notNull(xmlStr, "xmlStr");
         try {
             SAXBuilder saxBuilder = createSAXBuilder();
             Document document = saxBuilder.build(new StringReader(xmlStr));
-            return document.getRootElement();
+            Element root = document.getRootElement();
+            if (element == null) {
+                return root;
+            }
+            Namespace ns = root.getNamespace();
+            String[] split = element.split("/");
+            for (int i = 0; i < split.length - 1; i++) {
+                List children = root.getChildren(split[i], ns);
+                if (children.size() != 1) {
+                    throw new RuntimeException("Cannot find any elements or more than two for " + element);
+                }
+            }
+            if (attributeKey == null) {
+                root = root.getChild(split[split.length - 1], ns);
+                if (root == null) {
+                    throw new RuntimeException("Cannot find elements for " + element);
+                }
+                return root;
+            }
+            List children = root.getChildren(split[split.length - 1], ns);
+            for (Object child : children) {
+                Element childElement = (Element) child;
+                Attribute attribute = childElement.getAttribute(attributeKey);
+                if (attribute != null && attributeValue.equals(attribute.getValue())) {
+                    return childElement;
+                }
+            }
+            throw new RuntimeException("Cannot find attribute " + attributeKey + "=" + attributeValue + " in " + element);
         }
         catch (IOException ex) {
             throw new RuntimeException("It should not happen, " + ex.getMessage(), ex);
@@ -296,8 +330,12 @@ public class XmlUtils {
      * @return prettyprint of the given XML string or the original string if the given string is not valid XML.
      */
     public static PrettyPrint prettyPrint(String xmlStr) {
+        return prettyPrint(xmlStr, null, null, null);
+    }
+
+    public static PrettyPrint prettyPrint(String xmlStr, String element, String attributeKey, String attributeValue) {
         try {
-            return new PrettyPrint(parseXml(xmlStr));
+            return new PrettyPrint(parseXml(xmlStr, element, attributeKey, attributeValue));
         }
         catch (Exception e) {
             return new PrettyPrint(xmlStr);
