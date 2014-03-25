@@ -59,6 +59,7 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
      * This wrapper keeps track of the priority and the age of a queue element.
      */
     public static class QueueElement<E> implements Delayed {
+
         private E element;
         private int priority;
         private long baseTime;
@@ -87,7 +88,7 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
             }
             this.element = element;
             this.priority = priority;
-            setDelay(delay, unit);
+            this.baseTime = System.currentTimeMillis() + unit.toMillis(delay);
         }
 
         /**
@@ -147,14 +148,13 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
          *         than zero if the parameter wrapper element is older.
          */
         public int compareTo(Delayed o) {
-            long diff = (getDelay(TimeUnit.MILLISECONDS) - o.getDelay(TimeUnit.MILLISECONDS));
-            if(diff > 0) {
+            long baseTime1 = ((QueueElement) o).baseTime;
+            if (baseTime > baseTime1) {
                 return 1;
-            } else if(diff < 0) {
+            } else if (baseTime < baseTime1) {
                 return -1;
-            } else {
-                return 0;
             }
+            return 0;
         }
 
         /**
@@ -175,7 +175,7 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
     /**
      * Frequency, in milliseconds, of the anti-starvation check.
      */
-    public static final long ANTI_STARVATION_INTERVAL = 500;
+    public static final long ANTI_STARVATION_INTERVAL = 2000;
 
     protected int priorities;
     protected DelayQueue<QueueElement<E>>[] queues;
@@ -514,13 +514,11 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
         int moved = 0;
         QueueElement<E> e = lowerQ.poll();
         while (e != null && e.getDelay(TimeUnit.MILLISECONDS) < -maxWait) {
-            e.setDelay(0, TimeUnit.MILLISECONDS);
-            if (!higherQ.offer(e)) {
+            QueueElement<E> d = new QueueElement<E>(e.getElement(), e.getPriority() + 1, 0, TimeUnit.MILLISECONDS);
+            if (!higherQ.offer(d)) {
                 throw new IllegalStateException("Could not move element to higher sub-queue, element rejected");
             }
-            e.priority++;
             debug("anti-starvation, moved : "+e.getClass() + " = " + (e == null ? e : e.toString()));
-            e = lowerQ.poll();
             moved++;
         }
         if (e != null) {
@@ -611,7 +609,9 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
     public QueueElement<E> take() throws InterruptedException {
         QueueElement<E> e = poll();
         while (e == null) {
-            Thread.sleep(10);
+            while (size() == 0) {
+                Thread.sleep(10);
+            }
             e = poll();
         }
         return e;
