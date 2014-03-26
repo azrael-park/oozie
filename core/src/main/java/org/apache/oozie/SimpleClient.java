@@ -165,8 +165,8 @@ public class SimpleClient {
         log { String help() { return "log <job-id|action-id|action-name(with context)> : get logs for the job/action"; } },
         data { String help() { return "data <action-id|action-name(with context)> : retrieves end data for the action"; } },
         xml { String help() { return "xml <job-id|action-id|action-name(with context)> : retrieves definition for the action"; } },
-        jobs { String help() { return "jobs [-s start] [-l length] [-c] [-p] : retrieves job list"; } },
-        actions { String help() { return "actions [-s start] [-l length] [-c] [-p] : retrieves action list"; } },
+        jobs { String help() { return "jobs [-s start] [-l length] [-c] [-p] [-status status]: retrieves job list"; } },
+        actions { String help() { return "actions [-s start] [-l length] [-c] [-p] [-status status]: retrieves action list"; } },
         use { String help() { return "use <job index> : set context job id"; } },
         failed { String help() { return "failed <job-id|action-id|action-name(with context)> : retrieves log URL for failed actions (only for monitored)"; } },
         context { String help() { return "context <job-id> : set context job id"; } },
@@ -300,7 +300,11 @@ public class SimpleClient {
                 }
             } else if (commands[0].equals("log")) {
                 String[] id = getID(commands, 1);
-                client.getLog(id[0] + "@" + id[1], System.out);
+                if (id[1] == null) {
+                    client.getLog(id[0], System.out);
+                } else {
+                    client.getLog(id[0] + "@" + id[1], System.out);
+                }
             } else if (commands[0].equals("xml")) {
                 String[] id = getID(commands, 1);
                 if (id[1] != null) {
@@ -353,6 +357,12 @@ public class SimpleClient {
                 if (!params.all && params.jobID != null) {
                     params.appendFilter("id=" + params.jobID);
                 }
+                for (int i=0 ; i <commands.length; i++) {
+                    if (commands[i].equals("-status")) {
+                        int j = i+1;
+                        params.appendFilter("status=" + commands[j]);
+                    }
+                }
                 jobIDs.clear();
                 int index = 0;
                 for (Object job : context.getJobsInfo(client, params.filter, params.start, params.length)) {
@@ -383,6 +393,12 @@ public class SimpleClient {
                 CONTEXT context = params.getContext();
                 if (!params.all && (params.jobID != null || jobID != null)) {
                     params.appendFilter("wfId=" + (params.jobID != null ? params.jobID : jobID));
+                }
+                for (int i=0 ; i <commands.length; i++) {
+                    if (commands[i].equals("-status")) {
+                        int j = i+1;
+                        params.appendFilter("status=" + commands[j]);
+                    }
                 }
                 List actions = context.getActionsInfo(client, params.filter, params.start, params.length);
                 for (Object action : actions) {
