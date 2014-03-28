@@ -1858,6 +1858,21 @@ public class OozieClient {
                 if (uniqueDumpArray.size() == 0) {
                     list.add("Uniqueness dump is null!");
                 }
+
+                list.add("******************************************");
+                list.add("[Server queryQueue Dump]:");
+
+                JSONArray queryDumpArray = (JSONArray) json.get(JsonTags.QUERY_MAP_DUMP);
+                for (Object o : queryDumpArray) {
+                    JSONObject entry = (JSONObject) o;
+                    if (entry.get(JsonTags.QUERY_ENTRY_DUMP) != null) {
+                        String value = (String) entry.get(JsonTags.QUERY_ENTRY_DUMP);
+                        list.add(value);
+                    }
+                }
+                if (queryDumpArray.size() == 0) {
+                    list.add("queryQueue dump is null!");
+                }
                 return list;
             }
             else {

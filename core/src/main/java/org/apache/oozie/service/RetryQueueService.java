@@ -23,6 +23,8 @@ public class RetryQueueService implements Service {
     
     public static final String CONF_RETRY_ENABLED = CONF_PREFIX + "enabled";
     public static final String CONF_RETRY_EXECUTOR = CONF_PREFIX + "executor";
+
+    private boolean isDestroying = false;
     
     @Override
     public void init(Services services) throws ServiceException {
@@ -37,6 +39,7 @@ public class RetryQueueService implements Service {
     
     @Override
     public void destroy() {
+        isDestroying = true;
         try {
             if (w != null) {
                 w.interruptNow();
@@ -82,7 +85,9 @@ public class RetryQueueService implements Service {
             try {
                 callable.call();
             } catch (Exception e) {
-                LOG.info("Error , ", e);
+                if (!isDestroying) {
+                    LOG.info("Error , ", e);
+                }
             }
         }
     }

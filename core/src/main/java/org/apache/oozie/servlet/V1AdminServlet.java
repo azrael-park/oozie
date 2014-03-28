@@ -38,6 +38,7 @@ import org.apache.oozie.jms.JMSConnectionInfo;
 import org.apache.oozie.jms.JMSJobEventListener;
 import org.apache.oozie.service.CallableQueueService;
 import org.apache.oozie.service.JMSTopicService;
+import org.apache.oozie.service.QueryExecutorService;
 import org.apache.oozie.service.Services;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -146,6 +147,15 @@ public class V1AdminServlet extends BaseAdminServlet {
             uniqueDumpArray.add(jObject);
         }
         json.put(JsonTags.UNIQUE_MAP_DUMP, uniqueDumpArray);
+
+        List<String> queryDumpList = Services.get().get(QueryExecutorService.class).getQueueDump();
+        JSONArray queryDumpArray = new JSONArray();
+        for (String str: queryDumpList) {
+            JSONObject jObject = new JSONObject();
+            jObject.put(JsonTags.QUERY_ENTRY_DUMP, str);
+            queryDumpArray.add(jObject);
+        }
+        json.put(JsonTags.QUERY_MAP_DUMP, queryDumpArray);
     }
 
     @Override
