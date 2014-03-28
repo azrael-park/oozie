@@ -72,7 +72,8 @@
         <value>
             org.apache.oozie.service.HiveAccessService,
             org.apache.oozie.service.JobRecoveryService,
-            org.apache.oozie.service.RetryQueueService
+            org.apache.oozie.service.RetryQueueService,
+            org.apache.oozie.service.QueryExecutorService
         </value>
         <description>
             To add/replace services defined in 'oozie.services' with custom implementations.

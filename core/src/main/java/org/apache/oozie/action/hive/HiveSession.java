@@ -13,6 +13,7 @@ import org.apache.oozie.service.CallableQueueService;
 import org.apache.oozie.service.CallbackService;
 import org.apache.oozie.service.HiveAccessService;
 import org.apache.oozie.service.JobsConcurrencyService;
+import org.apache.oozie.service.QueryExecutorService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.XLog;
 import org.hsqldb.lib.StringUtil;
@@ -69,9 +70,10 @@ public class HiveSession extends HiveStatus {
             LOG.debug("enqueuing work {0}", executor.order());
         }
         CallableQueueService executors = Services.get().get(CallableQueueService.class);
+        QueryExecutorService queryExecutor = Services.get().get(QueryExecutorService.class);
         if (executor.ex == null && hasMore()) {
             resetTimer();
-            executors.queue(executor.configure(context, action, index++));
+            queryExecutor.queue(executor.configure(context, action, index++));
         } else {
             executors.queue(new ActionCheckXCommand(actionID));
         }

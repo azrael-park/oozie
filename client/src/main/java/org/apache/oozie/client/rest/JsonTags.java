@@ -32,6 +32,8 @@ public interface JsonTags {
     public static final String CALLABLE_DUMP = "callableDump";
     public static final String UNIQUE_MAP_DUMP = "uniqueMapDump";
     public static final String UNIQUE_ENTRY_DUMP = "uniqueEntryDump";
+    public static final String QUERY_MAP_DUMP = "queryMapDump";
+    public static final String QUERY_ENTRY_DUMP = "queryEntryDump";
 
     public static final String JOB_ID = "id";
 
