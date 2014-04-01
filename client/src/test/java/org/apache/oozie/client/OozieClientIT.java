@@ -1131,7 +1131,8 @@ public class OozieClientIT {
             LOG.info("action status : " + action.getStatus().toString());
             
             String log = getClient().getLog(action.getId());
-            LOG.info("action log >>>>>>>>>> \n" + log + "\n >>>>>>>>>>");
+            LOG.info("action log >>>>>>>>>> \n" + log + "\n >>>>>>>>>> \n");
+            LOG.info("update queries >>> " );
             
             // update query and resume action
             String newQuery = "SHOW\nTABLES;\n SHOW DATABASES;";
