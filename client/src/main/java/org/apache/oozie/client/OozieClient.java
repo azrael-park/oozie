@@ -697,6 +697,32 @@ public class OozieClient {
         }
     }
 
+    private class ActionUpdate extends ClientCallable<Void> {
+
+        private final Properties conf;
+
+        ActionUpdate(String actionId, Map<String,String> param) {
+            super("PUT", RestConstants.ACTION, notEmpty(actionId, "actionId"), prepareParams(RestConstants.ACTION_PARAM,
+                    RestConstants.ACTION_UPDATE));
+            Properties paramConf = new Properties();
+            paramConf.putAll(param);
+            this.conf = notNull(paramConf, "conf");
+        }
+
+        @Override
+        protected Void call(HttpURLConnection conn) throws IOException, OozieClientException {
+            conn.setRequestProperty("content-type", RestConstants.XML_CONTENT_TYPE);
+            writeToXml(conf, conn.getOutputStream());
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_CREATED) {
+                JSONObject json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            }
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                handleError(conn);
+            }
+            return null;
+        }
+    }
+
     /**
      * Suspend a workflow job.action.
      *
@@ -732,11 +758,7 @@ public class OozieClient {
      * @throws OozieClientException thrown if the job could not be resume.
      */
     public void update(String actionId, Map<String, String> updates) throws OozieClientException {
-        ActionAction action = new ActionAction(actionId, RestConstants.ACTION_UPDATE);
-        for (Map.Entry<String, String> entry : updates.entrySet()) {
-            action.addParams(entry.getKey(), entry.getValue());
-        }
-        action.call();
+        new ActionUpdate(actionId, updates).call();
     }
 
     /**
