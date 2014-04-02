@@ -504,4 +504,11 @@
         </description>
     </property>
 
+    <property>
+        <name>oozie.action.max.output.data</name>
+        <value>32768</value>
+        <description>
+        </description>
+    </property>
+
 </configuration>

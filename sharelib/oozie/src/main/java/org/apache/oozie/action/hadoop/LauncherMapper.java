@@ -54,7 +54,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
 
     public static final String CONF_OOZIE_ACTION_MAX_OUTPUT_DATA = "oozie.action.max.output.data";
 
-    private static final int DEFAULT_ACTION_MAX_OUTPUT_DATA = 1024 << 5;
+    public static final int DEFAULT_ACTION_MAX_OUTPUT_DATA = 1024 << 5;
 
     static final String CONF_OOZIE_ACTION_MAIN_ARG_COUNT = "oozie.action.main.arg.count";
     static final String CONF_OOZIE_ACTION_MAIN_ARG_PREFIX = "oozie.action.main.arg.";
