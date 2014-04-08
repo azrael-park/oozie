@@ -25,8 +25,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.oozie.ErrorCode;
+import org.apache.oozie.WorkflowActionBean;
+import org.apache.oozie.action.hive.HiveActionExecutor;
 import org.apache.oozie.util.Instrumentable;
 import org.apache.oozie.util.Instrumentation;
+import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.ZKUtils;
 
 /**
@@ -40,6 +43,8 @@ import org.apache.oozie.util.ZKUtils;
  * otherwise.  We can assign jobs to servers by doing a mod of the jobs' id and the number of servers.
  */
 public class ZKJobsConcurrencyService extends JobsConcurrencyService implements Service, Instrumentable {
+
+    private final XLog LOG = XLog.getLog(ZKJobsConcurrencyService.class);
 
     private ZKUtils zk;
 
@@ -131,6 +136,46 @@ public class ZKJobsConcurrencyService extends JobsConcurrencyService implements 
             }
         }
         return filteredIds;
+    }
+
+    @Override
+    public List<String> getActionIdsForThisServer(List<WorkflowActionBean> actions) {
+        List<String> filteredIds = new ArrayList<String>();
+        List<String> remainIds = new ArrayList<String>();
+        Map<String,String> servers = getServerUrls();
+        for (WorkflowActionBean actionBean: actions) {
+            LOG.debug("getActionIdsForThisServer : wfId[{0}] actionName[{1}] oozieId[{2}] ", actionBean.getWfId()
+                    , actionBean.getName(), actionBean.getOozieId());
+            if (isActionForThisServer(actionBean)) {
+                filteredIds.add(actionBean.getId());
+            } else {
+                if (actionBean.getType().equals(HiveActionExecutor.ACTION_TYPE) && !servers.containsKey(actionBean.getOozieId())) {
+                    remainIds.add(actionBean.getId());
+                }
+            }
+        }
+
+        LOG.debug("filterted actionIds [{0}] : [{1}] ", zk.getZKId(), filteredIds.toString());
+        LOG.debug("remainIds actionIds [{0}] : [{1}] ", zk.getZKId(), remainIds.toString());
+
+        if (isFirstServer()) {
+            filteredIds.addAll(remainIds);
+            LOG.debug("FIRST-SERVER : filterted actionIds [{0}] : [{1}] ", zk.getZKId(), filteredIds.toString());
+        }
+        return filteredIds;
+    }
+
+    @Override
+    public boolean isActionForThisServer(WorkflowActionBean actionBean) {
+        if (!actionBean.getType().equals(HiveActionExecutor.ACTION_TYPE)) {
+            return isJobIdForThisServer(actionBean.getJobId());
+        }
+        String zkId = zk.getZKId();
+        return actionBean.getOozieId() !=null && actionBean.getOozieId().equals(zkId);
+    }
+
+    public boolean isAlive(String zkId) {
+        return getServerUrls().containsKey(zkId);
     }
 
     /**

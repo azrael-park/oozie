@@ -5,13 +5,17 @@ import org.apache.hadoop.hive.ql.plan.api.Query;
 import org.apache.hadoop.hive.ql.plan.api.Stage;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
 import org.apache.oozie.HiveQueryStatusBean;
+import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.command.wf.ActionCheckXCommand;
 import org.apache.oozie.service.CallableQueueService;
+import org.apache.oozie.service.CallbackService;
 import org.apache.oozie.service.HiveAccessService;
+import org.apache.oozie.service.JobsConcurrencyService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.XLog;
+import org.hsqldb.lib.StringUtil;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -226,8 +230,17 @@ public class HiveSession extends HiveStatus {
                     containsMR |= mapreduce;
                 }
                 if (containsMR) {
-                    String callback = context.getCallbackUrl("$jobStatus") +
-                            "jobId=$jobId&stageId=$stageId&queryId=" + plan.getQueryId();
+                    String baseCallbackUrl = Services.get().get(JobsConcurrencyService.class).getServerUrls().get((
+                            (WorkflowActionBean)action).getOozieId());
+                    String callback = "";
+                    if (StringUtil.isEmpty(baseCallbackUrl)) {
+                        callback = context.getCallbackUrl("$jobStatus") +
+                                "jobId=$jobId&stageId=$stageId&queryId=" + plan.getQueryId();
+                    }
+                    else {
+                        callback = Services.get().get(CallbackService.class).createCallBackUrl(baseCallbackUrl, action.getId(),
+                                "$jobStatus") + "jobId=$jobId&stageId=$stageId&queryId=" + plan.getQueryId();
+                    }
                     LOG.debug("Oozie callback handler = " + callback);
                     client.executeTransient("set hiveconf:task.notification.url=" + callback);
                 }

@@ -569,4 +569,12 @@
         </description>
     </property>
 
+    <property>
+        <name>oozie.action.hive.session.fail.retry</name>
+        <value>false</value>
+        <description>
+            If true, retry the hive action when the hive session is disconnected with HA environment.
+        </description>
+    </property>
+
 </configuration>

@@ -52,7 +52,7 @@ import org.apache.openjpa.persistence.jdbc.Index;
 @Entity
 @NamedQueries({
 
-    @NamedQuery(name = "UPDATE_ACTION", query = "update WorkflowActionBean a set a.conf = :conf, a.consoleUrl = :consoleUrl, a.data = :data, a.stats = :stats, a.externalChildIDs = :externalChildIDs, a.errorCode = :errorCode, a.errorMessage = :errorMessage, a.externalId = :externalId, a.externalStatus = :externalStatus, a.name = :name, a.cred = :cred , a.retries = :retries, a.trackerUri = :trackerUri, a.transition = :transition, a.type = :type, a.endTimestamp = :endTime, a.executionPath = :executionPath, a.lastCheckTimestamp = :lastCheckTime, a.logToken = :logToken, a.pending = :pending, a.pendingAgeTimestamp = :pendingAge, a.signalValue = :signalValue, a.slaXml = :slaXml, a.startTimestamp = :startTime, a.status = :status, a.wfId=:wfId where a.id = :id"),
+    @NamedQuery(name = "UPDATE_ACTION", query = "update WorkflowActionBean a set a.conf = :conf, a.consoleUrl = :consoleUrl, a.data = :data, a.stats = :stats, a.externalChildIDs = :externalChildIDs, a.errorCode = :errorCode, a.errorMessage = :errorMessage, a.externalId = :externalId, a.externalStatus = :externalStatus, a.name = :name, a.cred = :cred , a.retries = :retries, a.trackerUri = :trackerUri, a.transition = :transition, a.type = :type, a.endTimestamp = :endTime, a.executionPath = :executionPath, a.lastCheckTimestamp = :lastCheckTime, a.logToken = :logToken, a.pending = :pending, a.pendingAgeTimestamp = :pendingAge, a.signalValue = :signalValue, a.slaXml = :slaXml, a.startTimestamp = :startTime, a.status = :status, a.wfId=:wfId, a.oozieId = :oozieId where a.id = :id"),
 
     @NamedQuery(name = "DELETE_ACTION", query = "delete from WorkflowActionBean a where a.id = :id"),
 
@@ -132,6 +132,10 @@ public class WorkflowActionBean extends JsonWorkflowAction implements Writable {
     @Lob
     private String slaXml = null;
 
+    @Basic
+    @Column(name = "oozie_id", length = 1024)
+    private String oozieId = null;
+
     /**
      * Default constructor.
      */
@@ -175,6 +179,7 @@ public class WorkflowActionBean extends JsonWorkflowAction implements Writable {
         dataOutput.writeInt(getUserRetryCount());
         dataOutput.writeInt(getUserRetryInterval());
         dataOutput.writeInt(getUserRetryMax());
+        WritableUtils.writeStr(dataOutput, oozieId);
     }
 
     /**
@@ -225,6 +230,7 @@ public class WorkflowActionBean extends JsonWorkflowAction implements Writable {
         setUserRetryCount(dataInput.readInt());
         setUserRetryInterval(dataInput.readInt());
         setUserRetryMax(dataInput.readInt());
+        oozieId = WritableUtils.readStr(dataInput);
     }
 
     /**
@@ -528,6 +534,14 @@ public class WorkflowActionBean extends JsonWorkflowAction implements Writable {
         this.executionPath = executionPath;
     }
 
+    public String getOozieId() {
+        return oozieId;
+    }
+
+    public void setOozieId(String oozieId) {
+        this.oozieId = oozieId;
+    }
+
     /**
      * Return the signal value for the action. <p/> For decision nodes it is the choosen transition, for actions it is
      * OK or ERROR.
@@ -717,6 +731,7 @@ public class WorkflowActionBean extends JsonWorkflowAction implements Writable {
                 action.setUserRetryInterval(a.getUserRetryInterval());
                 action.setUserRetryMax(a.getUserRetryMax());
             }
+            action.setOozieId(a.getOozieId());
             return action;
         }
         return null;

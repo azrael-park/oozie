@@ -20,6 +20,7 @@ package org.apache.oozie.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.test.ZKXTestCase;
 import org.apache.oozie.util.ConfigUtils;
 import org.apache.oozie.util.ZKUtils;
@@ -178,6 +179,110 @@ public class TestZKJobsConcurrencyService extends ZKXTestCase {
             assertEquals(5, ids2.size());
             assertTrue(ids2.containsAll(ids3));
             dummyOozie2.teardown();
+            ids2 = zkjcs.getJobIdsForThisServer(ids);
+            assertEquals(8, ids2.size());
+            assertTrue(ids2.containsAll(ids));
+        }
+        finally {
+            zkjcs.destroy();
+            if (dummyOozie != null) {
+                dummyOozie.teardown();
+            }
+            if (dummyOozie2 != null) {
+                dummyOozie2.teardown();
+            }
+        }
+    }
+
+    public void testGetJobIdsForThisServer2() throws Exception{
+        ZKJobsConcurrencyService zkjcs = new ZKJobsConcurrencyService();
+        // We'll use some DummyZKXOozies here to pretend to be other Oozie servers that will influence getJobIdsForThisServer()
+        // once they are running in that the indecies of the job ids will cause each job id to belong to different Oozie "servers"
+        DummyZKOozie dummyOozie = null;
+        DummyZKOozie dummyOozie2 = null;
+        try {
+            List<WorkflowActionBean> actions = new ArrayList<WorkflowActionBean>();
+            WorkflowActionBean bean1 = new WorkflowActionBean();
+            bean1.setJobId("0000000-130521183438837-oozie-rkan-W");
+            bean1.setOozieId("1234");
+            actions.add(bean1);
+            bean1 = new WorkflowActionBean();
+            bean1.setJobId("0000001-130521183438837-oozie-rkan-W");
+            bean1.setOozieId("1234");
+            actions.add(bean1);
+            bean1 = new WorkflowActionBean();
+            bean1.setJobId("0000002-130521183438837-oozie-rkan-W");
+            bean1.setOozieId("1234");
+            actions.add(bean1);
+            bean1 = new WorkflowActionBean();
+            bean1.setJobId("0000003-130521183438837-oozie-rkan-W");
+            bean1.setOozieId("1234");
+            actions.add(bean1);
+            bean1 = new WorkflowActionBean();
+            bean1.setJobId("0000004-130521183438837-oozie-rkan-W");
+            bean1.setOozieId("1234");
+            actions.add(bean1);
+            bean1 = new WorkflowActionBean();
+            bean1.setJobId("0000005-130521183438837-oozie-rkan-W");
+            bean1.setOozieId("1234");
+            actions.add(bean1);
+            bean1 = new WorkflowActionBean();
+            bean1.setJobId("0000006-130521183438837-oozie-rkan-W");
+            bean1.setOozieId("1234");
+            actions.add(bean1);
+            bean1 = new WorkflowActionBean();
+            bean1.setJobId("blah");
+            bean1.setOozieId("1234");
+            actions.add(bean1);
+
+
+            List<String> ids = new ArrayList<String>();
+            ids.add("0000000-130521183438837-oozie-rkan-W");
+            ids.add("0000001-130521183438837-oozie-rkan-W");
+            ids.add("0000002-130521183438837-oozie-rkan-W");
+            ids.add("0000003-130521183438837-oozie-rkan-W");
+            ids.add("0000004-130521183438837-oozie-rkan-W");
+            ids.add("0000005-130521183438837-oozie-rkan-W");
+            ids.add("0000006-130521183438837-oozie-rkan-W");
+            ids.add("blah");
+            dummyOozie = new DummyZKOozie("a", "http://blah");
+            zkjcs.init(Services.get());
+            for (Map.Entry<String,String> entry :zkjcs.getServerUrls().entrySet()) {
+                System.out.println(entry.getKey() +" : " + entry.getValue());
+            }
+            List<String> ids2 = zkjcs.getJobIdsForThisServer(ids);
+            List<String> ids3 = new ArrayList<String>();
+            ids3.add("0000001-130521183438837-oozie-rkan-W");
+            ids3.add("0000003-130521183438837-oozie-rkan-W");
+            ids3.add("0000005-130521183438837-oozie-rkan-W");
+            ids3.add("blah");
+            assertEquals(4, ids2.size());
+            assertTrue(ids2.containsAll(ids3));
+            dummyOozie2 = new DummyZKOozie("b", "http://blah");
+            for (Map.Entry<String,String> entry :zkjcs.getServerUrls().entrySet()) {
+                System.out.println(entry.getKey() +" : " + entry.getValue());
+            }
+            ids2 = zkjcs.getJobIdsForThisServer(ids);
+            ids3 = new ArrayList<String>();
+            ids3.add("0000001-130521183438837-oozie-rkan-W");
+            ids3.add("0000004-130521183438837-oozie-rkan-W");
+            ids3.add("blah");
+            assertEquals(3, ids2.size());
+            assertTrue(ids2.containsAll(ids3));
+            dummyOozie.teardown();
+            ids2 = zkjcs.getJobIdsForThisServer(ids);
+            ids3 = new ArrayList<String>();
+            ids3.add("0000000-130521183438837-oozie-rkan-W");
+            ids3.add("0000002-130521183438837-oozie-rkan-W");
+            ids3.add("0000004-130521183438837-oozie-rkan-W");
+            ids3.add("0000006-130521183438837-oozie-rkan-W");
+            ids3.add("blah");
+            assertEquals(5, ids2.size());
+            assertTrue(ids2.containsAll(ids3));
+            dummyOozie2.teardown();
+            for (Map.Entry<String,String> entry :zkjcs.getServerUrls().entrySet()) {
+                System.out.println(entry.getKey() +" : " + entry.getValue());
+            }
             ids2 = zkjcs.getJobIdsForThisServer(ids);
             assertEquals(8, ids2.size());
             assertTrue(ids2.containsAll(ids));
