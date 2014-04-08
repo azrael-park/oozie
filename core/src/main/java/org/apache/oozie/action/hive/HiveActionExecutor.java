@@ -12,6 +12,7 @@ import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.wf.ActionKillXCommand;
+import org.apache.oozie.command.wf.ActionStartXCommand;
 import org.apache.oozie.executor.jpa.HiveStatusDeleteJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.CallableQueueService;
@@ -20,6 +21,7 @@ import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.HiveAccessService;
 import org.apache.oozie.service.JPAService;
+import org.apache.oozie.service.JobsConcurrencyService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.XConfiguration;
@@ -201,9 +203,16 @@ public class HiveActionExecutor extends ActionExecutor {
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveStatus status = service.peekRunningStatus(action.getId());
         if (status == null) {
-            LOG.info("Can not find HiveSession");
-            context.setExecutionData("FAILED", null);
-            throw convertException(new IllegalArgumentException("No Running HiveSession"));
+            WorkflowActionBean actionBean = (WorkflowActionBean) action;
+            boolean isServerAlive = Services.get().get(JobsConcurrencyService.class).isAlive(actionBean.getOozieId());
+            LOG.info("No Running HiveSession: isAlive[{0}] {1}", actionBean.getOozieId(), isServerAlive);
+            if (Services.get().getConf().getBoolean("oozie.action.hive.session.fail.retry", false)) {
+                retry(actionBean);
+            }
+            else {
+                context.setExecutionData("FAILED", null);
+                throw convertException(new IllegalArgumentException("No Running HiveSession"));
+            }
         }
         if (status instanceof HiveSession) {
             try {
@@ -248,7 +257,7 @@ public class HiveActionExecutor extends ActionExecutor {
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveStatus session = service.peekRunningStatus(actionID);
         if (session == null) {
-            LOG.info("Action callback arrived for not existing action");
+            LOG.info("Action callback arrived for No Running HiveSession");
         } else {
             String queryId = actionData.getProperty("queryId");
             String stageId = actionData.getProperty("stageId");
@@ -256,5 +265,24 @@ public class HiveActionExecutor extends ActionExecutor {
             session.callback(queryId, stageId, jobId, externalStatus);
         }
         return false;
+    }
+
+    private void retry(WorkflowActionBean actionBean) {
+        cancel(actionBean);
+
+        actionBean.setStatus(WorkflowAction.Status.USER_RETRY);
+
+        LOG.info("Preparing retry after 10secs: action {0}, status {1}, pending {2}", actionBean.getId(), actionBean.getStats(),
+                actionBean.getPending());
+        Services.get().get(CallableQueueService.class).queue(new ActionStartXCommand(actionBean.getId(), actionBean.getType())
+                , 10000);
+    }
+
+    /**
+     * Cancel hive action: shutdown hivestatus.
+     */
+    private void cancel(WorkflowActionBean actionBean) {
+        HiveStatus hiveStatus = Services.get().get(HiveAccessService.class).loadRunningStatus(actionBean.getId(), true);
+        hiveStatus.shutdown(true);
     }
 }

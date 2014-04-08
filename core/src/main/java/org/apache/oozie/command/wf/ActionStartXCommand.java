@@ -44,15 +44,16 @@ import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.command.coord.CoordActionUpdateXCommand;
 import org.apache.oozie.executor.jpa.BulkUpdateInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
 import org.apache.oozie.service.EventHandlerService;
-import org.apache.oozie.service.JPAService;
+import org.apache.oozie.service.JobsConcurrencyService;
 import org.apache.oozie.service.Services;
+import org.apache.oozie.service.ZKJobsConcurrencyService;
 import org.apache.oozie.util.ELEvaluationException;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.Instrumentation;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
+import org.apache.oozie.util.ZKUtils;
 import org.apache.oozie.util.db.SLADbXOperations;
 import org.jdom.Document;
 import org.jdom.JDOMException;
@@ -112,6 +113,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
     protected Void execute() throws CommandException {
 
         LOG.info("STARTED ActionStartXCommand : status[{0}]", wfAction.getStatus());
+        configureOozieId(wfAction);
         Configuration conf = wfJob.getWorkflowInstance().getConf();
 
         int maxRetries = 0;
@@ -381,6 +383,20 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         if (wfAction.getType().equals("map-reduce")) {
             // need to delete child job id of original run
             wfAction.setExternalChildIDs("");
+        }
+    }
+
+    private void configureOozieId(WorkflowActionBean wfAction) {
+        try {
+            if (Services.get().get(JobsConcurrencyService.class) instanceof ZKJobsConcurrencyService) {
+                ZKUtils zk = ZKUtils.register(this);
+                wfAction.setOozieId(zk.getZKId());
+                zk.unregister(this);
+            } else {
+                LOG.trace("configure oozieID : No Need, Not HA");
+            }
+        } catch (Exception e) {
+            LOG.info("Fail to set oozieId", e);
         }
     }
 

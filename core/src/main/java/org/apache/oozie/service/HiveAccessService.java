@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -138,6 +139,32 @@ public class HiveAccessService implements Service {
             register(actionID, session);
         }
         return session;
+    }
+
+    public synchronized HiveStatus loadRunningStatus(String actionID, boolean loadQueryStatus) {
+        String wfId = uuid.getId(actionID);
+        String actionName = uuid.getChildName(actionID);
+        LinkedHashMap<String, Map<String, HiveQueryStatusBean>> status = new LinkedHashMap<String, Map<String,
+                HiveQueryStatusBean>>();
+        List<HiveQueryStatusBean> queryStatusBeans = new LinkedList<HiveQueryStatusBean>();
+
+        if (loadQueryStatus) {
+            try {
+                queryStatusBeans.addAll(getStatusForAction(actionID));
+            } catch (Exception e) {
+                LOG.info("Fail to load QueryStatus, actionId {0}", actionID);
+            }
+        }
+        for (HiveQueryStatusBean statusBean: queryStatusBeans) {
+            String queryId = statusBean.getQueryId();
+            Map<String, HiveQueryStatusBean> stages = status.get(queryId);
+            if (stages == null) {
+                status.put(queryId, stages = new LinkedHashMap<String, HiveQueryStatusBean>());
+            }
+            stages.put(statusBean.getStageId(), statusBean);
+        }
+        HiveStatus hiveStatus = new HiveStatus(wfId, actionName, false, status);
+        return hiveStatus;
     }
 
     private HiveStatus temporalSession(String actionID) {

@@ -81,6 +81,12 @@ public class CallbackService implements Service {
         return MessageFormat.format(CALL_BACK_QUERY_STRING, baseCallbackUrl, actionId, externalStatusVar);
     }
 
+    public String createCallBackUrl(String oozieBaseUrl, String actionId, String externalStatusVar) {
+        ParamChecker.notEmpty(actionId, "actionId");
+        ParamChecker.notEmpty(externalStatusVar, "externalStatusVar");
+        return MessageFormat.format(CALL_BACK_QUERY_STRING, oozieBaseUrl + "/callback", actionId, externalStatusVar);
+    }
+
     private String getParam(String str, String name) {
         String value = null;
         int start = str.indexOf(name);

@@ -17,9 +17,12 @@
  */
 package org.apache.oozie.service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.util.ConfigUtils;
 import org.apache.oozie.util.Instrumentable;
 import org.apache.oozie.util.Instrumentation;
@@ -101,6 +104,37 @@ public class JobsConcurrencyService implements Service, Instrumentable {
      */
     public List<String> getJobIdsForThisServer(List<String> ids) {
         return ids;
+    }
+
+    /**
+     * Filter out any action ids that should not be processed by this server.
+     * @param actions
+     * @return
+     */
+    public List<String> getActionIdsForThisServer(List<WorkflowActionBean> actions) {
+        List<String> ids = new ArrayList<String>(actions.size());
+        for (WorkflowActionBean action : actions) {
+            ids.add(action.getId());
+        }
+        return ids;
+    }
+
+    /**
+     * Check to see if actionId should be processed by this server.
+     * @param actionBean The actionId to check
+     * @return true
+     */
+    public boolean isActionForThisServer(WorkflowActionBean actionBean) {
+        return true;
+    }
+
+    /**
+     * Check to see if the given server is alive.
+     * @param zkId The zkId of server
+     * @return
+     */
+    public boolean isAlive(String zkId) {
+        return true;
     }
 
     /**

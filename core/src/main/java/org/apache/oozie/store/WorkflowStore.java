@@ -947,6 +947,7 @@ public class WorkflowStore extends Store {
             action.setUserRetryCount(a.getUserRetryCount());
             action.setUserRetryInterval(a.getUserRetryInterval());
             action.setUserRetryMax(a.getUserRetryMax());
+            action.setOozieId(a.getOozieId());
             return action;
         }
         return null;

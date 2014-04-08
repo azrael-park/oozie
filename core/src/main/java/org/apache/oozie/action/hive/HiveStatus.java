@@ -66,6 +66,16 @@ public class HiveStatus {
         this.status = new LinkedHashMap<String, Map<String, HiveQueryStatusBean>>();
     }
 
+    public HiveStatus(String wfID, String actionName, boolean monitoring, LinkedHashMap<String, Map<String,
+            HiveQueryStatusBean>> status) {
+        this.wfID = wfID;
+        this.actionID = Services.get().get(UUIDService.class).generateChildId(wfID, actionName);
+        this.actionName = actionName;
+        this.monitoring = monitoring;
+        this.jpaService = Services.get().get(JPAService.class);
+        this.status = status;
+    }
+
     public void initialize(ActionExecutor.Context context) throws Exception {
         this.configuration = JavaActionExecutor.createBaseHadoopConf(context, context.getActionXML());
         this.user = context.getWorkflow().getUser();

@@ -118,6 +118,9 @@ public class ZKUtils {
     private ZKUtils() throws Exception {
         log = XLog.getLog(getClass());
         zkId = System.getProperty(OOZIE_INSTANCE_ID);
+        if (zkId == null || zkId.equals("")) {
+            throw new IllegalArgumentException("OOZIE_INSTANCE_ID can not be null or empty");
+        }
         createClient();
         advertiseService();
         checkAndSetACLs();

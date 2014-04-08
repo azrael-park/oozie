@@ -124,7 +124,7 @@ public class ActionCheckerService implements Service {
 
             List<String> actionIds = toIds(actions);
             try {
-                actionIds = Services.get().get(JobsConcurrencyService.class).getJobIdsForThisServer(actionIds);
+                actionIds = Services.get().get(JobsConcurrencyService.class).getActionIdsForThisServer(actions);
             }
             catch (Exception ex) {
                 throw new CommandException(ErrorCode.E1700, ex.getMessage(), ex);
