@@ -181,6 +181,58 @@ public class OozieClientIT {
     }
 
     /**
+     * Test error to kill wf and kill other actions.
+     * Action a occurs error so that kill wf.
+     *
+     */
+    @Test
+    public void testErrorToKill() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            // ehco
+            String appName = "error-to-kill";
+            String appPath = baseAppPath + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+
+            uploadApps(appPath, appName, "v31");
+
+            String jobID = run(configs);
+            String status = monitorJob(jobID);
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            WorkflowAction shellAction = null;
+            WorkflowAction hiveAction = null;
+            WorkflowJob wfJob = getClient().getJobInfo(jobID);
+            List<WorkflowAction> actionList = wfJob.getActions();
+            for (WorkflowAction action : actionList) {
+                if (action.getName().equals("shell")) {
+                    shellAction = action;
+                }
+                if (action.getName().equals("hive1")) {
+                    hiveAction = action;
+                }
+            }
+            Assert.assertNotNull(shellAction);
+            Assert.assertNotNull(hiveAction);
+
+            Assert.assertEquals(WorkflowAction.Status.ERROR, shellAction.getStatus());
+            Assert.assertEquals(WorkflowAction.Status.KILLED, hiveAction.getStatus());
+            Assert.assertEquals(WorkflowJob.Status.KILLED, wfJob.getStatus());
+
+
+        } catch (Exception e) {
+            LOG.info("Fail to testShellV31", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testShellV31 \n");
+    }
+
+
+
+    /**
      * Test retry-max, retry-interval of action attribute.
      * Set auto-retry configs at oozie-site.xml.
      * The shell action included invalid command finished mr job gracefully, but isMainSuccessful is <code>false</code>.

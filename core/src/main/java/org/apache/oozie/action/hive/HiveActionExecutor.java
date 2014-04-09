@@ -241,10 +241,15 @@ public class HiveActionExecutor extends ActionExecutor {
             return;
         }
         try {
-            if (!service.actionFinished(action.getId())) {
-                // retry after 10sec
-                CallableQueueService callables = Services.get().get(CallableQueueService.class);
-                callables.queue(new ActionKillXCommand(action.getId(), action.getType()), 10000);
+            boolean finished = false;
+            int retryCount = 0;
+            while (retryCount < 3 && !(finished = service.actionFinished(action.getId()))) {
+                LOG.info("Can not finish action [{0}], retry 10 secs later", action.getId());
+                retryCount++;
+                Thread.sleep(10000);
+            }
+            if (!finished) {
+                LOG.info("Can not finish action [{0}] ", action.getId());
             }
         } catch (Exception e) {
             LOG.info("Failed to kill external jobs", e);

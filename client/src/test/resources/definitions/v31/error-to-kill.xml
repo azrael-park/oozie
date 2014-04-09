@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="fork"/>
+    <fork name="fork">
+        <path start="shell"/>
+        <path start="hive1"/>
+    </fork>
+    <action name="shell">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echott</exec>
+            <argument>workflow-test</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="join"/>
+        <error to="fail"/>
+    </action>
+    <action name="hive1">
+        <hive monitoring="true" address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>select count(*) from user_udf</query>
+            <query>select id, age from user_udf group by id, age</query>
+        </hive>
+        <ok to="join"/>
+        <error to="fail"/>
+    </action>
+    <join name="join" to="end"/>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>
