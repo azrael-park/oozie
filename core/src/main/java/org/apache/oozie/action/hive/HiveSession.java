@@ -17,8 +17,6 @@ import org.apache.oozie.service.Services;
 import org.apache.oozie.util.XLog;
 import org.hsqldb.lib.StringUtil;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,6 +56,7 @@ public class HiveSession extends HiveStatus {
     }
 
     private synchronized boolean hasMore() {
+        checkActionStatus(actionID);
         return !executor.killed && index < queries.length;
     }
 
@@ -314,6 +313,14 @@ public class HiveSession extends HiveStatus {
         @Override
         public String toString() {
             return (current+1) + "/" + queries.length;
+        }
+    }
+
+    protected void checkActionStatus(String actionId){
+        WorkflowActionBean wfAction = loadActionBean(actionId);
+        if (wfAction !=null && wfAction.getStatus() == WorkflowAction.Status.KILLED && !executor.killed) {
+            LOG.info("Action[{0}] KILLED but Executor in not killed", actionId);
+            shutdown(true);
         }
     }
 
