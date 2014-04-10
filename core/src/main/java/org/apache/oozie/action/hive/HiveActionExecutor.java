@@ -237,7 +237,11 @@ public class HiveActionExecutor extends ActionExecutor {
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveStatus session = service.peekRunningStatus(action.getId());
         if (session == null) {
-            LOG.info("failed to find hive status for " + action.getId());
+            WorkflowActionBean actionBean = (WorkflowActionBean) action;
+            boolean isActionForThisServer = Services.get().get(JobsConcurrencyService.class).isActionForThisServer(actionBean);
+            LOG.info("No Running HiveSession: oozieId [{0}] isActionForThisServer [{1}]", actionBean.getOozieId(),
+                    isActionForThisServer);
+            cancel(actionBean);
             return;
         }
         try {
@@ -289,5 +293,6 @@ public class HiveActionExecutor extends ActionExecutor {
     private void cancel(WorkflowActionBean actionBean) {
         HiveStatus hiveStatus = Services.get().get(HiveAccessService.class).loadRunningStatus(actionBean.getId(), true);
         hiveStatus.shutdown(true);
+        LOG.info("cancel action [{0}] ", actionBean.getId());
     }
 }

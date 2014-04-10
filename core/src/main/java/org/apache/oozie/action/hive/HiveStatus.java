@@ -9,9 +9,11 @@ import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapred.TaskCompletionEvent;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.oozie.HiveQueryStatusBean;
+import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.hadoop.JavaActionExecutor;
 import org.apache.oozie.executor.jpa.HiveStatusInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
 import org.apache.oozie.service.CallableQueueService;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
@@ -322,4 +324,18 @@ public class HiveStatus {
         }
         return baseUrl;
     }
+
+    protected WorkflowActionBean loadActionBean(String actionId) {
+        WorkflowActionBean wfAction = null;
+        try {
+            jpaService = Services.get().get(JPAService.class);
+            if (jpaService != null) {
+                wfAction = jpaService.execute(new WorkflowActionGetJPAExecutor(actionId));
+            }
+        } catch (Exception e) {
+            LOG.debug("Fail to loadActionBean [{0}] ", actionId);
+        }
+        return wfAction;
+    }
+
 }
