@@ -367,6 +367,7 @@ public class SimpleClient {
                 int index = 0;
                 for (Object job : context.getJobsInfo(client, params.filter, params.start, params.length)) {
                     StringBuilder pendingActions = new StringBuilder();
+                    boolean noActionStart = true;
                     if (job instanceof WorkflowJob) {
                         WorkflowJob workflow = client.getJobInfo(((WorkflowJob)job).getId());
                         for (WorkflowAction wfAction : workflow.getActions()) {
@@ -377,12 +378,19 @@ public class SimpleClient {
                                 }
                                 pendingActions.append(wfAction.getName());
                             }
+                            if (wfAction.getStatus() != WorkflowAction.Status.PREP) {
+                                noActionStart = false;
+                            }
                         }
                     }
-                    System.out.printf("[%1$2d] %2$s\n", index++,
-                        pendingActions.length() > 0 ?
-                            params.toString(job, " pending-on[" + pendingActions + "]") :
-                            params.toString(job));
+                    StringBuffer actionsStatus = new StringBuffer();
+                    if (pendingActions.length() > 0 ) {
+                        actionsStatus.append(" pending-on[" + pendingActions + "] ");
+                    }
+                    if (noActionStart) {
+                        actionsStatus.append(" no-start-action");
+                    }
+                    System.out.printf("[%1$2d] %2$s\n", index++, params.toString(job, actionsStatus.toString()));
                     jobIDs.add(context.getJobId(job));
                     if (params.dumpXML) {
                         System.out.println(XmlUtils.prettyPrint(context.getJobConf(job)).toString());
