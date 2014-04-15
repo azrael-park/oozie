@@ -1,0 +1,10 @@
+<coordinator-app name="coord-simple" frequency="${coord:minutes(1)}"
+                 start="${startTime}" end="${endTime}"
+                 timezone="Asia/Seoul"
+                 xmlns="uri:oozie:coordinator:0.1">
+    <action>
+        <workflow>
+            <app-path>hdfs://localhost:9000/user/seoeun/workflow-ndap/apps/v40/shell-outstream</app-path>
+        </workflow>
+    </action>
+</coordinator-app>
