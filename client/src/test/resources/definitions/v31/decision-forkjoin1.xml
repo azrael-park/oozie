@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="hello"/>
+
+    <action name="hello">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+            <argument>workflow-test-shell1</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="mydecision"/>
+        <error to="fail"/>
+    </action>
+
+    <decision name="mydecision">
+        <switch>
+            <case to="gt">
+                ${abc gt 10}
+            </case>
+            <case to="lt">
+                ${abc lt 100}
+            </case>
+
+            <default to="default-1"/>
+        </switch>
+    </decision>
+
+    <action name="gt">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+            <argument>abc is greater than 10</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="duplicate"/>
+        <error to="fail"/>
+    </action>
+
+    <action name="lt">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+            <argument>abc is less than 100</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="duplicate"/>
+        <error to="fail"/>
+    </action>
+
+    <action name="default-1">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+            <argument>abc is greater than 10</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="duplicate"/>
+        <error to="fail"/>
+    </action>
+
+    <action name="duplicate">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+            <argument>abc is greater than 10</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="fork"/>
+        <error to="fail"/>
+    </action>
+
+    <fork name="fork">
+        <path start="shell1"/>
+        <path start="shell2"/>
+    </fork>
+
+    <action name="shell1">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+            <argument>workflow-test-shell1</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="join"/>
+        <error to="fail"/>
+    </action>
+
+    <action name="shell2">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+            <argument>workflow-test-shell2</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="join"/>
+        <error to="fail"/>
+    </action>
+
+    <join name="join" to="end"/>
+
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+
+    <end name="end"/>
+</workflow-app>

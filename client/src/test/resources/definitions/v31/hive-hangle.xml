@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="hive-init"/>
+    <action name="hive-init">
+        <hive address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>DROP TABLE IF EXISTS hangle</query>
+            <query>
+                CREATE TABLE IF NOT EXISTS hangle (emp_no INT, file_type STRING)
+                ROW FORMAT DELIMITED
+                FIELDS TERMINATED BY '|'
+            </query>
+        </hive>
+        <ok to="hive-load"/>
+        <error to="fail"/>
+    </action>
+    <action name="hive-load">
+        <hive address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>
+                LOAD DATA LOCAL INPATH '${data_file}' OVERWRITE INTO TABLE hangle
+            </query>
+        </hive>
+        <ok to="hive-hangle"/>
+        <error to="fail"/>
+    </action>
+    <action name="hive-hangle">
+        <hive monitoring="true" address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>SELECT count(type) FROM (SELECT (CASE WHEN file_type='문서파일' then 1 ELSE 100 END) as type FROM hangle) t where
+                type=1</query>
+        </hive>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

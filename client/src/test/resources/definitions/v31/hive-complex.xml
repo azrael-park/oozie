@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="hive-init"/>
+    <action name="hive-init">
+        <hive address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>DROP TABLE IF EXISTS emp</query>
+            <query>
+                CREATE TABLE IF NOT EXISTS emp (id INT, name STRING, dept INT, salay INT)
+                ROW FORMAT DELIMITED
+                FIELDS TERMINATED BY '|'
+            </query>
+        </hive>
+        <ok to="hive-load"/>
+        <error to="fail"/>
+    </action>
+    <action name="hive-load">
+        <hive address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>
+                LOAD DATA LOCAL INPATH '${data_file}' OVERWRITE INTO TABLE emp
+            </query>
+        </hive>
+        <ok to="fork"/>
+        <error to="fail"/>
+    </action>
+    <fork name="fork">
+        <path start="hive1"/>
+        <path start="hive2"/>
+    </fork>
+    <action name="hive1">
+        <hive address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>SELECT count(id) from emp</query>
+        </hive>
+        <ok to="join"/>
+        <error to="fail"/>
+    </action>
+    <action name="hive2">
+        <hive address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>SELECT dept, count(dept) FROM emp GROUP BY dept</query>
+        </hive>
+        <ok to="join"/>
+        <error to="fail"/>
+    </action>
+    <join to="hive-final" name="join"/>
+    <action name="hive-final">
+        <hive address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>SELECT id, name FROM emp</query>
+        </hive>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

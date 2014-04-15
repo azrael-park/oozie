@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3" name="test">
+    <start to="shell-1"/>
+    <action name="shell-1">
+        <shell xmlns="uri:oozie:shell-action:0.3">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>script-outstream.sh</exec>
+            <argument></argument>
+            <file>script-outstream.sh</file>
+            <capture-output/>
+        </shell>
+        <ok to="shell-2"/>
+        <error to="fail"/>
+    </action>
+    <action name="shell-2">
+        <shell xmlns="uri:oozie:shell-action:0.3">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>script-outstream.sh</exec>
+            <argument></argument>
+            <file>script-outstream.sh</file>
+            <capture-output/>
+        </shell>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>
