@@ -6,19 +6,23 @@
             <job-tracker>${jobTracker}</job-tracker>
             <name-node>${nameNode}</name-node>
             <prepare>
-                <delete path="${jobOutput}"/>
+                <delete path="/user/qaerica/cdr_ora11g"/>
             </prepare>
             <arg>import</arg>
             <arg>--connect</arg>
-            <arg>jdbc:mysql://localhost/oozie_n40</arg>
+            <arg>jdbc:oracle:thin:@14.63.226.231:1521:Ora11g</arg>
             <arg>--username</arg>
-            <arg>root</arg>
+            <arg>NDAP</arg>
             <arg>--password</arg>
             <arg>ndap</arg>
             <arg>--table</arg>
-            <arg>${import_source_table}</arg>
+            <arg>NDAP.CDR_ORA11G</arg>
             <arg>--target-dir</arg>
-            <arg>${hive_table_dir}</arg>
+            <arg>/user/qaerica/cdr_ora11g</arg>
+            <arg>--hive-import</arg>
+            <arg>--hive-table</arg>
+            <arg>cdr_ora11g</arg>
+            <arg>--verbose</arg>
             <arg>-m</arg>
             <arg>1</arg>
         </sqoop>

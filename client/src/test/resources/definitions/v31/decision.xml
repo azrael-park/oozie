@@ -8,7 +8,7 @@
                 ${abc gt 10}
             </case>
             <case to="lt">
-                ${abc lt 100}
+                ${abc lt 10}
             </case>
 
             <default to="end"/>

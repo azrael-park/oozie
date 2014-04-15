@@ -4,17 +4,56 @@
     <action name="hdfscommands">
         <fs>
             <name-node>${nameNode}</name-node>
-            <delete path="${nameNode}/tmp2" />
-            <mkdir path='${nameNode}/child'/>
-            <mkdir path="${nameNode}/child/child2"/>
-            <mkdir path="${nameNode}/child/child2/child3"/>
-            <mkdir path='${nameNode}/tmp2'/>
-            <mkdir path='${nameNode}/tmp3'/>
-            <move source='${nameNode}/child' target='${nameNode}/tmp2'/>
-            <chmod path='${nameNode}/tmp2/child' permissions='-rwx-----x'/>
-            <chmod path='${nameNode}/tmp2' permissions='-rwxrwx---' dir-files='false'/>
-            <chown path="${nameNode}/tmp2/child" user="hello" group="oozie"/>
-            <chown path="${nameNode}/tmp2/child/child2" user="azrael" group="oozie"><recursive/></chown>
+            <delete path="${nameNode}/tmp/tmp2" />
+            <mkdir path='${nameNode}/tmp/child'/>
+            <mkdir path="${nameNode}/tmp/child/child2"/>
+            <mkdir path="${nameNode}/tmp/child/child2/child3"/>
+            <mkdir path='${nameNode}/tmp/tmp2'/>
+            <mkdir path='${nameNode}/tmp/tmp3'/>
+            <move source='${nameNode}/tmp/child' target='${nameNode}/tmp/tmp2'/>
+            <chmod path='${nameNode}/tmp/tmp2/child' permissions='-rwx-----x'/>
+            <chmod path='${nameNode}/tmp/tmp2' permissions='-rwxrwx---' dir-files='false'/>
+        </fs>
+        <ok to="mydecision"/>
+        <error to="fail"/>
+    </action>
+    <decision name="mydecision">
+        <switch>
+            <case to="user">
+                ${abc == "user"}
+            </case>
+            <case to="superuser">
+                ${abc == "superuser"}
+            </case>
+
+            <default to="end"/>
+        </switch>
+    </decision>
+
+    <action name="user">
+        <fs>
+            <name-node>${nameNode}</name-node>
+            <chown path="${nameNode}/tmp/tmp2/child" user="hello" group="oozie"/>
+            <chown path="${nameNode}/tmp/tmp2/child/child2" user="azrael" group="oozie"><recursive/></chown>
+        </fs>
+        <ok to="clear"/>
+        <error to="fail"/>
+    </action>
+    <action name="superuser">
+        <fs>
+            <name-node>${nameNode}</name-node>
+            <chown path="${nameNode}/tmp/tmp2/child" user="hello" group="oozie"/>
+            <chown path="${nameNode}/tmp/tmp2/child/child2" user="azrael" group="oozie"><recursive/></chown>
+        </fs>
+        <ok to="clear"/>
+        <error to="fail"/>
+    </action>
+    <action name="clear">
+        <fs>
+            <name-node>${nameNode}</name-node>
+            <delete path="${nameNode}/tmp/tmp2" />
+            <delete path="${nameNode}/tmp/tmp3" />
+            <delete path="${nameNode}/tmp/child" />
         </fs>
         <ok to="end"/>
         <error to="fail"/>
