@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="hive-multi"/>
+    <action name="hive-multi">
+        <hive monitoring="true" address="${hiveServer}">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <query>select count(*) from user_udf</query>
+            <query>select id, sex from user_udf group by id, sex</query>
+            <query>select id, age from user_udf group by id, age</query>
+            <query>select count(*) from user_udf</query>
+        </hive>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

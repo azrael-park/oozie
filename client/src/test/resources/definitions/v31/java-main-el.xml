@@ -14,6 +14,14 @@
                     <name>ndap.action.r.callbackUrl</name>
                     <value>${wf:callback("$jobStatus")}jobId=$jobId&amp;stageId=$stageId&amp;queryId=$queryId&amp;monitoring=true</value>
                 </property>
+                <property>
+                    <name>oozie.wf.workflow.notification.url</name>
+                    <value>http://ryan.han:8080/api/OozieJob/notifyJobStatus?jobId=$jobId&amp;status=$status</value>
+                </property>
+                <property>
+                    <name>ndapActionErrorNotificationUrl</name>
+                    <value>http://qa1:8080/api//OozieJob/error?jobId=$jobId&amp;actionName=$actionName&amp;errorCode=$errorCode</value>
+                </property>
             </configuration>
             <main-class>org.apache.oozie.client.JavaMainTest</main-class>
             <arg>epho</arg>

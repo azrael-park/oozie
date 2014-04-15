@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="sqoop-import"/>
+    <action name="sqoop-import">
+        <sqoop>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <prepare>
+                <delete path="${jobOutput}"/>
+            </prepare>
+            <arg>import</arg>
+            <arg>--connect</arg>
+            <arg>jdbc:mysql://localhost/oozie_n40</arg>
+            <arg>--username</arg>
+            <arg>root</arg>
+            <arg>--password</arg>
+            <arg>ndap</arg>
+            <arg>--table</arg>
+            <arg>${import_source_table}</arg>
+            <arg>--target-dir</arg>
+            <arg>${hive_table_dir}</arg>
+            <arg>--hive-import</arg>
+            <arg>--hive-table</arg>
+            <arg>sqoop_hive</arg>
+            <arg>--verbose</arg>
+            <arg>--hive-home</arg>
+            <arg>/Users/seoeun/libs/hive</arg>
+            <arg>-m</arg>
+            <arg>1</arg>
+        </sqoop>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

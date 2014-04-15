@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workflow-app xmlns="uri:oozie:workflow:0.3" name="test">
-    <start to="shell"/>
-    <action name="shell">
+    <start to="shell-v40"/>
+    <action name="shell-v40">
         <shell xmlns="uri:oozie:shell-action:0.1">
             <job-tracker>${jobTracker}</job-tracker>
             <name-node>${nameNode}</name-node>
