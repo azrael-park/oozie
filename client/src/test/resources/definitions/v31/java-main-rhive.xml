@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="java1"/>
+    <action name="java1" retry-max="0" retry-interval="1">
+        <java>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <configuration>
+                <property>
+                    <name>command</name>
+                    <value>echo</value>
+                </property>
+                <property>
+                    <name>ndap.action.r.callbackUrl</name>
+                    <value>${wf:callback("$jobStatus")}jobId=$jobId&amp;stageId=$stageId&amp;queryId=$queryId&amp;monitoring=true</value>
+                </property>
+            </configuration>
+            <main-class>org.apache.oozie.client.JavaMainTest</main-class>
+            <arg>epho</arg>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </java>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

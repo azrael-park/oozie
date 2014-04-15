@@ -1,0 +1,42 @@
+<coordinator-app name="coord-fs-delete" frequency="${coord:minutes(1)}"
+                 start="${startTime}" end="${endTime}"
+                 timezone="Asia/Seoul"
+                 xmlns="uri:oozie:coordinator:0.2">
+    <datasets>
+        <dataset name="log" frequency="${coord:minutes(1)}"
+                 initial-instance="${startTime}" timezone="UTC">
+            <uri-template>hdfs://localhost:9000/user/test/${YEAR}/${MONTH}/${DAY}</uri-template>
+            <done-flag></done-flag>
+        </dataset>
+        <dataset name="access" frequency="${coord:minutes(1)}"
+                 initial-instance="${startTime}" timezone="UTC">
+            <uri-template>hdfs://localhost:9000/user/test/${YEAR}/${MONTH}/${DAY}/${HOUR}/${MINUTE}</uri-template>
+            <done-flag></done-flag>
+        </dataset>
+    </datasets>
+    <input-events>
+        <data-in name="input" dataset="log">
+            <instance>${coord:current(0)}</instance>
+        </data-in>
+    </input-events>
+    <output-events>
+        <data-out name="output" dataset="access">
+            <instance>${coord:current(- coord:tzOffset())}</instance>
+        </data-out>
+    </output-events>
+    <action>
+        <workflow>
+            <app-path>${wfDeleteAppPath}</app-path>
+            <configuration>
+                <property>
+                    <name>deletePath</name>
+                    <value>${coord:dataOut('output')}/access</value>
+                </property>
+                <property>
+                    <name>input-log</name>
+                    <value>${coord:dataIn('input')}</value>
+                </property>
+            </configuration>
+        </workflow>
+    </action>
+</coordinator-app>

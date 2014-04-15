@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.4" name="test">
+    <start to="hive-init"/>
+    <action name="hive-init">
+        <hive2 xmlns='uri:oozie:hive2-action:0.1'>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <configuration>
+                <property>
+                    <name>javax.jdo.option.ConnectionURL</name>
+                    <value>jdbc:mysql://localhost/hive_metastore_1</value>
+                </property>
+                <property>
+                    <name>javax.jdo.option.ConnectionDriverName</name>
+                    <value>com.mysql.jdbc.Driver</value>
+                </property>
+                <property>
+                    <name>javax.jdo.option.ConnectionUserName</name>
+                    <value>root</value>
+                </property>
+                <property>
+                    <name>javax.jdo.option.ConnectionPassword</name>
+                    <value>ndap</value>
+                </property>
+                <property>
+                    <name>oozie.hive.log.level</name>
+                    <value>DEBUG</value>
+                </property>
+            </configuration>
+            <jdbc-url>jdbc:hive2://seair.nexr.com:10000</jdbc-url>
+            <password>seoeun</password>
+            <script>hive-query.q</script>
+        </hive2>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

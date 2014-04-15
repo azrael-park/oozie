@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.4" name="test">
+    <start to="hdfscommands"/>
+    <action name="hdfscommands">
+        <fs>
+            <name-node>${nameNode}</name-node>
+            <delete path="${nameNode}/tmp2" />
+            <mkdir path='${nameNode}/child'/>
+            <mkdir path="${nameNode}/child/child2"/>
+            <mkdir path="${nameNode}/child/child2/child3"/>
+            <mkdir path='${nameNode}/tmp2'/>
+            <mkdir path='${nameNode}/tmp3'/>
+            <move source='${nameNode}/child' target='${nameNode}/tmp2'/>
+            <chmod path='${nameNode}/tmp2/child' permissions='-rwx-----x'/>
+            <chmod path='${nameNode}/tmp2' permissions='-rwxrwx---' dir-files='false'/>
+        </fs>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

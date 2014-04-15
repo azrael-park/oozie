@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app xmlns="uri:oozie:workflow:0.3.1" name="test">
+    <start to="shell"/>
+    <action name="shell">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+            <argument>dfs -lsr</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="shell2"/>
+        <error to="fail"/>
+    </action>
+    <action name="shell2">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+            <argument>shell2</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="shell3"/>
+        <error to="fail"/>
+    </action>
+    <action name="shell3">
+        <shell>
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+            <argument>shell3</argument>
+            <capture-output dump="true"/>
+            <capture-error dump="true"/>
+        </shell>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

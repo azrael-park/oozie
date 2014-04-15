@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app name='test-kill-wf' xmlns="uri:oozie:workflow:0.3">
+    <start to='fork'/>
+    <fork name="fork">
+        <path start="fail"/>
+        <path start="shell-1"/>
+    </fork>
+    <action name="shell-1">
+        <shell xmlns="uri:oozie:shell-action:0.3">
+            <job-tracker>localhost:9001</job-tracker>
+            <name-node>hdfs://localhost:9000</name-node>
+            <exec>script-outstream.sh</exec>
+            <argument></argument>
+            <file>script-outstream.sh</file>
+            <capture-output/>
+        </shell>
+        <ok to="join"/>
+        <error to="fail"/>
+    </action>
+
+    <join name="join" to="end"/>
+    
+    <kill name="fail">
+        <message>${TryError} error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>
