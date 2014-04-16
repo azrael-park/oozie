@@ -151,7 +151,7 @@
 
     <property>
         <name>oozie.service.CallableQueueService.threads</name>
-        <value>10</value>
+        <value>60</value>
         <description>Number of threads used for executing callables</description>
     </property>
 
@@ -575,6 +575,15 @@
         <value>false</value>
         <description>
             If true, retry the hive action when the hive session is disconnected with HA environment.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.CallableQueueService.callable.next.eligible</name>
+        <value>false</value>
+        <description>
+            If true, when a callable in the queue has already reached max concurrency,
+            Oozie continuously find next one which has not yet reach max concurrency.
         </description>
     </property>
 

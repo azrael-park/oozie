@@ -184,7 +184,6 @@ public class HiveSession extends HiveStatus {
 
         @Override
         public void run() {
-            XLog.Info.get().setParameters(logInfo);
             LOG.info("Executing query " + order());
             try {
                 executeSQL();

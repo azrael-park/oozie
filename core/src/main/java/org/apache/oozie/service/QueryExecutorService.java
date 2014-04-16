@@ -21,7 +21,7 @@ public class QueryExecutorService implements Service {
 
     public static final String CONF_THREADS = CONF_PREFIX + "threads";
 
-    private final BlockingQueue<Runnable> queryQueue = new ArrayBlockingQueue<Runnable>(100);
+    private BlockingQueue<Runnable> queryQueue;
 
     private boolean isDestroying = false;
 
@@ -29,7 +29,24 @@ public class QueryExecutorService implements Service {
     public void init(Services services) throws ServiceException {
         Configuration conf = services.getConf();
 
-        int threads = conf.getInt(CONF_THREADS, 60);
+        int threads = conf.getInt(CONF_THREADS, 80);
+        queryQueue = new ArrayBlockingQueue<Runnable>(200) {
+            @Override
+            public Runnable take() throws InterruptedException{
+                try {
+                    Runnable item = super.take();
+                    if (item != null) {
+                        LOG.info("qpoll() : " + item);
+                    }
+                    return item;
+                } catch (InterruptedException e) {
+                    if (!isDestroying) {
+                        LOG.warn("Fail to take query item : ", e);
+                    }
+                    throw e;
+                }
+            }
+        };
         executor = new ThreadPoolExecutor(threads, threads, threads, TimeUnit.SECONDS, (BlockingQueue) queryQueue);
         for (int i = 0; i < threads; i++) {
             executor.execute(new Runnable() {
