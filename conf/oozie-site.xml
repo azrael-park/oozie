@@ -149,7 +149,7 @@
 
     <property>
         <name>oozie.service.CallableQueueService.threads</name>
-        <value>30</value>
+        <value>60</value>
         <description>Number of threads used for executing callables</description>
     </property>
 
@@ -505,6 +505,15 @@
     <property>
         <name>oozie.instance.id</name>
         <value>oozie_1</value>
+    </property>
+
+    <property>
+        <name>oozie.service.CallableQueueService.callable.next.eligible</name>
+        <value>false</value>
+        <description>
+            If true, when a callable in the queue has already reached max concurrency,
+            Oozie continuously find next one which has not yet reach max concurrency.
+        </description>
     </property>
 
 </configuration>

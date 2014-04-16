@@ -469,10 +469,8 @@ public class CallableQueueService implements Service, Instrumentable {
                 @Override
                 protected void debug(String msgTemplate, Object... msgArgs) {
                     log.trace(msgTemplate, msgArgs);
-                    if(msgTemplate.contains("anti-starvation") || msgTemplate.contains("poll") || msgTemplate.contains("peek2")){
-                        log.trace(msgTemplate, msgArgs);
-                    }
-                    if(msgTemplate.contains("poll()3")){
+                        if(msgTemplate.contains("anti-starvation") || msgTemplate.contains("poll()3")
+                            || msgTemplate.contains("poll()4")){
                         log.info(msgTemplate, msgArgs);
                     }
                 }
@@ -489,10 +487,8 @@ public class CallableQueueService implements Service, Instrumentable {
                 @Override
                 protected void debug(String msgTemplate, Object... msgArgs) {
                     log.trace(msgTemplate, msgArgs);
-                    if(msgTemplate.contains("anti-starvation") || msgTemplate.contains("poll") || msgTemplate.contains("peek2")){
-                        log.trace(msgTemplate, msgArgs);
-                    }
-                    if(msgTemplate.contains("poll()3")){
+                    if(msgTemplate.contains("anti-starvation") || msgTemplate.contains("poll()3")
+                            || msgTemplate.contains("poll()4")){
                         log.info(msgTemplate, msgArgs);
                     }
                 }
