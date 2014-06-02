@@ -76,6 +76,10 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-auth</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.oozie</groupId>
+                    <artifactId>oozie-hadoop-auth</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
