@@ -548,6 +548,146 @@ public class OozieClientITV40 extends OozieClientIT{
     }
 
     /**
+     * Test capture std-out, std-err from shell action .
+     *
+     */
+    @Test
+    public void testSqoopV40() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            // ehco
+            String appName = "sqoop";
+            String version = "v40";
+            String appPath = baseAppPath + "/" + version + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+            configs.put("version", version);
+
+            configs.put("oozie.use.system.libpath", "true");
+            configs.put("import_source_table", "HIVE_STATUS");
+            configs.put("hive_table_dir", "/user/hive/warehouse/sqoop_hive");
+            configs.put("jobOutput", "hdfs://localhost:9000/user/hive/warehouse/sqoop_hive");
+
+            uploadApps(appPath, appName, version);
+
+            String jobID = run(configs);
+            WorkflowAction shellAction = null;
+            String status = "";
+            String capture = "";
+            try {
+                for (int i = 0; i < 50; i++) {
+                    WorkflowJob wfJob = getClient().getJobInfo(jobID);
+                    LOG.info(wfJob.getId() + " [" + wfJob.getStatus().toString() + "]");
+                    List<WorkflowAction> actionList = wfJob.getActions();
+                    for (WorkflowAction action : actionList) {
+                        if(action.getName().equals("shell-1")){
+                            LOG.info("    " + action.getName() + " [" + action.getStatus().toString() + "]");
+                            LOG.info("    " + "capture >> \n " + action.getData() + "\n");
+                            capture = action.getData();
+                            shellAction = action;
+                        }
+                    }
+                    status = wfJob.getStatus().toString();
+                    if (wfJob.getStatus().equals(WorkflowJob.Status.SUCCEEDED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.KILLED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.FAILED)) {
+                        break;
+                    }
+                    Thread.sleep(POLLING);
+                }
+            } catch (Exception e) {
+                LOG.info("Fail to monitor : " + jobID, e);
+            }
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowJob.Status.SUCCEEDED.toString(), status);
+
+            Assert.assertTrue(capture.contains("hello-standard-output"));
+
+            Assert.assertNotNull(shellAction);
+            LOG.info(" ---- JOB LOG ----");
+            LOG.info(getClient().getJobLog(jobID));
+            LOG.info(" ---- JOB LOG end ----\n");
+//            LOG.info(" ---- Action LOG ----");
+//            LOG.info(getClient().getLog(shellAction.getId()));
+//            LOG.info(" ---- Action LOG end ----");
+        } catch (Exception e) {
+            LOG.info("Fail to testShellOutStreamV40", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testShellOutStreamV40 \n");
+    }
+
+    @Test
+    public void testSqoopOraV40() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            // ehco
+            String appName = "sqoop-ora";
+            String version = "v40";
+            String appPath = baseAppPath + "/" + version + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+            configs.put("version", version);
+
+            configs.put("oozie.use.system.libpath", "true");
+            configs.put("jobOutput", "hdfs://localhost:9000/user/hive/warehouse/cdr_ora11g");
+
+            uploadApps(appPath, appName, version);
+
+            String jobID = run(configs);
+            WorkflowAction shellAction = null;
+            String status = "";
+            String capture = "";
+            try {
+                for (int i = 0; i < 50; i++) {
+                    WorkflowJob wfJob = getClient().getJobInfo(jobID);
+                    LOG.info(wfJob.getId() + " [" + wfJob.getStatus().toString() + "]");
+                    List<WorkflowAction> actionList = wfJob.getActions();
+                    for (WorkflowAction action : actionList) {
+                        if(action.getName().equals("shell-1")){
+                            LOG.info("    " + action.getName() + " [" + action.getStatus().toString() + "]");
+                            LOG.info("    " + "capture >> \n " + action.getData() + "\n");
+                            capture = action.getData();
+                            shellAction = action;
+                        }
+                    }
+                    status = wfJob.getStatus().toString();
+                    if (wfJob.getStatus().equals(WorkflowJob.Status.SUCCEEDED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.KILLED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.FAILED)) {
+                        break;
+                    }
+                    Thread.sleep(POLLING);
+                }
+            } catch (Exception e) {
+                LOG.info("Fail to monitor : " + jobID, e);
+            }
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowJob.Status.SUCCEEDED.toString(), status);
+
+            Assert.assertTrue(capture.contains("hello-standard-output"));
+
+            Assert.assertNotNull(shellAction);
+            LOG.info(" ---- JOB LOG ----");
+            LOG.info(getClient().getJobLog(jobID));
+            LOG.info(" ---- JOB LOG end ----\n");
+//            LOG.info(" ---- Action LOG ----");
+//            LOG.info(getClient().getLog(shellAction.getId()));
+//            LOG.info(" ---- Action LOG end ----");
+        } catch (Exception e) {
+            LOG.info("Fail to testShellOutStreamV40", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testShellOutStreamV40 \n");
+    }
+
+    /**
      * Converts a Timestamp value into string representing a date time in UTC using the following date format used in
      * Oozie: yyyy-MM-ddTHH:mmZ. See http://www.w3.org/TR/NOTE-datetime.
      *
