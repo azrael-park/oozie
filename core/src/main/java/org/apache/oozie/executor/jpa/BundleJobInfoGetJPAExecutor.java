@@ -81,8 +81,7 @@ public class BundleJobInfoGetJPAExecutor implements JPAExecutor<BundleJobInfo> {
         List<String> valArray = new ArrayList<String>();
         StringBuilder sb = new StringBuilder("");
 
-        StoreStatusFilter.filter(filter, orArray, colArray, valArray, sb, StoreStatusFilter.bundleSeletStr,
-                                 StoreStatusFilter.bundleCountStr);
+        StoreStatusFilter.filter(filter, orArray, colArray, valArray, sb, StoreStatusFilter.bundleSeletStr);
 
         int realLen = 0;
 
@@ -100,8 +99,7 @@ public class BundleJobInfoGetJPAExecutor implements JPAExecutor<BundleJobInfo> {
             q = em.createQuery(sb.toString());
             q.setFirstResult(start - 1);
             q.setMaxResults(len);
-            qTotal = em.createQuery(sbTotal.toString().replace(StoreStatusFilter.bundleSeletStr,
-                                                                          StoreStatusFilter.bundleCountStr));
+            qTotal = em.createQuery(sbTotal.toString().replace(StoreStatusFilter.bundleSeletStr, StoreStatusFilter.bundleCountStr));
         }
 
         for (int i = 0; i < orArray.size(); i++) {

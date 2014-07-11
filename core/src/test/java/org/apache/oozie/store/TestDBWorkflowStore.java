@@ -396,62 +396,6 @@ public class TestDBWorkflowStore extends XTestCase {
         store.commitTrx();
     }
 
-    private void _testGetWFInfos() throws StoreException {
-        Map<String, List<String>> filter = new HashMap<String, List<String>>();
-        store.beginTrx();
-        WorkflowsInfo wfInfo = store.getWorkflowsInfo(filter, 1, 1);
-        System.out.println("got WorkflowsInfo " + wfInfo.getLen());
-        List<WorkflowJobBean> wfBeans = wfInfo.getWorkflows();
-        store.commitTrx();
-
-        assertEquals(1, wfBeans.size());
-
-        filter = new HashMap<String, List<String>>();
-        wfInfo = store.getWorkflowsInfo(filter, 1, 2);
-        wfBeans = wfInfo.getWorkflows();
-        assertEquals(2, wfBeans.size());
-
-        filter = new HashMap<String, List<String>>();
-        filter.put("user", Arrays.asList(getTestUser()));
-        wfInfo = store.getWorkflowsInfo(filter, 1, 2);
-        wfBeans = wfInfo.getWorkflows();
-        assertEquals(1, wfBeans.size());
-
-        filter = new HashMap<String, List<String>>();
-        filter.put("user", Arrays.asList(getTestUser(), getTestUser2()));
-        wfInfo = store.getWorkflowsInfo(filter, 1, 2);
-        wfBeans = wfInfo.getWorkflows();
-        assertEquals(2, wfBeans.size());
-
-        filter = new HashMap<String, List<String>>();
-        filter.put("user", Arrays.asList(getTestUser()));
-        filter.put("status", Arrays.asList("succeeded"));
-
-        wfInfo = store.getWorkflowsInfo(filter, 1, 2);
-        wfBeans = wfInfo.getWorkflows();
-        assertEquals(1, wfBeans.size());
-
-        filter = new HashMap<String, List<String>>();
-        filter.put("user", Arrays.asList(getTestUser(), getTestUser2()));
-        filter.put("name", Arrays.asList("testApp"));
-        wfInfo = store.getWorkflowsInfo(filter, 1, 2);
-        wfBeans = wfInfo.getWorkflows();
-        assertEquals(2, wfBeans.size());
-        assertEquals(2, wfInfo.getTotal());
-        assertEquals(1, wfInfo.getStart());
-        assertEquals(2, wfInfo.getLen());
-
-        filter = new HashMap<String, List<String>>();
-        filter.put("user", Arrays.asList(getTestUser(), getTestUser2()));
-        filter.put("name", Arrays.asList("testApp"));
-        wfInfo = store.getWorkflowsInfo(filter, 1, 1);
-        wfBeans = wfInfo.getWorkflows();
-        assertEquals(1, wfBeans.size());
-        assertEquals(2, wfInfo.getTotal());
-        assertEquals(1, wfInfo.getStart());
-        assertEquals(1, wfInfo.getLen());
-    }
-
     private void _testPurge() throws Exception {
         store.beginTrx();
         wfBean1.setEndTime(new Date(System.currentTimeMillis() - (31 * 24 * 60 * 60 * 1000l)));

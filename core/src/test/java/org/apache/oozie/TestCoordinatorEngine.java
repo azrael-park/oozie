@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.client.CoordinatorAction;
@@ -281,6 +282,91 @@ public class TestCoordinatorEngine extends XTestCase {
         if (!(missingDeps == null || missingDeps.equals(""))) {
             fail();
         }
+    }
+
+    public void testParseFilter() throws Exception {
+
+        final CoordinatorEngine engine = new CoordinatorEngine(getTestUser());
+
+        String filterStr = "user=test-a;frequency=10;unit=minutes";
+        Map<String,List<String>> filter = engine.parseFilter(filterStr);
+        assertEquals(3, filter.size());
+        assertEquals(1, filter.get(OozieClient.FILTER_USER).size());
+        assertEquals("test-a", filter.get(OozieClient.FILTER_USER).get(0));
+        assertEquals(1, filter.get(OozieClient.FILTER_FREQUENCY).size());
+        assertEquals("10", filter.get(OozieClient.FILTER_FREQUENCY).get(0));
+        assertEquals(1, filter.get(OozieClient.FILTER_UNIT).size());
+        assertEquals("MINUTE", filter.get(OozieClient.FILTER_UNIT).get(0));
+
+        // Convert hours to minutes
+        filterStr = "user=test-a;frequency=5;unit=HOURS";
+        filter = engine.parseFilter(filterStr);
+        assertEquals(3, filter.size());
+        assertEquals(1, filter.get(OozieClient.FILTER_USER).size());
+        assertEquals("test-a", filter.get(OozieClient.FILTER_USER).get(0));
+        assertEquals(1, filter.get(OozieClient.FILTER_FREQUENCY).size());
+        assertEquals(String.valueOf(5 * 60), filter.get(OozieClient.FILTER_FREQUENCY).get(0));
+        assertEquals(1, filter.get(OozieClient.FILTER_UNIT).size());
+        assertEquals("MINUTE", filter.get(OozieClient.FILTER_UNIT).get(0));
+
+        //frequency is specified twice.
+        filterStr = "user=test;frequency=10;frequency=30;unit=DAYS";
+        filter = engine.parseFilter(filterStr);
+        assertEquals(3, filter.size());
+        assertEquals(1, filter.get(OozieClient.FILTER_UNIT).size());
+        assertEquals("DAY", filter.get(OozieClient.FILTER_UNIT).get(0));
+        assertEquals(1, filter.get(OozieClient.FILTER_FREQUENCY).size());
+        assertEquals("30", filter.get(OozieClient.FILTER_FREQUENCY).get(0));
+
+        //unit is specified twice.
+        filterStr = "user=test;frequency=10;unit=DAYS;unit=HOURS";
+        filter = engine.parseFilter(filterStr);
+        assertEquals(3, filter.size());
+        assertEquals(1, filter.get(OozieClient.FILTER_UNIT).size());
+        assertEquals("MINUTE", filter.get(OozieClient.FILTER_UNIT).get(0));
+        assertEquals(1, filter.get(OozieClient.FILTER_FREQUENCY).size());
+        assertEquals(String.valueOf(10 * 60), filter.get(OozieClient.FILTER_FREQUENCY).get(0));
+
+        try {
+            // Frequency is specified and Unit is not specified. Use default unit.
+            filterStr = "user=test;frequency=100";
+            filter = engine.parseFilter(filterStr);
+            assertEquals(3, filter.size());
+            assertEquals(1, filter.get(OozieClient.FILTER_UNIT).size());
+            assertEquals("MINUTE", filter.get(OozieClient.FILTER_UNIT).get(0));
+            assertEquals(1, filter.get(OozieClient.FILTER_FREQUENCY).size());
+            assertEquals("100", filter.get(OozieClient.FILTER_FREQUENCY).get(0));
+
+            // Unit is specified and frequency is not specified
+            filterStr = "user=test;unit=MINUTES";
+            filter = engine.parseFilter(filterStr);
+
+            fail();
+        } catch (CoordinatorEngineException e) {
+            assertEquals(ErrorCode.E0420, e.getErrorCode());
+            assertEquals(true, e.getMessage().contains("time unit should be added only when frequency is specified."));
+        }
+
+        try {
+            filterStr = "user=test;frequency=10;unit=hour";
+            filter = engine.parseFilter(filterStr);
+            fail();
+        } catch (CoordinatorEngineException e) {
+            assertEquals(ErrorCode.E0420, e.getErrorCode());
+            assertEquals(true, e.getMessage().contains("invalid value [hour] for time unit."));
+        }
+
+        try {
+            filterStr = "user=test;frequency=AAA;unit=hour";
+            filter = engine.parseFilter(filterStr);
+            fail();
+        } catch (CoordinatorEngineException e) {
+            assertEquals(ErrorCode.E0420, e.getErrorCode());
+            System.out.println(e.getMessage());
+            assertEquals(true, e.getMessage().contains("invalid value [AAA] for frequency. A numerical value is expected"));
+        }
+
+
     }
 
     private String _testSubmitJob(String appPath) throws Exception {

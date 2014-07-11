@@ -20,11 +20,11 @@ package org.apache.oozie;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,15 +32,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.client.CoordinatorAction;
-import org.apache.oozie.client.CoordinatorJob;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.rest.RestConstants;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.coord.CoordActionInfoXCommand;
+import org.apache.oozie.store.StoreStatusFilter;
 import org.apache.oozie.util.CoordActionsInDateRange;
 import org.apache.oozie.command.coord.CoordActionsIgnoreXCommand;
 import org.apache.oozie.command.coord.CoordActionsKillXCommand;
@@ -554,18 +553,6 @@ public class CoordinatorEngine extends BaseEngine {
         throw new BaseEngineException(new XException(ErrorCode.E0301, "cannot get a workflow job from CoordinatorEngine"));
     }
 
-    private static final Set<String> FILTER_NAMES = new HashSet<String>();
-
-    static {
-        FILTER_NAMES.add(OozieClient.FILTER_USER);
-        FILTER_NAMES.add(OozieClient.FILTER_NAME);
-        FILTER_NAMES.add(OozieClient.FILTER_GROUP);
-        FILTER_NAMES.add(OozieClient.FILTER_STATUS);
-        FILTER_NAMES.add(OozieClient.FILTER_ID);
-        FILTER_NAMES.add(OozieClient.FILTER_FREQUENCY);
-        FILTER_NAMES.add(OozieClient.FILTER_UNIT);
-    }
-
     /**
      * @param filter
      * @param start
@@ -652,94 +639,64 @@ public class CoordinatorEngine extends BaseEngine {
      */
     @VisibleForTesting
     Map<String, List<String>> parseFilter(String filter) throws CoordinatorEngineException {
-        Map<String, List<String>> map = new HashMap<String, List<String>>();
-        boolean isTimeUnitSpecified = false;
-        String timeUnit = "MINUTE";
-        boolean isFrequencySpecified = false;
-        String frequency = "";
-        if (filter != null) {
-            StringTokenizer st = new StringTokenizer(filter, ";");
-            while (st.hasMoreTokens()) {
-                String token = st.nextToken();
-                if (token.contains("=")) {
-                    String[] pair = token.split("=");
-                    if (pair.length != 2) {
-                        throw new CoordinatorEngineException(ErrorCode.E0420, filter,
-                                "elements must be name=value pairs");
-                    }
-                    if (!FILTER_NAMES.contains(pair[0].toLowerCase())) {
-                        throw new CoordinatorEngineException(ErrorCode.E0420, filter, XLog.format("invalid name [{0}]",
-                                pair[0]));
-                    }
-                    if (pair[0].equalsIgnoreCase("frequency")) {
-                        isFrequencySpecified = true;
-                        try {
-                            frequency = (int) Float.parseFloat(pair[1]) + "";
-                            continue;
-                        }
-                        catch (NumberFormatException NANException) {
-                            throw new CoordinatorEngineException(ErrorCode.E0420, filter, XLog.format(
-                                    "invalid value [{0}] for frequency. A numerical value is expected", pair[1]));
-                        }
-                    }
-                    if (pair[0].equalsIgnoreCase("unit")) {
-                        isTimeUnitSpecified = true;
-                        timeUnit = pair[1];
-                        if (!timeUnit.equalsIgnoreCase("months") && !timeUnit.equalsIgnoreCase("days")
-                                && !timeUnit.equalsIgnoreCase("hours") && !timeUnit.equalsIgnoreCase("minutes")) {
-                            throw new CoordinatorEngineException(ErrorCode.E0420, filter, XLog.format(
-                                    "invalid value [{0}] for time unit. "
-                                            + "Valid value is one of months, days, hours or minutes", pair[1]));
-                        }
-                        continue;
-                    }
-                    if (pair[0].equals("status")) {
-                        try {
-                            CoordinatorJob.Status.valueOf(pair[1]);
-                        }
-                        catch (IllegalArgumentException ex) {
-                            throw new CoordinatorEngineException(ErrorCode.E0420, filter, XLog.format(
-                                    "invalid status [{0}]", pair[1]));
-                        }
-                    }
-                    List<String> list = map.get(pair[0]);
-                    if (list == null) {
-                        list = new ArrayList<String>();
-                        map.put(pair[0], list);
-                    }
-                    list.add(pair[1]);
-                } else {
-                    throw new CoordinatorEngineException(ErrorCode.E0420, filter, "elements must be name=value pairs");
+        Map<String, List<String>> map;
+        try {
+            map = StoreStatusFilter.parseFilter(filter, StoreStatusFilter.FILTER.COORD);
+        } catch (BaseEngineException e) {
+            throw new CoordinatorEngineException(e);
+        }
+        if (map.containsKey(OozieClient.FILTER_FREQUENCY) && map.get(OozieClient.FILTER_FREQUENCY).size() > 1) {
+            String frequency = map.get(OozieClient.FILTER_FREQUENCY).get(map.get(OozieClient.FILTER_FREQUENCY).size() -1);
+            map.put(OozieClient.FILTER_FREQUENCY, Arrays.asList(frequency));
+        }
+        if (map.containsKey(OozieClient.FILTER_UNIT) && map.get(OozieClient.FILTER_UNIT).size() > 1) {
+            String unit = map.get(OozieClient.FILTER_UNIT).get(map.get(OozieClient.FILTER_UNIT).size() -1);
+            map.put(OozieClient.FILTER_UNIT, Arrays.asList(unit));
+        }
+        if (map.containsKey(OozieClient.FILTER_FREQUENCY)) {
+            try {
+                Float.parseFloat(map.get(OozieClient.FILTER_FREQUENCY).get(0));
+            }
+            catch (NumberFormatException NANException) {
+                throw new CoordinatorEngineException(ErrorCode.E0420, filter, XLog.format(
+                        "invalid value [{0}] for frequency. A numerical value is expected",
+                        map.get(OozieClient.FILTER_FREQUENCY).get(0)));
+            }
+        }
+        if (map.containsKey(OozieClient.FILTER_UNIT)) {
+            String timeUnit = map.get(OozieClient.FILTER_UNIT).get(0);
+            if (!timeUnit.equalsIgnoreCase("months") && !timeUnit.equalsIgnoreCase("days")
+                    && !timeUnit.equalsIgnoreCase("hours") && !timeUnit.equalsIgnoreCase("minutes")) {
+                throw new CoordinatorEngineException(ErrorCode.E0420, filter, XLog.format(
+                        "invalid value [{0}] for time unit. "
+                                + "Valid value is one of months, days, hours or minutes", timeUnit));
+            }
+        }
+        // Unit is specified and frequency is not specified
+        if (!map.containsKey(OozieClient.FILTER_FREQUENCY) && map.containsKey(OozieClient.FILTER_UNIT)) {
+            throw new CoordinatorEngineException(ErrorCode.E0420, filter, "time unit should be added only when "
+                    + "frequency is specified. Either specify frequency also or else remove the time unit");
+        } else if (map.containsKey(OozieClient.FILTER_FREQUENCY)) {
+            String timeUnit = "MINUTE";
+            String frequency = map.get(OozieClient.FILTER_FREQUENCY).get(0);
+            // Frequency value is specified
+            if (map.containsKey(OozieClient.FILTER_UNIT)) {
+                timeUnit = map.get(OozieClient.FILTER_UNIT).get(0);
+                if (timeUnit.equalsIgnoreCase("months")) {
+                    timeUnit = "MONTH";
+                } else if (timeUnit.equalsIgnoreCase("days")) {
+                    timeUnit = "DAY";
+                } else if (timeUnit.equalsIgnoreCase("hours")) {
+                    // When job details are persisted to database, frequency in hours are converted to minutes.
+                    // This conversion is to conform with that.
+                    frequency = Integer.parseInt(frequency) * 60 + "";
+                    timeUnit = "MINUTE";
+                } else if (timeUnit.equalsIgnoreCase("minutes")) {
+                    timeUnit = "MINUTE";
                 }
             }
-            // Unit is specified and frequency is not specified
-            if (!isFrequencySpecified && isTimeUnitSpecified) {
-                throw new CoordinatorEngineException(ErrorCode.E0420, filter, "time unit should be added only when "
-                        + "frequency is specified. Either specify frequency also or else remove the time unit");
-            } else if (isFrequencySpecified) {
-                // Frequency value is specified
-                if (isTimeUnitSpecified) {
-                    if (timeUnit.equalsIgnoreCase("months")) {
-                        timeUnit = "MONTH";
-                    } else if (timeUnit.equalsIgnoreCase("days")) {
-                        timeUnit = "DAY";
-                    } else if (timeUnit.equalsIgnoreCase("hours")) {
-                        // When job details are persisted to database, frequency in hours are converted to minutes.
-                        // This conversion is to conform with that.
-                        frequency = Integer.parseInt(frequency) * 60 + "";
-                        timeUnit = "MINUTE";
-                    } else if (timeUnit.equalsIgnoreCase("minutes")) {
-                        timeUnit = "MINUTE";
-                    }
-                }
-                // Adding the frequency and time unit filters to the filter map
-                List<String> list = new ArrayList<String>();
-                list.add(timeUnit);
-                map.put("unit", list);
-                list = new ArrayList<String>();
-                list.add(frequency);
-                map.put("frequency", list);
-            }
+            map.put(OozieClient.FILTER_UNIT, Arrays.asList(timeUnit));
+            map.put(OozieClient.FILTER_FREQUENCY, Arrays.asList(frequency));
         }
         return map;
     }
