@@ -478,68 +478,6 @@ public class CoordinatorStore extends Store {
         return null;
     }
 
-    public CoordinatorJobInfo getCoordinatorInfo(final Map<String, List<String>> filter, final int start, final int len)
-            throws StoreException {
-
-        CoordinatorJobInfo coordJobInfo = doOperation("getCoordinatorJobInfo", new Callable<CoordinatorJobInfo>() {
-            public CoordinatorJobInfo call() throws SQLException, StoreException {
-                List<String> orArray = new ArrayList<String>();
-                List<String> colArray = new ArrayList<String>();
-                List<String> valArray = new ArrayList<String>();
-                StringBuilder sb = new StringBuilder("");
-
-                StoreStatusFilter.filter(filter, orArray, colArray, valArray, sb, StoreStatusFilter.coordSeletStr,
-                                         StoreStatusFilter.coordCountStr);
-
-                int realLen = 0;
-
-                Query q = null;
-                Query qTotal = null;
-                if (orArray.size() == 0) {
-                    q = entityManager.createNamedQuery("GET_COORD_JOBS_COLUMNS");
-                    q.setFirstResult(start - 1);
-                    q.setMaxResults(len);
-                    qTotal = entityManager.createNamedQuery("GET_COORD_JOBS_COUNT");
-                }
-                else {
-                    StringBuilder sbTotal = new StringBuilder(sb);
-                    sb.append(" order by w.createdTimestamp desc ");
-                    XLog.getLog(getClass()).debug("Created String is **** " + sb.toString());
-                    q = entityManager.createQuery(sb.toString());
-                    q.setFirstResult(start - 1);
-                    q.setMaxResults(len);
-                    qTotal = entityManager.createQuery(sbTotal.toString().replace(StoreStatusFilter.coordSeletStr,
-                                                                                  StoreStatusFilter.coordCountStr));
-                }
-
-                for (int i = 0; i < orArray.size(); i++) {
-                    q.setParameter(colArray.get(i), valArray.get(i));
-                    qTotal.setParameter(colArray.get(i), valArray.get(i));
-                }
-
-                OpenJPAQuery kq = OpenJPAPersistence.cast(q);
-                JDBCFetchPlan fetch = (JDBCFetchPlan) kq.getFetchPlan();
-                fetch.setFetchBatchSize(20);
-                fetch.setResultSetType(ResultSetType.SCROLL_INSENSITIVE);
-                fetch.setFetchDirection(FetchDirection.FORWARD);
-                fetch.setLRSSizeAlgorithm(LRSSizeAlgorithm.LAST);
-                List<?> resultList = q.getResultList();
-                List<Object[]> objectArrList = (List<Object[]>) resultList;
-                List<CoordinatorJobBean> coordBeansList = new ArrayList<CoordinatorJobBean>();
-
-                for (Object[] arr : objectArrList) {
-                    CoordinatorJobBean ww = getBeanForCoordinatorJobFromArray(arr);
-                    coordBeansList.add(ww);
-                }
-
-                realLen = ((Long) qTotal.getSingleResult()).intValue();
-
-                return new CoordinatorJobInfo(coordBeansList, start, len, realLen);
-            }
-        });
-        return coordJobInfo;
-    }
-
     private CoordinatorJobBean getBeanForCoordinatorJobFromArray(Object[] arr) {
         CoordinatorJobBean bean = new CoordinatorJobBean();
         bean.setId((String) arr[0]);

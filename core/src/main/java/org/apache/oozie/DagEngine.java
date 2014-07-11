@@ -17,6 +17,7 @@
  */
 package org.apache.oozie;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.oozie.service.XLogService;
 import org.apache.oozie.service.DagXLogInfoService;
 import org.apache.commons.lang.StringUtils;
@@ -47,6 +48,7 @@ import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor.WorkflowJobQuery;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.CallableQueueService;
+import org.apache.oozie.store.StoreStatusFilter;
 import org.apache.oozie.util.XLogFilter;
 import org.apache.oozie.util.XLogUserFilterParam;
 import org.apache.oozie.util.ParamChecker;
@@ -60,12 +62,7 @@ import java.io.Writer;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.StringTokenizer;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.ArrayList;
 import java.io.IOException;
 
 /**
@@ -419,16 +416,6 @@ public class DagEngine extends BaseEngine {
         }
     }
 
-    private static final Set<String> FILTER_NAMES = new HashSet<String>();
-
-    static {
-        FILTER_NAMES.add(OozieClient.FILTER_USER);
-        FILTER_NAMES.add(OozieClient.FILTER_NAME);
-        FILTER_NAMES.add(OozieClient.FILTER_GROUP);
-        FILTER_NAMES.add(OozieClient.FILTER_STATUS);
-        FILTER_NAMES.add(OozieClient.FILTER_ID);
-    }
-
     /**
      * Validate a jobs filter.
      *
@@ -436,43 +423,13 @@ public class DagEngine extends BaseEngine {
      * @return the parsed filter.
      * @throws DagEngineException thrown if the filter is invalid.
      */
+    @VisibleForTesting
     protected Map<String, List<String>> parseFilter(String filter) throws DagEngineException {
-        Map<String, List<String>> map = new HashMap<String, List<String>>();
-        if (filter != null) {
-            StringTokenizer st = new StringTokenizer(filter, ";");
-            while (st.hasMoreTokens()) {
-                String token = st.nextToken();
-                if (token.contains("=")) {
-                    String[] pair = token.split("=");
-                    if (pair.length != 2) {
-                        throw new DagEngineException(ErrorCode.E0420, filter, "elements must be name=value pairs");
-                    }
-                    if (!FILTER_NAMES.contains(pair[0])) {
-                        throw new DagEngineException(ErrorCode.E0420, filter, XLog
-                                .format("invalid name [{0}]", pair[0]));
-                    }
-                    if (pair[0].equals("status")) {
-                        try {
-                            WorkflowJob.Status.valueOf(pair[1]);
-                        }
-                        catch (IllegalArgumentException ex) {
-                            throw new DagEngineException(ErrorCode.E0420, filter, XLog.format("invalid status [{0}]",
-                                                                                              pair[1]));
-                        }
-                    }
-                    List<String> list = map.get(pair[0]);
-                    if (list == null) {
-                        list = new ArrayList<String>();
-                        map.put(pair[0], list);
-                    }
-                    list.add(pair[1]);
-                }
-                else {
-                    throw new DagEngineException(ErrorCode.E0420, filter, "elements must be name=value pairs");
-                }
-            }
+        try {
+            return StoreStatusFilter.parseFilter(filter, StoreStatusFilter.FILTER.WF);
+        } catch (BaseEngineException e) {
+            throw new DagEngineException(e);
         }
-        return map;
     }
 
     /**

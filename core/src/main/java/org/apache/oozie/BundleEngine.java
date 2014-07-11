@@ -23,18 +23,13 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.StringTokenizer;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
-import org.apache.oozie.client.Job;
-import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.rest.BulkResponseImpl;
 import org.apache.oozie.command.BulkJobsXCommand;
@@ -51,6 +46,7 @@ import org.apache.oozie.command.bundle.BundleSubmitXCommand;
 import org.apache.oozie.service.DagXLogInfoService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.XLogStreamingService;
+import org.apache.oozie.store.StoreStatusFilter;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.XLogFilter;
 import org.apache.oozie.util.XLogUserFilterParam;
@@ -297,16 +293,6 @@ public class BundleEngine extends BaseEngine {
         }
     }
 
-    private static final Set<String> FILTER_NAMES = new HashSet<String>();
-
-    static {
-        FILTER_NAMES.add(OozieClient.FILTER_USER);
-        FILTER_NAMES.add(OozieClient.FILTER_NAME);
-        FILTER_NAMES.add(OozieClient.FILTER_GROUP);
-        FILTER_NAMES.add(OozieClient.FILTER_STATUS);
-        FILTER_NAMES.add(OozieClient.FILTER_ID);
-    }
-
     /**
      * Get bundle jobs
      *
@@ -336,42 +322,11 @@ public class BundleEngine extends BaseEngine {
      */
     @VisibleForTesting
     Map<String, List<String>> parseFilter(String filter) throws BundleEngineException {
-        Map<String, List<String>> map = new HashMap<String, List<String>>();
-        if (filter != null) {
-            StringTokenizer st = new StringTokenizer(filter, ";");
-            while (st.hasMoreTokens()) {
-                String token = st.nextToken();
-                if (token.contains("=")) {
-                    String[] pair = token.split("=");
-                    if (pair.length != 2) {
-                        throw new BundleEngineException(ErrorCode.E0420, filter, "elements must be name=value pairs");
-                    }
-                    if (!FILTER_NAMES.contains(pair[0])) {
-                        throw new BundleEngineException(ErrorCode.E0420, filter, XLog.format("invalid name [{0}]",
-                                pair[0]));
-                    }
-                    if (pair[0].equals("status")) {
-                        try {
-                            Job.Status.valueOf(pair[1]);
-                        }
-                        catch (IllegalArgumentException ex) {
-                            throw new BundleEngineException(ErrorCode.E0420, filter, XLog.format(
-                                    "invalid status [{0}]", pair[1]));
-                        }
-                    }
-                    List<String> list = map.get(pair[0]);
-                    if (list == null) {
-                        list = new ArrayList<String>();
-                        map.put(pair[0], list);
-                    }
-                    list.add(pair[1]);
-                }
-                else {
-                    throw new BundleEngineException(ErrorCode.E0420, filter, "elements must be name=value pairs");
-                }
-            }
+        try {
+            return StoreStatusFilter.parseFilter(filter, StoreStatusFilter.FILTER.BUNDLE);
+        } catch (BaseEngineException e) {
+            throw new BundleEngineException(e);
         }
-        return map;
     }
 
     /**

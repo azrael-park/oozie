@@ -128,6 +128,8 @@ public class OozieClient {
 
     public static final String FILTER_UNIT = "unit";
 
+    public static final String FILTER_PARENTID = "parentid";
+
     public static final String FILTER_JOBID = "jobid";
 
     public static final String FILTER_APPNAME = "appname";

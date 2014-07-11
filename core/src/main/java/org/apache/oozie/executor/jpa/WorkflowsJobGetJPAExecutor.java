@@ -27,9 +27,8 @@ import javax.persistence.Query;
 
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.WorkflowsInfo;
-import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowJob.Status;
-import org.apache.oozie.util.XLog;
+import org.apache.oozie.store.StoreStatusFilter;
 import org.apache.openjpa.persistence.OpenJPAPersistence;
 import org.apache.openjpa.persistence.OpenJPAQuery;
 import org.apache.openjpa.persistence.jdbc.FetchDirection;
@@ -38,10 +37,6 @@ import org.apache.openjpa.persistence.jdbc.LRSSizeAlgorithm;
 import org.apache.openjpa.persistence.jdbc.ResultSetType;
 
 public class WorkflowsJobGetJPAExecutor implements JPAExecutor<WorkflowsInfo> {
-
-    private static final String seletStr = "Select w.id, w.appName, w.statusStr, w.run, w.user, w.group, w.createdTimestamp, "
-            + "w.startTimestamp, w.lastModifiedTimestamp, w.endTimestamp, w.externalId, w.parentId from WorkflowJobBean w";
-    private static final String countStr = "Select count(w) from WorkflowJobBean w";
 
     private final Map<String, List<String>> filter;
     private final int start;
@@ -70,148 +65,8 @@ public class WorkflowsJobGetJPAExecutor implements JPAExecutor<WorkflowsInfo> {
         List<String> colArray = new ArrayList<String>();
         List<String> valArray = new ArrayList<String>();
         StringBuilder sb = new StringBuilder("");
-        boolean isStatus = false;
-        boolean isAppName = false;
-        boolean isUser = false;
-        boolean isEnabled = false;
-        boolean isId = false;
-        int index = 0;
-        for (Map.Entry<String, List<String>> entry : filter.entrySet()) {
-            String colName = null;
-            String colVar = null;
-            if (entry.getKey().equals(OozieClient.FILTER_GROUP)) {
-                XLog.getLog(getClass()).warn("Filter by 'group' is not supported anymore");
-            } else {
-                if (entry.getKey().equals(OozieClient.FILTER_STATUS)) {
-                    List<String> values = filter.get(OozieClient.FILTER_STATUS);
-                    colName = "status";
-                    for (int i = 0; i < values.size(); i++) {
-                        colVar = "status";
-                        colVar = colVar + index;
-                        if (!isEnabled && !isStatus) {
-                            sb.append(seletStr).append(" where w.statusStr IN (:status" + index);
-                            isStatus = true;
-                            isEnabled = true;
-                        }
-                        else {
-                            if (isEnabled && !isStatus) {
-                                sb.append(" and w.statusStr IN (:status" + index);
-                                isStatus = true;
-                            }
-                            else {
-                                if (isStatus) {
-                                    sb.append(", :status" + index);
-                                }
-                            }
-                        }
-                        if (i == values.size() - 1) {
-                            sb.append(")");
-                        }
-                        index++;
-                        valArray.add(values.get(i));
-                        orArray.add(colName);
-                        colArray.add(colVar);
-                    }
-                }
-                else {
-                    if (entry.getKey().equals(OozieClient.FILTER_NAME)) {
-                        List<String> values = filter.get(OozieClient.FILTER_NAME);
-                        colName = "appName";
-                        for (int i = 0; i < values.size(); i++) {
-                            colVar = "appName";
-                            colVar = colVar + index;
-                            if (!isEnabled && !isAppName) {
-                                sb.append(seletStr).append(" where w.appName IN (:appName" + index);
-                                isAppName = true;
-                                isEnabled = true;
-                            }
-                            else {
-                                if (isEnabled && !isAppName) {
-                                    sb.append(" and w.appName IN (:appName" + index);
-                                    isAppName = true;
-                                }
-                                else {
-                                    if (isAppName) {
-                                        sb.append(", :appName" + index);
-                                    }
-                                }
-                            }
-                            if (i == values.size() - 1) {
-                                sb.append(")");
-                            }
-                            index++;
-                            valArray.add(values.get(i));
-                            orArray.add(colName);
-                            colArray.add(colVar);
-                        }
-                    }
-                    else {
-                        if (entry.getKey().equals(OozieClient.FILTER_USER)) {
-                            List<String> values = filter.get(OozieClient.FILTER_USER);
-                            colName = "user";
-                            for (int i = 0; i < values.size(); i++) {
-                                colVar = "user";
-                                colVar = colVar + index;
-                                if (!isEnabled && !isUser) {
-                                    sb.append(seletStr).append(" where w.user IN (:user" + index);
-                                    isUser = true;
-                                    isEnabled = true;
-                                }
-                                else {
-                                    if (isEnabled && !isUser) {
-                                        sb.append(" and w.user IN (:user" + index);
-                                        isUser = true;
-                                    }
-                                    else {
-                                        if (isUser) {
-                                            sb.append(", :user" + index);
-                                        }
-                                    }
-                                }
-                                if (i == values.size() - 1) {
-                                    sb.append(")");
-                                }
-                                index++;
-                                valArray.add(values.get(i));
-                                orArray.add(colName);
-                                colArray.add(colVar);
-                            }
-                        }
-                    }
-                    if (entry.getKey().equals(OozieClient.FILTER_ID)) {
-                        List<String> values = filter.get(OozieClient.FILTER_ID);
-                        colName = "id";
-                        for (int i = 0; i < values.size(); i++) {
-                            colVar = "id";
-                            colVar = colVar + index;
-                            if (!isEnabled && !isId) {
-                                sb.append(seletStr).append(" where w.id IN (:id" + index);
-                                isId = true;
-                                isEnabled = true;
-                            }
-                            else {
-                                if (isEnabled && !isId) {
-                                    sb.append(" and w.id IN (:id" + index);
-                                    isId = true;
-                                }
-                                else {
-                                    if (isId) {
-                                        sb.append(", :id" + index);
-                                    }
-                                }
-                            }
-                            if (i == values.size() - 1) {
-                                sb.append(")");
-                            }
-                            index++;
-                            valArray.add(values.get(i));
-                            orArray.add(colName);
-                            colArray.add(colVar);
-                        }
-                    }
-                }
-            }
-        }
+        StoreStatusFilter.filter(filter, orArray, colArray, valArray, sb, StoreStatusFilter.wfSeletStr,
+                StoreStatusFilter.FILTER.WF);
 
         int realLen = 0;
 
@@ -230,7 +85,7 @@ public class WorkflowsJobGetJPAExecutor implements JPAExecutor<WorkflowsInfo> {
                 q = em.createQuery(sb.toString());
                 q.setFirstResult(start - 1);
                 q.setMaxResults(len);
-                qTotal = em.createQuery(sbTotal.toString().replace(seletStr, countStr));
+                qTotal = em.createQuery(sbTotal.toString().replace(StoreStatusFilter.wfSeletStr, StoreStatusFilter.wfCountStr));
                 for (int i = 0; i < orArray.size(); i++) {
                     q.setParameter(colArray.get(i), valArray.get(i));
                     qTotal.setParameter(colArray.get(i), valArray.get(i));

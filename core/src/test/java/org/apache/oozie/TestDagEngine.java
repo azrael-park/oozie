@@ -41,6 +41,8 @@ import java.io.Writer;
 import java.io.StringReader;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
+import java.util.List;
+import java.util.Map;
 
 public class TestDagEngine extends XTestCase {
     private EmbeddedServletContainer container;
@@ -233,4 +235,53 @@ public class TestDagEngine extends XTestCase {
         assertEquals(jobId2, workflows.get(0).getId());
 */
     }
+
+    public void testParseFilter() throws Exception {
+
+        final DagEngine engine = new DagEngine(getTestUser());
+
+        String filterStr = "user=test-user;name=test-app;status=RUNNING;status=SUSPENDED;parentid=XXX-C";
+        Map<String,List<String>> filter = engine.parseFilter(filterStr);
+        assertEquals(4, filter.size());
+        List<String> status = filter.get(OozieClient.FILTER_STATUS);
+        assertEquals(2, status.size());
+        assertEquals(true, status.contains("RUNNING"));
+        assertEquals(true, status.contains("SUSPENDED"));
+        assertEquals(1, filter.get(OozieClient.FILTER_USER).size());
+        assertEquals("test-user", filter.get(OozieClient.FILTER_USER).get(0));
+        assertEquals(1, filter.get(OozieClient.FILTER_NAME).size());
+        assertEquals("test-app", filter.get(OozieClient.FILTER_NAME).get(0));
+        assertEquals(1, filter.get(OozieClient.FILTER_PARENTID).size());
+        assertEquals("XXX-C", filter.get(OozieClient.FILTER_PARENTID).get(0));
+
+        try {
+            filterStr = "user=test;status;";
+            filter = engine.parseFilter(filterStr);
+            fail();
+        } catch (DagEngineException e) {
+            assertEquals(ErrorCode.E0420, e.getErrorCode());
+            assertEquals(true, e.getMessage().contains("elements must be name=value pairs"));
+        }
+
+        try {
+            filterStr = "user=test;frequency=10;unit=MINUTES";
+            filter = engine.parseFilter(filterStr);
+            fail();
+        } catch (DagEngineException e) {
+            assertEquals(ErrorCode.E0420, e.getErrorCode());
+            assertEquals(true, e.getMessage().contains("invalid name [frequency]"));
+        }
+
+        try {
+            // PREMATER is for BundleStatus
+            filterStr = "user=test;status=PREMATER;";
+            filter = engine.parseFilter(filterStr);
+            fail();
+        } catch (DagEngineException e) {
+            assertEquals(ErrorCode.E0420, e.getErrorCode());
+            assertEquals(true, e.getMessage().contains("invalid status"));
+        }
+
+    }
+
 }

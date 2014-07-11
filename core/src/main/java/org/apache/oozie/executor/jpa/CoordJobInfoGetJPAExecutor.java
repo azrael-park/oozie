@@ -68,7 +68,7 @@ public class CoordJobInfoGetJPAExecutor implements JPAExecutor<CoordinatorJobInf
         StringBuilder sb = new StringBuilder("");
 
         StoreStatusFilter.filter(filter, orArray, colArray, valArray, sb, StoreStatusFilter.coordSeletStr,
-                                 StoreStatusFilter.coordCountStr);
+                StoreStatusFilter.FILTER.COORD);
 
         int realLen = 0;
 
@@ -86,8 +86,7 @@ public class CoordJobInfoGetJPAExecutor implements JPAExecutor<CoordinatorJobInf
             q = em.createQuery(sb.toString());
             q.setFirstResult(start - 1);
             q.setMaxResults(len);
-            qTotal = em.createQuery(sbTotal.toString().replace(StoreStatusFilter.coordSeletStr,
-                                                                          StoreStatusFilter.coordCountStr));
+            qTotal = em.createQuery(sbTotal.toString().replace(StoreStatusFilter.coordSeletStr, StoreStatusFilter.coordCountStr));
         }
 
         for (int i = 0; i < orArray.size(); i++) {
