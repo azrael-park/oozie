@@ -100,7 +100,6 @@
         <name>oozie.services.ext</name>
         <value>
             org.apache.oozie.service.HiveAccessService,
-            org.apache.oozie.service.JobRecoveryService,
             org.apache.oozie.service.RetryQueueService,
             org.apache.oozie.service.QueryExecutorService
         </value>
