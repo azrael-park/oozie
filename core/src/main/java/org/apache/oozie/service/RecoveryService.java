@@ -135,7 +135,7 @@ public class RecoveryService implements Service {
             runCoordActionRecovery();
             runCoordActionRecoveryForReady();
             runBundleRecovery();
-            log.debug("QUEUING [{0}] for potential recovery", msg.toString());
+            log.info("QUEUING [{0}] for potential recovery", msg.toString());
             boolean ret = false;
             if (null != callables) {
                 ret = Services.get().get(CallableQueueService.class).queueSerial(callables);
@@ -266,20 +266,20 @@ public class RecoveryService implements Service {
                         else if (caction.getStatus() == CoordinatorActionBean.Status.SUSPENDED) {
                             if (caction.getExternalId() != null) {
                                 queueCallable(new SuspendXCommand(caction.getExternalId()));
-                                log.debug("Recover a SUSPENDED coord action and resubmit SuspendXCommand :"
+                                log.info("Recover a SUSPENDED coord action and resubmit SuspendXCommand :"
                                         + caction.getId());
                             }
                         }
                         else if (caction.getStatus() == CoordinatorActionBean.Status.KILLED) {
                             if (caction.getExternalId() != null) {
                                 queueCallable(new KillXCommand(caction.getExternalId()));
-                                log.debug("Recover a KILLED coord action and resubmit KillXCommand :" + caction.getId());
+                                log.info("Recover a KILLED coord action and resubmit KillXCommand :" + caction.getId());
                             }
                         }
                         else if (caction.getStatus() == CoordinatorActionBean.Status.RUNNING) {
                             if (caction.getExternalId() != null) {
                                 queueCallable(new ResumeXCommand(caction.getExternalId()));
-                                log.debug("Recover a RUNNING coord action and resubmit ResumeXCommand :" + caction.getId());
+                                log.info("Recover a RUNNING coord action and resubmit ResumeXCommand :" + caction.getId());
                             }
                         }
                     }
@@ -329,7 +329,7 @@ public class RecoveryService implements Service {
                 log.warn("Exception while reading pending actions from storage", ex);
                 return;
             }
-            // log.debug("QUEUING[{0}] pending wf actions for potential recovery",
+            // log.info("QUEUING[{0}] pending wf actions for potential recovery",
             // actions.size());
             msg.append(" WF_ACTIONS " + actions.size());
 

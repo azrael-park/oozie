@@ -529,7 +529,7 @@ public class HadoopAccessorService implements Service {
         String uriScheme = uri.getScheme();
         if (uriScheme != null) {    // skip the check if no scheme is given
             if(!supportedSchemes.isEmpty()) {
-                XLog.getLog(this.getClass()).debug("Checking if filesystem " + uriScheme + " is supported");
+                XLog.getLog(this.getClass()).trace("Checking if filesystem " + uriScheme + " is supported");
                 if (!supportedSchemes.contains(uriScheme)) {
                     throw new HadoopAccessorException(ErrorCode.E0904, uriScheme, uri.toString());
                 }

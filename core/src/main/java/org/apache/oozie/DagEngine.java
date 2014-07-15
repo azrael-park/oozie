@@ -86,7 +86,7 @@ public class DagEngine extends BaseEngine {
             LOG.debug("Oozie DagEngine is not using XCommands.");
         }
         else {
-            LOG.debug("Oozie DagEngine is using XCommands.");
+            LOG.trace("Oozie DagEngine is using XCommands.");
         }
     }
 
