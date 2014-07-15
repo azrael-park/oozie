@@ -27,6 +27,7 @@ import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.service.ActionService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.ParamChecker;
+import org.apache.oozie.util.XLog;
 
 import java.util.Properties;
 
@@ -84,10 +85,13 @@ public class CompletedActionXCommand extends ActionXCommand<Void> {
      */
     @Override
     protected Void execute() throws CommandException {
+        LOG.info("STARTED CompletedActionXCommand : status[{0}] externalStatus[{1}] data[{2}]", wfAction.getStatus(),
+                externalStatus, actionData);
         ActionExecutor executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
         // this is done because oozie notifications (of sub-wfs) is send
         // every status change, not only on completion.
         if (executor.isCompleted(actionId, externalStatus, actionData)) {
+            LOG.info("Executor is completed ");
             queue(new ActionCheckXCommand(wfAction.getId(), getPriority(), -1));
         }
         return null;

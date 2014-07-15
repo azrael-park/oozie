@@ -79,6 +79,13 @@ public class HiveSession extends HiveStatus {
         }
     }
 
+    /**
+     * Determine all of the queries are completed or not.
+     * If query execution is finished, cleanup and shutdown.
+     * @param context
+     * @return true if all of the queries are completed
+     * @throws Exception If query execution fail
+     */
     public synchronized boolean check(ActionExecutor.Context context) throws Exception {
         if (executor.ex != null) {
             cleanup(context, "FAILED");
@@ -149,7 +156,7 @@ public class HiveSession extends HiveStatus {
     }
 
     private void cleanup(ActionExecutor.Context context, String status) {
-        LOG.info("Cleaning up hive session with status " + status);
+        LOG.info("Cleaning up hive session with status [{0}]", status);
         context.setExecutionData(status, null);   // induce ActionEndXCommand
         shutdown(true);
         LOG.info("Cleaned up hive session");

@@ -262,7 +262,6 @@ public class HiveActionExecutor extends ActionExecutor {
 
     @Override
     public boolean isCompleted(String actionID, String externalStatus, Properties actionData) {
-        LOG.debug("Action callback with status = " + externalStatus + ", data = " + actionData);
         HiveAccessService service = Services.get().get(HiveAccessService.class);
         HiveStatus session = service.peekRunningStatus(actionID);
         if (session == null) {
