@@ -840,6 +840,37 @@ public class OozieClientITV31 extends OozieClientIT{
     }
 
     /**
+     * Test el-parsing error handling.
+     * It throws nontransient error.
+     */
+    @Test
+    public void testELParsingErrorHandleV31() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            // hive actions of which query include count(*)
+            String appName = "hive-el-error";
+            String version = "v31";
+            String appPath = baseAppPath + "/" + version + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+            configs.put("version", version);
+
+            uploadApps(appPath, appName, version);
+
+            String jobID = run(configs);
+            WorkflowAction failedAction = monitorFailedAction(jobID);
+            Assert.assertNotNull(failedAction);
+            Assert.assertEquals("hive-mr", failedAction.getName());
+
+        } catch (Exception e) {
+            LOG.info("Fail to testELParsingErrorHandle", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testELParsingErrorHandle \n");
+    }
+
+    /**
      * Test hive action include mr job.
      *
      */

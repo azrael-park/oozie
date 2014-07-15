@@ -275,7 +275,8 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         updateList.add(wfJob);
     }
 
-    private boolean evaluateActionConf(ActionExecutor action, ActionExecutorContext context) throws ActionExecutorException, CommandException {
+    private boolean evaluateActionConf(ActionExecutor action, ActionExecutorContext context)
+            throws ActionExecutorException, CommandException {
         WorkflowActionBean wfAction = (WorkflowActionBean) context.getAction();
 
         boolean caught = false;
@@ -300,25 +301,25 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
             caught = true;
             context.setErrorInfo(EL_EVAL_ERROR, ex.getMessage());
             LOG.warn("ELEvaluationException in ActionStartXCommand ", ex.getMessage(), ex);
-            handleError(ActionExecutorException.ErrorType.TRANSIENT, context, wfJob, wfAction);
+            throw handleError(ActionExecutorException.ErrorType.TRANSIENT, context, wfJob, wfAction);
         }
         catch (ELException ex) {
             caught = true;
             context.setErrorInfo(EL_ERROR, ex.getMessage());
             LOG.warn("ELException in ActionStartXCommand ", ex.getMessage(), ex);
-            handleError(ActionExecutorException.ErrorType.NON_TRANSIENT, context, wfJob, wfAction);
+            throw handleError(ActionExecutorException.ErrorType.NON_TRANSIENT, context, wfJob, wfAction);
         }
         catch (org.jdom.JDOMException je) {
             caught = true;
             context.setErrorInfo("ParsingError", je.getMessage());
             LOG.warn("JDOMException in ActionStartXCommand ", je.getMessage(), je);
-            handleError(ActionExecutorException.ErrorType.NON_TRANSIENT, context, wfJob, wfAction);
+            throw handleError(ActionExecutorException.ErrorType.NON_TRANSIENT, context, wfJob, wfAction);
         }
         catch (Exception ex) {
             caught = true;
             context.setErrorInfo(EL_ERROR, ex.getMessage());
             LOG.warn("Exception in ActionStartXCommand ", ex.getMessage(), ex);
-            handleError(ActionExecutorException.ErrorType.NON_TRANSIENT, context, wfJob, wfAction);
+            throw handleError(ActionExecutorException.ErrorType.NON_TRANSIENT, context, wfJob, wfAction);
         }
 
         return caught;
