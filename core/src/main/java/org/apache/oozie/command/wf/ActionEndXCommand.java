@@ -102,7 +102,8 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
 
     @Override
     protected Void execute() throws CommandException {
-        LOG.info("STARTED ActionEndXCommand : status[{0}]", wfAction.getStatus());
+        LOG.info("STARTED ActionEndXCommand : status[{0}], externalStatus[{1}]", wfAction.getStatus(),
+                wfAction.getExternalStatus());
 
         Configuration conf = wfJob.getWorkflowInstance().getConf();
 
@@ -177,6 +178,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
             wfAction.setEndTime(new Date());
 
             boolean shouldHandleUserRetry = false;
+            boolean isUserRetry = true;
             Status slaStatus = null;
             switch (wfAction.getStatus()) {
                 case OK:
@@ -188,18 +190,21 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
                 case FAILED:
                     slaStatus = Status.FAILED;
                     shouldHandleUserRetry = true;
+                    isUserRetry = failJob(context, (WorkflowActionBean)context.getAction());
                     break;
                 case ERROR:
                     LOG.info("ERROR is considered as FAILED for SLA");
                     slaStatus = Status.KILLED;
                     shouldHandleUserRetry = true;
+                    isUserRetry = handleError(context, executor, COULD_NOT_END, wfAction.getStatus());
                     break;
                 default:
                     slaStatus = Status.FAILED;
                     shouldHandleUserRetry = true;
+                    isUserRetry = failJob(context, (WorkflowActionBean)context.getAction());
                     break;
             }
-            if (!shouldHandleUserRetry || !handleUserRetry(wfAction)) {
+            if (!shouldHandleUserRetry || !isUserRetry) {
                 SLAEventBean slaEvent = SLADbXOperations.createStatusEvent(wfAction.getSlaXml(), wfAction.getId(), slaStatus, SlaAppType.WORKFLOW_ACTION);
                 LOG.info("Queuing signal commands, status=" + wfAction.getStatus() + ", Set pending=" + wfAction.getPending());
                 if(slaEvent != null) {
@@ -244,7 +249,6 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
                 break;
             case ERROR:
                 handleError(context, executor, COULD_NOT_END, WorkflowAction.Status.ERROR);
-                queue(new SignalXCommand(jobId, actionId));
                 break;
             case FAILED:
                 failJob(context);

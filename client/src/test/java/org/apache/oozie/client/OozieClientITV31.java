@@ -173,7 +173,7 @@ public class OozieClientITV31 extends OozieClientIT{
      *     <li>oozie.service.LiteWorkflowStoreService.user.retry.suspend=true</li>
      * </ul>
      * The shell action included invalid command finished mr job gracefully, but isMainSuccessful is <code>false</code>.
-     * If retry-max is greater than 1, it cause the USER_RETRY from ActionEndXCommand#handleError.
+     * If retry-max is greater than 1, it cause the USER_RETRY from ActionEndXCommand#handleError and should be START_MANUAL.
      * If retry-max is 0, then it cause the ERROR from ActionEndXCommand#handleError and then KILLED.
      *
      */
@@ -229,6 +229,75 @@ public class OozieClientITV31 extends OozieClientIT{
             LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
 
             Assert.assertEquals(WorkflowAction.Status.USER_RETRY, shell.getStatus());
+
+        } catch (Exception e) {
+            LOG.info("Fail to testRetryShellV31", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testRetryShellV31 \n");
+    }
+
+    /**
+     * Test retry-max, retry-interval of action attribute.
+     * Set the following configs on oozie-site.xml :
+     * <ul>
+     *     <li>oozie.service.LiteWorkflowStoreService.user.retry.error.code.ext=ALL</li>
+     *     <li>oozie.service.LiteWorkflowStoreService.user.retry.suspend=true</li>
+     * </ul>
+     * The shell action included invalid command finished mr job gracefully, but isMainSuccessful is <code>false</code>.
+     * If retry-max is greater than 1, it cause the USER_RETRY from ActionEndXCommand#handleError and should be START_MANUAL.
+     * If retry-max is 0, then it cause the ERROR from ActionEndXCommand#handleError and then KILLED.
+     *
+     */
+    @Test
+    public void testRetryShell2V31() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            // ehco
+            String appName = "retry-shell2";
+            String version = "v31";
+            String appPath = baseAppPath + "/" + version + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+            configs.put("version", version);
+
+            uploadApps(appPath, appName, version);
+
+            String jobID = run(configs);
+
+            String status = "";
+            WorkflowAction shell = null;
+            try {
+                for (int i = 0; i < 100; i++) {
+                    WorkflowJob wfJob = getClient().getJobInfo(jobID);
+                    LOG.debug(wfJob.getId() + " [" + wfJob.getStatus().toString() + "]");
+                    List<WorkflowAction> actionList = wfJob.getActions();
+                    for (WorkflowAction action : actionList) {
+                        LOG.debug("    " + action.getName() + " [" + action.getStatus().toString() + "]");
+                        if(action.getName().equals("shell")){
+                            shell = action;
+                        }
+                    }
+                    status = wfJob.getStatus().toString();
+                    if (wfJob.getStatus().equals(WorkflowJob.Status.SUCCEEDED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.KILLED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.FAILED)) {
+                        break;
+                    }
+                    if(shell !=null && shell.getStatus() == WorkflowAction.Status.START_MANUAL){
+                        break;
+                    }
+                    Thread.sleep(POLLING);
+                }
+            } catch (Exception e) {
+                LOG.debug("Fail to monitor : " + jobID, e);
+            }
+
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowAction.Status.START_MANUAL, shell.getStatus());
 
         } catch (Exception e) {
             LOG.info("Fail to testRetryShellV31", e);
