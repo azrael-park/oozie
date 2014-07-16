@@ -247,6 +247,7 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
             boolean suspendActionForUserRetry = Services.get().get(ConfigurationService.class).getConf()
                     .getBoolean("oozie.service.LiteWorkflowStoreService.user.retry.suspend", false);
             if (suspendActionForUserRetry) {
+                LOG.info("Finished UserRetry on ERROR and handle as NONTRANSIENT");
                 handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
                 retried = true;
             } else {
@@ -273,9 +274,10 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
      *
      * @param context the execution context.
      * @param action the action that caused the workflow to fail
+     * @return true if the action is scheduled for user retry.
      * @throws CommandException thrown if unable to fail job
      */
-    public void failJob(ActionExecutor.Context context, WorkflowActionBean action) throws CommandException {
+    public boolean failJob(ActionExecutor.Context context, WorkflowActionBean action) throws CommandException {
         WorkflowJobBean workflow = (WorkflowJobBean) context.getWorkflow();
         if (!handleUserRetry(action)) {
             incrActionErrorCounter(action.getType(), "failed", 1);
@@ -294,7 +296,9 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
             catch (WorkflowException ex) {
                 throw new CommandException(ex);
             }
+            return false;
         }
+        return true;
     }
 
     /**

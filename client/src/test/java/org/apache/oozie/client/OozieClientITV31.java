@@ -170,7 +170,7 @@ public class OozieClientITV31 extends OozieClientIT{
      * <code>oozie.service.ActionService.exception.override</code> should be comment out.
      * <br/>
      * The shell action included invalid command finished mr job gracefully, but isMainSuccessful is <code>false</code>.
-     * If retry-max is greater than 1, it cause the USER_RETRY from ActionEndXCommand#handleError.
+     * If retry-max is greater than 1, it cause the USER_RETRY from ActionEndXCommand#handleError and should be START_MANUAL.
      * If retry-max is 0, then it cause the ERROR from ActionEndXCommand#handleError and then KILLED.
      *
      */
