@@ -313,4 +313,16 @@
         </description>
     </property>
 
+    <property>
+        <name>oozie.service.CallableQueueService.callable.concurrency</name>
+        <value>64</value>
+        <description>
+            Maximum concurrency for a given callable type.
+            Each command is a callable type (submit, start, run, signal, job, jobs, suspend,resume, etc).
+            Each action type is a callable type (Map-Reduce, Pig, SSH, FS, sub-workflow, etc).
+            All commands that use action executors (action-start, action-end, action-kill and action-check) use
+            the action type as the callable type.
+        </description>
+    </property>
+
 </configuration>
