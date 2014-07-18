@@ -224,7 +224,7 @@ public abstract class XCommand<T> implements XCallable<T> {
     private void releaseLock() {
         if (lock != null) {
             lock.release();
-            LOG.debug("Released lock for [{0}] in [{1}]", getEntityKey(), getName());
+            LOG.info("Released lock for [{0}] in [{1}]", getEntityKey(), getName());
         }
     }
 

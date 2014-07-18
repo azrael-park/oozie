@@ -17,6 +17,8 @@
  */
 package org.apache.oozie.lock;
 
+import org.apache.oozie.util.XLog;
+
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -114,6 +116,8 @@ public class MemoryLocks {
         else {
             if (wait > 0) {
                 if (!lock.tryLock(wait, TimeUnit.MILLISECONDS)) {
+                    XLog.getLog(getClass()).info("Fail to get lock : " + lock.toString());
+                    lock.toString();
                     return null;
                 }
             }

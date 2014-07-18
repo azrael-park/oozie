@@ -636,7 +636,6 @@ public class CallableQueueService implements Service, Instrumentable {
         }
         if (!executor.isShutdown()) {
             boolean filterDuplicates = wrapper.filterDuplicates();
-            log.debug(" filterDuplicates : " + filterDuplicates);
             if (filterDuplicates) {
                 wrapper.addToUniqueCallables();
                 try {
@@ -646,6 +645,8 @@ public class CallableQueueService implements Service, Instrumentable {
                     wrapper.removeFromUniqueCallables();
                     throw new RuntimeException(ree);
                 }
+            } else {
+                log.info("Already exists in queue [{0}]", wrapper.getElement().getKey());
             }
         }
         else {
