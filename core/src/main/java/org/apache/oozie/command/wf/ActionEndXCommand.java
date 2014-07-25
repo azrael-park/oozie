@@ -263,16 +263,29 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
         finally {
             try {
                 BatchQueryExecutor.getInstance().executeBatchInsertUpdateDelete(insertList, updateList, null);
+                if (!(executor instanceof ControlNodeActionExecutor) && EventHandlerService.isEnabled()) {
+                    generateEvent(wfAction, wfJob.getUser());
+                }
+                try {
+                    new SignalXCommand(jobId, actionId).call(getEntityKey());
+                } catch (CommandException ex) {
+                    if (ex.getErrorCode() == ErrorCode.E0729) {
+                        wfAction.setErrorInfo(ex.getErrorCode().toString(), ex.getMessage());
+                        wfAction.setEndTime(null);
+                        failJob(context);
+                        BatchQueryExecutor.getInstance().executeBatchInsertUpdateDelete(insertList, updateList, null);
+                        if (!(executor instanceof ControlNodeActionExecutor) && EventHandlerService.isEnabled()) {
+                            generateEvent(wfAction, wfJob.getUser());
+                        }
+                    } else {
+                        throw ex;
+                    }
+                }
             }
             catch (JPAExecutorException e) {
                 throw new CommandException(e);
             }
-            if (!(executor instanceof ControlNodeActionExecutor) && EventHandlerService.isEnabled()) {
-                generateEvent(wfAction, wfJob.getUser());
-            }
-            new SignalXCommand(jobId, actionId).call(getEntityKey());
         }
-
         LOG.debug("ENDED ActionEndXCommand for action " + actionId);
         return null;
     }

@@ -71,6 +71,8 @@ import java.util.Map;
 
 import org.apache.oozie.client.OozieClient;
 
+import javax.servlet.jsp.el.ELException;
+
 @SuppressWarnings("deprecation")
 public class SignalXCommand extends WorkflowXCommand<Void> {
 
@@ -298,6 +300,10 @@ public class SignalXCommand extends WorkflowXCommand<Void> {
                         updateList.add(new UpdateEntry<WorkflowActionQuery>(
                                 WorkflowActionQuery.UPDATE_ACTION_PENDING_TRANS_ERROR, wfAction));
                     }
+//                    catch (ELException ex) {
+//                        LOG.warn("ELException on setting KillNode message ", ex.getMessage(), ex);
+//                        throw new CommandException(ErrorCode.E0729, wfAction.getName(), ex);
+//                    }
                     catch (Exception ex) {
                         LOG.warn("Exception in SignalXCommand ", ex.getMessage(), ex);
                         throw new CommandException(ErrorCode.E0729, wfAction.getName(), ex);
