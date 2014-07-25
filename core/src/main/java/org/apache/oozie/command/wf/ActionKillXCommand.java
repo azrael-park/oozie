@@ -56,18 +56,11 @@ import org.apache.oozie.util.db.SLADbXOperations;
  */
 @SuppressWarnings("deprecation")
 public class ActionKillXCommand extends ActionXCommand<Void> {
-    private String actionId;
-    private String jobId;
-    private WorkflowJobBean wfJob;
-    private WorkflowActionBean wfAction;
-    private JPAService jpaService = null;
     private List<UpdateEntry> updateList = new ArrayList<UpdateEntry>();
     private List<JsonBean> insertList = new ArrayList<JsonBean>();
 
     public ActionKillXCommand(String actionId, String type) {
-        super("action.kill", type, 0);
-        this.actionId = actionId;
-        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
+        super(actionId, "action.kill", type, 0);
     }
 
     public ActionKillXCommand(String actionId) {
@@ -75,38 +68,8 @@ public class ActionKillXCommand extends ActionXCommand<Void> {
     }
 
     @Override
-    protected boolean isLockRequired() {
-        return true;
-    }
-
-    @Override
-    public String getEntityKey() {
-        return this.jobId;
-    }
-
-    @Override
-    public String getKey() {
-        return getName() + "_" + this.actionId;
-    }
-
-    @Override
     protected void loadState() throws CommandException {
-        try {
-            jpaService = Services.get().get(JPAService.class);
-
-            if (jpaService != null) {
-                this.wfJob = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW_ACTION_OP, jobId);
-                this.wfAction = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION, actionId);
-                LogUtils.setLogInfo(wfJob, logInfo);
-                LogUtils.setLogInfo(wfAction, logInfo);
-            }
-            else {
-                throw new CommandException(ErrorCode.E0610);
-            }
-        }
-        catch (XException ex) {
-            throw new CommandException(ex);
-        }
+        loadActionBean(WorkflowJobQuery.GET_WORKFLOW_ACTION_OP, WorkflowActionQuery.GET_ACTION);
     }
 
     @Override
@@ -118,7 +81,7 @@ public class ActionKillXCommand extends ActionXCommand<Void> {
 
     @Override
     protected Void execute() throws CommandException {
-        LOG.debug("STARTED WorkflowActionKillXCommand for action " + actionId);
+        LOG.debug("STARTED ActionKillXCommand : status[{0}]", wfAction.getStatus());
 
         if (wfAction.isPending()) {
             ActionExecutor executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
@@ -152,24 +115,7 @@ public class ActionKillXCommand extends ActionXCommand<Void> {
                     queue(new NotificationXCommand(wfJob, wfAction));
                 }
                 catch (ActionExecutorException ex) {
-                    wfAction.resetPending();
-                    wfAction.setStatus(WorkflowActionBean.Status.FAILED);
-                    wfAction.setErrorInfo(ex.getErrorCode().toString(),
-                            "KILL COMMAND FAILED - exception while executing job kill");
-                    wfAction.setEndTime(new Date());
-
-                    wfJob.setStatus(WorkflowJobBean.Status.KILLED);
-                    updateList.add(new UpdateEntry<WorkflowActionQuery>(WorkflowActionQuery.UPDATE_ACTION_END, wfAction));
-                    wfJob.setLastModifiedTime(new Date());
-                    updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_MODTIME, wfJob));
-                    // What will happen to WF and COORD_ACTION, NOTIFICATION?
-                    SLAEventBean slaEvent = SLADbXOperations.createStatusEvent(wfAction.getSlaXml(), wfAction.getId(), Status.FAILED,
-                            SlaAppType.WORKFLOW_ACTION);
-                    if(slaEvent != null) {
-                        insertList.add(slaEvent);
-                    }
-                    LOG.warn("Exception while executing kill(). Error Code [{0}], Message[{1}]",
-                            ex.getErrorCode(), ex.getMessage(), ex);
+                    handleExecutionFail(ex, null);
                 }
                 finally {
                     try {
@@ -186,6 +132,27 @@ public class ActionKillXCommand extends ActionXCommand<Void> {
         }
         LOG.debug("ENDED WorkflowActionKillXCommand for action " + actionId);
         return null;
+    }
+
+    protected void handleExecutionFail(ActionExecutorException ex, ActionExecutorContext context) throws CommandException{
+        wfAction.resetPending();
+        wfAction.setStatus(WorkflowActionBean.Status.FAILED);
+        wfAction.setErrorInfo(ex.getErrorCode().toString(),
+                "KILL COMMAND FAILED - exception while executing job kill");
+        wfAction.setEndTime(new Date());
+
+        wfJob.setStatus(WorkflowJobBean.Status.KILLED);
+        updateList.add(new UpdateEntry<WorkflowActionQuery>(WorkflowActionQuery.UPDATE_ACTION_END, wfAction));
+        wfJob.setLastModifiedTime(new Date());
+        updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_MODTIME, wfJob));
+        // What will happen to WF and COORD_ACTION, NOTIFICATION?
+        SLAEventBean slaEvent = SLADbXOperations.createStatusEvent(wfAction.getSlaXml(), wfAction.getId(), Status.FAILED,
+                SlaAppType.WORKFLOW_ACTION);
+        if(slaEvent != null) {
+            insertList.add(slaEvent);
+        }
+        LOG.warn("Exception while executing kill(). Error Code [{0}], Message[{1}]",
+                ex.getErrorCode(), ex.getMessage(), ex);
     }
 
 }

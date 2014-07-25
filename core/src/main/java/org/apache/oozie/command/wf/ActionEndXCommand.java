@@ -62,55 +62,16 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
     public static final String COULD_NOT_END = "COULD_NOT_END";
     public static final String END_DATA_MISSING = "END_DATA_MISSING";
 
-    private String jobId = null;
-    private String actionId = null;
-    private WorkflowJobBean wfJob = null;
-    private WorkflowActionBean wfAction = null;
-    private JPAService jpaService = null;
-    private ActionExecutor executor = null;
     private List<UpdateEntry> updateList = new ArrayList<UpdateEntry>();
     private List<JsonBean> insertList = new ArrayList<JsonBean>();
 
     public ActionEndXCommand(String actionId, String type) {
-        super("action.end", type, 0);
-        this.actionId = actionId;
-        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
-    }
-
-    @Override
-    protected boolean isLockRequired() {
-        return true;
-    }
-
-    @Override
-    public String getEntityKey() {
-        return this.jobId;
-    }
-
-    @Override
-    public String getKey() {
-        return getName() + "_" + actionId;
+        super(actionId, "action.end", type, 0);
     }
 
     @Override
     protected void loadState() throws CommandException {
-        try {
-            jpaService = Services.get().get(JPAService.class);
-            if (jpaService != null) {
-                this.wfJob = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW_ACTION_OP,
-                        jobId);
-                this.wfAction = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION_END,
-                        actionId);
-                LogUtils.setLogInfo(wfJob, logInfo);
-                LogUtils.setLogInfo(wfAction, logInfo);
-            }
-            else {
-                throw new CommandException(ErrorCode.E0610);
-            }
-        }
-        catch (XException ex) {
-            throw new CommandException(ex);
-        }
+        loadActionBean(WorkflowJobQuery.GET_WORKFLOW_ACTION_OP, WorkflowActionQuery.GET_ACTION_END);
     }
 
     @Override
@@ -133,15 +94,12 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
             throw new PreconditionException(ErrorCode.E0812, wfAction.isPending(), wfAction.getStatusStr());
         }
 
-        executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
-        if (executor == null) {
-            throw new CommandException(ErrorCode.E0802, wfAction.getType());
-        }
+        loadActionExecutor();
     }
 
     @Override
     protected Void execute() throws CommandException {
-        LOG.debug("STARTED ActionEndXCommand for action " + actionId);
+        LOG.debug("STARTED ActionEndXCommand : status[{0}]", wfAction.getStatus());
 
         Configuration conf = wfJob.getWorkflowInstance().getConf();
 
@@ -225,40 +183,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
             updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MODIFIED, wfJob));
         }
         catch (ActionExecutorException ex) {
-            LOG.warn(
-                    "Error ending action [{0}]. ErrorType [{1}], ErrorCode [{2}], Message [{3}]",
-                    wfAction.getName(), ex.getErrorType(), ex.getErrorCode(), ex.getMessage());
-            wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
-            wfAction.setEndTime(null);
-
-            switch (ex.getErrorType()) {
-                case TRANSIENT:
-                    if (!handleTransient(context, executor, WorkflowAction.Status.END_RETRY)) {
-                        handleNonTransient(context, executor, WorkflowAction.Status.END_MANUAL);
-                        wfAction.setPendingAge(new Date());
-                        wfAction.setRetries(0);
-                    }
-                    wfAction.setEndTime(null);
-                    break;
-                case NON_TRANSIENT:
-                    handleNonTransient(context, executor, WorkflowAction.Status.END_MANUAL);
-                    wfAction.setEndTime(null);
-                    break;
-                case ERROR:
-                    handleError(context, executor, COULD_NOT_END, false, WorkflowAction.Status.ERROR);
-                    break;
-                case FAILED:
-                    failJob(context);
-                    break;
-            }
-
-            WorkflowInstance wfInstance = wfJob.getWorkflowInstance();
-            DagELFunctions.setActionInfo(wfInstance, wfAction);
-            wfJob.setWorkflowInstance(wfInstance);
-
-            updateList.add(new UpdateEntry<WorkflowActionQuery>(WorkflowActionQuery.UPDATE_ACTION_END,wfAction));
-            wfJob.setLastModifiedTime(new Date());
-            updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MODIFIED, wfJob));
+            handleExecutionFail(ex, context);
         }
         finally {
             try {
@@ -275,6 +200,43 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
 
         LOG.debug("ENDED ActionEndXCommand for action " + actionId);
         return null;
+    }
+
+    protected void handleExecutionFail(ActionExecutorException ex, ActionExecutorContext context) throws CommandException{
+        LOG.warn(
+                "Error ending action [{0}]. ErrorType [{1}], ErrorCode [{2}], Message [{3}]",
+                wfAction.getName(), ex.getErrorType(), ex.getErrorCode(), ex.getMessage());
+        wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
+        wfAction.setEndTime(null);
+
+        switch (ex.getErrorType()) {
+            case TRANSIENT:
+                if (!handleTransient(context, executor, WorkflowAction.Status.END_RETRY)) {
+                    handleNonTransient(context, executor, WorkflowAction.Status.END_MANUAL);
+                    wfAction.setPendingAge(new Date());
+                    wfAction.setRetries(0);
+                }
+                wfAction.setEndTime(null);
+                break;
+            case NON_TRANSIENT:
+                handleNonTransient(context, executor, WorkflowAction.Status.END_MANUAL);
+                wfAction.setEndTime(null);
+                break;
+            case ERROR:
+                handleError(context, executor, COULD_NOT_END, false, WorkflowAction.Status.ERROR);
+                break;
+            case FAILED:
+                failJob(context);
+                break;
+        }
+
+        WorkflowInstance wfInstance = wfJob.getWorkflowInstance();
+        DagELFunctions.setActionInfo(wfInstance, wfAction);
+        wfJob.setWorkflowInstance(wfInstance);
+
+        updateList.add(new UpdateEntry<WorkflowActionQuery>(WorkflowActionQuery.UPDATE_ACTION_END,wfAction));
+        wfJob.setLastModifiedTime(new Date());
+        updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MODIFIED, wfJob));
     }
 
 }

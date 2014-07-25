@@ -32,10 +32,17 @@ import org.apache.oozie.DagELFunctions;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
+import org.apache.oozie.XException;
 import org.apache.oozie.action.ActionExecutor;
+import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
+import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.executor.jpa.QueryExecutor;
+import org.apache.oozie.executor.jpa.WorkflowActionQueryExecutor;
+import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor;
+import org.apache.oozie.service.ActionService;
 import org.apache.oozie.service.CallbackService;
 import org.apache.oozie.service.ELService;
 import org.apache.oozie.service.HadoopAccessorException;
@@ -43,10 +50,13 @@ import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.LiteWorkflowStoreService;
 import org.apache.oozie.service.Services;
+import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.InstrumentUtils;
 import org.apache.oozie.util.Instrumentation;
+import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.XConfiguration;
+import org.apache.oozie.util.XLog;
 import org.apache.oozie.workflow.WorkflowException;
 import org.apache.oozie.workflow.WorkflowInstance;
 import org.apache.oozie.workflow.lite.LiteWorkflowInstance;
@@ -60,8 +70,71 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
 
     protected static final String RECOVERY_ID_SEPARATOR = "@";
 
-    public ActionXCommand(String name, String type, int priority) {
+    protected final String actionId;
+    protected final String jobId;
+
+    protected WorkflowJobBean wfJob;
+    protected WorkflowActionBean wfAction;
+    protected JPAService jpaService;
+    protected ActionExecutor executor;
+
+
+    public ActionXCommand(String actionId, String name, String type, int priority) {
         super(name, type, priority);
+        this.actionId = actionId;
+        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
+    }
+
+    public ActionXCommand(WorkflowJobBean job, String actionId, String name, String type, int priority) {
+        super(name, type, priority);
+        this.actionId = actionId;
+        this.wfJob = job;
+        this.jobId = wfJob.getId();
+    }
+
+    @Override
+    protected boolean isLockRequired() {
+        return true;
+    }
+
+    @Override
+    public String getEntityKey() {
+        return this.jobId;
+    }
+
+    @Override
+    public String getKey(){
+        return getName() + "_" + actionId;
+    }
+
+    protected void loadActionBean(WorkflowJobQueryExecutor.WorkflowJobQuery workflowJobQuery,
+                              WorkflowActionQueryExecutor.WorkflowActionQuery workflowActionQuery) throws CommandException{
+        try {
+            jpaService = Services.get().get(JPAService.class);
+            if (jpaService != null) {
+                this.wfJob = WorkflowJobQueryExecutor.getInstance().get(workflowJobQuery, jobId);
+                this.wfAction = WorkflowActionQueryExecutor.getInstance().get(workflowActionQuery, actionId);
+                LogUtils.setLogInfo(wfJob, logInfo);
+                LogUtils.setLogInfo(wfAction, logInfo);
+            }
+            else {
+                throw new CommandException(ErrorCode.E0610);
+            }
+        }
+        catch (XException ex) {
+            throw new CommandException(ex);
+        }
+
+    }
+
+    protected void loadActionExecutor() throws CommandException{
+        executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
+        if (executor == null) {
+            throw new CommandException(ErrorCode.E0802, wfAction.getType());
+        }
+    }
+
+    protected void handleExecutionFail(ActionExecutorException ex, ActionExecutorContext context) throws CommandException{
     }
 
     /**
@@ -132,7 +205,7 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
 
     /**
      * Takes care of errors. </p> For errors while attempting to start the action, the job state is updated and an
-     * {@link ActionEndCommand} is queued. </p> For errors while attempting to end the action, the job state is updated.
+     * {@link ActionEndXCommand} is queued. </p> For errors while attempting to end the action, the job state is updated.
      * </p>
      *
      * @param context the execution context.
@@ -206,7 +279,7 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
     /**
      * Execute retry for action if this action is eligible for user-retry
      *
-     * @param context the execution context.
+     * @param action the WorkflowActionBean.
      * @return true if user-retry has to be handled for this action
      * @throws CommandException thrown if unable to fail job
      */
