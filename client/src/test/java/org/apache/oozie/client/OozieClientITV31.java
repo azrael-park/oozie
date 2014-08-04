@@ -1162,6 +1162,57 @@ public class OozieClientITV31 extends OozieClientIT{
         }
         LOG.info("    >>>> Pass testHiveUpdateQueriesV31 \n");
     }
+
+    /**
+     * Test resume workflow which has action on START_MANUAL.
+     *
+     */
+    @Test
+    public void testResumeWFV31() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            // hive actions in which query occurs error.
+            String appName = "hive-start-manual";
+            String version = "v31";
+            String appPath = baseAppPath + "/" + version + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+            configs.put("version", version);
+
+            uploadApps(appPath, appName, version);
+
+            String jobID = run(configs);
+
+            WorkflowAction action = monitorFailedAction(jobID);
+            Assert.assertEquals("hive-start-manual", action.getName());
+            LOG.info("action status : " + action.getStatus().toString());
+
+            String log = getClient().getLog(action.getId());
+            LOG.info("action log >>>>>>>>>> \n" + log + "\n >>>>>>>>>>");
+
+            // update query and resume action
+            String newQuery = "SHOW TABLES";
+
+            Map<String, String> updates = new HashMap<String, String>();
+            updates.put("query", newQuery);
+            getClient().update(action.getId(), updates);
+
+            Thread.sleep(1000);
+            getClient().resume(jobID);
+
+            Thread.sleep(1000);
+            String status = monitorJob(jobID);
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowJob.Status.SUCCEEDED.toString(), status);
+        } catch (Exception e) {
+            LOG.info("Fail to testHiveUpdateQueryV31", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testHiveUpdateQueryV31 \n");
+    }
     
     /**
      * Test workflow with multiple actions. Test HiveStatus search APIs.

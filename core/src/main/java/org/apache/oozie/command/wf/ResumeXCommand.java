@@ -67,7 +67,8 @@ public class ResumeXCommand extends WorkflowXCommand<Void> {
     @Override
     protected Void execute() throws CommandException {
         try {
-            if (workflow.getStatus() == WorkflowJob.Status.SUSPENDED) {
+            if (workflow.getStatus() == WorkflowJob.Status.SUSPENDED
+                    || (workflow.getStatus() == WorkflowJob.Status.RUNNING && hasRetryOrManualAction())) {
                 InstrumentUtils.incrJobCounter(getName(), 1, getInstrumentation());
                 workflow.getWorkflowInstance().resume();
                 WorkflowInstance wfInstance = workflow.getWorkflowInstance();
@@ -190,8 +191,27 @@ public class ResumeXCommand extends WorkflowXCommand<Void> {
 
     @Override
     protected void verifyPrecondition() throws CommandException, PreconditionException {
-        if (workflow.getStatus() != WorkflowJob.Status.SUSPENDED) {
-            throw new PreconditionException(ErrorCode.E1100, "workflow's status is " + workflow.getStatusStr() + " is not SUSPENDED");
+        if (!(workflow.getStatus() == WorkflowJob.Status.SUSPENDED || workflow.getStatus() == WorkflowJob.Status.RUNNING)) {
+            throw new PreconditionException(ErrorCode.E1100, "workflow's status is " + workflow.getStatusStr() + " is not " +
+                    "SUSPENDED or RUNNING : " + workflow.getStatusStr());
         }
+    }
+
+    private boolean hasRetryOrManualAction() throws CommandException{
+        boolean hasRetryOnManual = false;
+        try {
+            for (WorkflowActionBean action : jpaService.execute(new WorkflowJobGetActionsJPAExecutor(id))) {
+                hasRetryOnManual |= action.isRetryOrManual();
+            }
+        }catch (JPAExecutorException ex) {
+            throw new CommandException(ex);
+        }
+        WorkflowInstance wfInstance = workflow.getWorkflowInstance();
+        ((LiteWorkflowInstance) wfInstance).setStatus(WorkflowInstance.Status.SUSPENDED);
+        workflow.setWorkflowInstance(wfInstance);
+        workflow.setStatus(WorkflowJob.Status.SUSPENDED);
+        LOG.info("WF has action on manual : set to SUSPENDED");
+        return hasRetryOnManual;
+
     }
 }
