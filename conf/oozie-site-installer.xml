@@ -324,4 +324,17 @@
         </description>
     </property>
 
+    <property>
+        <name>oozie.service.HadoopAccessorService.hadoop.configurations</name>
+        <value>*=hadoop-conf,${YARN_RESOURCEMANAGER_ADDRESS}=${HADOOP_CONF_DIR},${NAMENODE_ADDRESS}=${HADOOP_CONF_DIR}</value>
+        <description>
+            Comma separated AUTHORITY=HADOOP_CONF_DIR, where AUTHORITY is the HOST:PORT of
+            the Hadoop service (JobTracker, YARN, HDFS). The wildcard '*' configuration is
+            used when there is no exact match for an authority. The HADOOP_CONF_DIR contains
+            the relevant Hadoop *-site.xml files. If the path is relative is looked within
+            the Oozie configuration directory; though the path can be absolute (i.e. to point
+            to Hadoop client conf/ directories in the local filesystem.
+        </description>
+    </property>
+
 </configuration>
