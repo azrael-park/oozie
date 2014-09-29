@@ -5,6 +5,7 @@ import jline.History;
 import jline.SimpleCompletor;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
@@ -22,6 +23,7 @@ import org.apache.oozie.util.XmlUtils;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -176,6 +178,8 @@ public class SimpleClient {
         def { String help() { return "def <job-id|action-id> : shows defintion of the job or action"; } },
         url { String help() { return "url : shows url of oozie server"; } },
         servers { String help() { return "list available Oozie servers"; }},
+        example { String help() { return "example <app-path> > : create example on <app-path> (ex> example " +
+                "hdfs://nn.nexr.com:8020/user/oozie/shell )"; }},
         quit { String help() { return "quit : quit the shell"; } };
         abstract String help();
     }
@@ -485,6 +489,9 @@ public class SimpleClient {
                 for (Map.Entry entry: servers.entrySet()) {
                     System.out.println(entry.getKey() + " : " + entry.getValue());
                 }
+            } else if (commands[0].equals("example")) {
+                createExample(commands[1]);
+                System.out.println("    Created example on [" + commands[1] + "]");
             } else {
                 System.err.println("invalid command " + line);
             }
@@ -790,6 +797,62 @@ public class SimpleClient {
         props.setProperty(key, qualified.toString());
 
         return props;
+    }
+
+    private void createExample(String appPath) throws IOException {
+        Path parent = new Path(appPath);
+        String host = parent.toUri().getHost();
+        Path path = new Path(appPath, "job.properties");
+        StringBuffer sb = new StringBuffer();
+        sb.append("nameNode=hdfs://" + host + ":8020" + "\n");
+        sb.append("jobTracker=" + host +":8032" + "\n");
+        sb.append("queueName=default" + "\n");
+        sb.append("hiveServer=http://" + host + ":10000/default" + "\n");
+        sb.append("oozie.wf.application.path=" + appPath);
+        copyTo(sb.toString().getBytes(), path);
+
+        path = new Path(appPath, "script-outstream.sh");
+        sb = new StringBuffer();
+        sb.append("#!/bin/bash" + "\n");
+        sb.append("echo \"hello-standard-output-dump\"" + "\n");
+        sb.append("echo \"hello-standard-error\" 1>&2" + "\n");
+        copyTo(sb.toString().getBytes(), path);
+
+        path = new Path(appPath, "workflow.xml");
+        sb = new StringBuffer();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" + "\n");
+        sb.append("<workflow-app xmlns=\"uri:oozie:workflow:0.3\" name=\"test\">" + "\n");
+        sb.append("<start to=\"shell-v40\"/>" + "\n");
+        sb.append("<action name=\"shell-v40\">" + "\n");
+        sb.append("<shell xmlns=\"uri:oozie:shell-action:0.1\">" + "\n");
+        sb.append("<job-tracker>${jobTracker}</job-tracker>" + "\n");
+        sb.append("<name-node>${nameNode}</name-node>" + "\n");
+        sb.append("<exec>script-outstream.sh</exec>" + "\n");
+        sb.append("<argument></argument>" + "\n");
+        sb.append("<file>script-outstream.sh</file>" + "\n");
+        sb.append("<capture-output/>" + "\n");
+        sb.append("</shell>" + "\n");
+        sb.append("<ok to=\"end\"/>" + "\n");
+        sb.append("<error to=\"fail\"/>" + "\n");
+        sb.append("</action>" + "\n");
+        sb.append("<kill name=\"fail\">" + "\n");
+        sb.append("<message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>" + "\n");
+        sb.append("</kill>" + "\n");
+        sb.append("<end name=\"end\"/>" + "\n");
+        sb.append("</workflow-app>" + "\n");
+        copyTo(sb.toString().getBytes(), path);
+    }
+
+    private void copyTo(byte[] src, Path path) throws IOException{
+        FSDataOutputStream fo = null;
+        try {
+            FileSystem fs = path.getFileSystem(new Configuration());
+            fo = fs.create(path, true);
+            fo.write(src);
+        } finally {
+            IOUtils.closeStream(fo);
+        }
+
     }
 
     public static void main(String[] args) throws Exception {
