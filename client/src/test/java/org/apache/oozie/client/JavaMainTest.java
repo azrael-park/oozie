@@ -78,11 +78,11 @@ public class JavaMainTest {
             }
         } else {
             // ERROR test
-            String outData = "javamain-hello-error-azrael";
+            String outData = "java-main-hello-error-azrael-" + "한글";
             String outFile = System.getProperty("oozie.action.error.dump");
             if (outFile != null) {
                 OutputStream os = new FileOutputStream(new File(outFile), true);
-                os.write(outData.getBytes());
+                os.write(outData.getBytes("UTF-8"));
                 os.close();
             }
             exitValue = 1;

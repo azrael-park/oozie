@@ -1,11 +1,22 @@
 package org.apache.oozie.client;
 
 import junit.framework.Assert;
+import org.apache.commons.lang.CharSet;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -781,15 +792,9 @@ public class OozieClientITV31 extends OozieClientIT{
     }
 
     /**
-     * Test standard out and standard err of Custom Java ActionMain - JavaMainTest.
+     * Test standard-out stream of Custom Java ActionMain - JavaMainTest.
      * Put the javamain.jar into hdfs://namenode/share/lib/oozie/ for test.
-     * <br>
-     * <br> For the standard out
-     * <li>1. run test case and pass</li>
-     * <br> For the standard err
-     * <li>1. set "echooo" for command.</li>
-     * <li>2. run test case and fail</li>
-     * <li>3. search in oozie.log and find <code>'stderr dump-xxx javamain-hello-error-azrael'</code> manually</li>
+     * The standard-out stream is stored into actionData and captured into oozie.log : <code>'stdout dump-xxx '</code>
      *
      */
     @Test
@@ -839,6 +844,91 @@ public class OozieClientITV31 extends OozieClientIT{
             Assert.assertEquals(WorkflowJob.Status.SUCCEEDED.toString(), status);
 
             Assert.assertTrue(capture.contains("hello-azrael="));
+
+        } catch (Exception e) {
+            LOG.info("Fail to testJavaMainV31", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testJavaMainV31 \n");
+    }
+
+    /**
+     * Test standard err of Custom Java ActionMain - JavaMainTest.
+     * Put the javamain.jar into hdfs://namenode/share/lib/oozie/ for test.
+     * The standard-err stream is captured into oozie.log : <code>'stderr dump-xxx java-main-hello-error-azrael'</code>
+     *
+     */
+    @Ignore
+    @Test
+    public void testJavaMainErrorDumpV31() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            // ehco
+            String appName = "java-main-error-dump";
+            String version = "v31";
+            String appPath = baseAppPath + "/" + version + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+            configs.put("version", version);
+
+            uploadApps(appPath, appName, version);
+
+            String jobID = run(configs);
+
+            String status = "";
+            WorkflowAction failedAction = null;
+            try {
+                for (int i = 0; i < 50; i++) {
+                    WorkflowJob wfJob = getClient().getJobInfo(jobID);
+                    LOG.debug(wfJob.getId() + " [" + wfJob.getStatus().toString() + "]");
+                    List<WorkflowAction> actionList = wfJob.getActions();
+                    for (WorkflowAction action : actionList) {
+                        if (action.getName().equals("java1")) {
+                            LOG.debug("    " + action.getName() + " [" + action.getStatus().toString() + "]");
+                            failedAction = action;
+                        }
+                    }
+                    status = wfJob.getStatus().toString();
+                    if (wfJob.getStatus().equals(WorkflowJob.Status.SUCCEEDED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.KILLED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.FAILED)) {
+                        break;
+                    }
+                    Thread.sleep(POLLING);
+                }
+            } catch (Exception e) {
+                LOG.debug("Fail to monitor : " + jobID, e);
+            }
+
+
+            Assert.assertNotNull(failedAction);
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowJob.Status.KILLED.toString(), status);
+            String[] logs = getClient().getLog(failedAction.getId()).split("\n");
+            String capture = "";
+            for (String log: logs) {
+                if (log.startsWith("java-main-hello-error-azrael")) {
+                    capture = log.trim();
+                }
+            }
+            String[] datas = capture.split("-");
+            String h = datas[datas.length-1];
+
+            LOG.info("------- \n" + capture);
+
+            String hanguel = "한글";
+            byte[] hByte = hanguel.getBytes("UTF-8");
+            LOG.info("===== default char : " + Charset.defaultCharset());
+
+            LOG.info("src size : " + hByte.length);
+            LOG.info("des org : " + new String(h.getBytes()) + " : " + h.getBytes().length);
+            LOG.info("des UTF-8 : " + new String(h.getBytes("UTF-8")) + " : " + h.getBytes("UTF-8").length);
+
+            Assert.assertEquals(hanguel.getBytes("UTF-8").length, h.getBytes("UTF-8").length);
+            Assert.assertTrue(capture.contains("java-main-hello-error-azrael-" + hanguel));
 
         } catch (Exception e) {
             LOG.info("Fail to testJavaMainV31", e);

@@ -48,6 +48,12 @@ public class OozieClientIT {
             nameNode = "hdfs://" + host + ":8020";
             jobTracker = host + ":8032";
         }
+        if (System.getProperty("nameNode") != null) {
+            nameNode = System.getProperty("nameNode");
+        }
+        if (System.getProperty("resourceManager") !=null) {
+            jobTracker = System.getProperty("resourceManager");
+        }
         hiveServer = "http://" + host + ":10000/default";
         String localUser = System.getProperty("user.name");
         user = localUser;
