@@ -252,21 +252,23 @@ public class HiveAccessService implements Service {
     }
 
     public HiveTClient clientFor(String address, String user) throws ActionExecutorException {
-        return getHiveTClient(Utils.parseURI(URI.create(address)), user);
+        return getHiveTClient(address, Utils.parseURI(URI.create(address)), user);
     }
 
-    private HiveTClient getHiveTClient(Utils.JdbcConnectionParams connParams, String user) throws ActionExecutorException {
+    private HiveTClient getHiveTClient(String address, Utils.JdbcConnectionParams connParams, String user)
+        throws ActionExecutorException {
         if (connParams.getScheme() != null && !connParams.getScheme().isEmpty() && !connParams.getScheme().equals("hive")) {
             Configuration conf = Services.get().get(ConfigurationService.class).getConf();
-            if(conf.getBoolean(HiveSession.PING_ENABLED, false)){
+            if (conf.getBoolean(HiveSession.PING_ENABLED, false)) {
                 checkSocketForV2(connParams);
             }
-            return createClientForV2(connParams, user);
+            return createClientForV2(address, connParams, user);
         }
-        return createClientForV1(connParams);
+        return createClientForV1(address, connParams);
     }
 
-    private HiveTClient createClientForV1(Utils.JdbcConnectionParams params) throws ActionExecutorException {
+    private HiveTClient createClientForV1(String address, Utils.JdbcConnectionParams params)
+        throws ActionExecutorException {
         try {
             TSocket protocol = new TSocket(params.getHost(), params.getPort());
             protocol.open();
@@ -276,7 +278,7 @@ public class HiveAccessService implements Service {
         }
     }
 
-    public HiveTClient createClientForV2(Utils.JdbcConnectionParams params, String user) throws ActionExecutorException {
+    public HiveTClient createClientForV2(String address, Utils.JdbcConnectionParams params, String user) throws ActionExecutorException {
         String hivePasswdProviderMethod = Services.get().get(ConfigurationService.class).getConf()
                 .get(HiveAccessService.CONF_PASSWD_PROVIDER_METHOD, "NONE");
         Properties info = new Properties();
@@ -286,9 +288,8 @@ public class HiveAccessService implements Service {
             info.put(HIVE_AUTH_USER, user);
             info.put(HIVE_AUTH_PASSWD, passwd);
         }
-        HiveConnection connection = new HiveConnection();
         try {
-            connection.initialize(params, info);
+            HiveConnection connection = new HiveConnection(address, params, info);
             return new HiveTClientV2(connection, params);
         } catch (Throwable e) {
             throw new ActionExecutorException(ErrorType.TRANSIENT, "HIVE-002", "failed to connect hive server {0}", toAddress(params), e);
@@ -305,8 +306,7 @@ public class HiveAccessService implements Service {
         sesseionVars.put("socketTimeout", String.valueOf(HiveSession.PING_TIMEOUT));
         pingParams.setSessionVars(sesseionVars);
         try {
-            connection = new HiveConnection();
-            connection.initialize(pingParams, new Properties());
+            connection = new HiveConnection("ping", pingParams, new Properties());
         } catch (Exception e){
             LOG.warn("hive server does not respond {0}", toAddress(pingParams));
             throw new ActionExecutorException(ErrorType.TRANSIENT, "HIVE-002", "failed to connect hive server {0}", toAddress(params), e);
@@ -341,7 +341,7 @@ public class HiveAccessService implements Service {
             return true;
         }
         if (connection.client == null) {
-            connection.client = getHiveTClient(params, user);
+            connection.client = getHiveTClient("ping", params, user);
         }
         try {
             if (connection.client.ping(timeout)) {
