@@ -71,7 +71,7 @@
 
         <hadoop.version>1.2.1</hadoop.version>
         <hbase.version>0.94.2</hbase.version>
-        <hcatalog.version>0.5.0</hcatalog.version>
+        <hcatalog.version>0.13.1</hcatalog.version>
         <hcatalog.hive.version>${hive.version}</hcatalog.hive.version>
 
         <hadooplib.version>${hadoop.version}.oozie-${project.version}</hadooplib.version>
