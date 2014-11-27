@@ -1114,17 +1114,34 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
+               <hadoop.profile.name>hadoop-0.20</hadoop.profile.name>
                <hadoop.version>0.23.5</hadoop.version>
                <pig.classifier>h2</pig.classifier>
                <sqoop.classifier>hadoop23</sqoop.classifier>
             </properties>
         </profile>
         <profile>
-            <id>hadoop-2</id>
+            <id>hadoop-1</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
+                <hadoop.profile.name>hadoop-1</hadoop.profile.name>
+                <hadoop.version>1.2.1</hadoop.version>
+                <pig.classifier></pig.classifier>
+                <sqoop.classifier>hadoop20</sqoop.classifier>
+            </properties>
+        </profile>
+        <profile>
+            <id>hadoop-2</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>!hadoop.profile.name</name>
+                </property>
+            </activation>
+            <properties>
+               <hadoop.profile.name>hadoop-2</hadoop.profile.name>
                <hadoop.version>2.4.1</hadoop.version>
                <hadoop.auth.version>2.4.1</hadoop.auth.version>
                <pig.classifier>h2</pig.classifier>
@@ -1137,6 +1154,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
+                <hadoop.profile.name>hadoop-3</hadoop.profile.name>
                <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
                <pig.classifier>h2</pig.classifier>
                <sqoop.classifier>hadoop200</sqoop.classifier>
