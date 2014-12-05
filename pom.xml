@@ -81,7 +81,7 @@
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
 
          <!-- Sharelib component versions -->
-         <hive.version>0.13.1-nr1003</hive.version>
+         <hive.version>0.14.0-nr1000</hive.version>
          <pig.version>0.10.1</pig.version>
          <pig.classifier></pig.classifier>
          <sqoop.version>1.4.3</sqoop.version>

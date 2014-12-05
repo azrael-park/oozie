@@ -299,9 +299,7 @@ public class HiveAccessService implements Service {
     private void checkSocketForV2(Utils.JdbcConnectionParams params) throws ActionExecutorException {
         HiveConnection connection = null;
         Utils.JdbcConnectionParams pingParams = new Utils.JdbcConnectionParams();
-        pingParams.setHost(params.getHost());
-        pingParams.setPort(params.getPort());
-        pingParams.setScheme(params.getScheme());
+        pingParams.setConnectionURI(params.getConnectionURI());
         Map<String, String> sesseionVars = new HashMap<String, String>();
         sesseionVars.put("socketTimeout", String.valueOf(HiveSession.PING_TIMEOUT));
         pingParams.setSessionVars(sesseionVars);
