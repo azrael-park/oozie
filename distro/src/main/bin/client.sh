@@ -33,6 +33,6 @@ if [[ -n $1 ]] ; then
 else
   target=${OOZIE_BASE_URL}
 fi
-
+echo "oozie: $target"
 java -cp $CP org.apache.oozie.SimpleClient $target
 
