@@ -38,6 +38,7 @@ public class WorkflowNotificationXCommand extends WorkflowXCommand<Void> {
 
     private static final String STATUS_PATTERN = "\\$status";
     private static final String JOB_ID_PATTERN = "\\$jobId";
+    private static final String PARENT_ID_PATTERN = "\\$parentId";
     private static final String NODE_NAME_PATTERN = "\\$nodeName";
 
     private String url;
@@ -54,6 +55,11 @@ public class WorkflowNotificationXCommand extends WorkflowXCommand<Void> {
         if (url != null) {
             url = url.replaceAll(JOB_ID_PATTERN, workflow.getId());
             url = url.replaceAll(STATUS_PATTERN, workflow.getStatus().toString());
+            if (workflow.getParentId() == null) {
+                url = url.replaceAll(PARENT_ID_PATTERN, "");
+            } else {
+                url = url.replaceAll(PARENT_ID_PATTERN, workflow.getParentId());
+            }
         }
     }
 

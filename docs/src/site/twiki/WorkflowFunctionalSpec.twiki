@@ -2255,6 +2255,7 @@ the notification:
 
    * =$jobId= : The workflow job ID
    * =$status= : the workflow current state
+   * =$parentId= : The parent ID of the workflow job
 
 ---+++ 5.2 Node Start and End Notifications
 
