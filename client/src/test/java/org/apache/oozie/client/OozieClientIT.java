@@ -20,6 +20,7 @@ package org.apache.oozie.client;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.net.InetAddress;
 import java.net.URI;
@@ -273,14 +274,15 @@ public class OozieClientIT {
         configs.put("jobTracker", jobTracker);
         configs.put("hiveServer", hiveServer);
 
-        configs.put("oozie.wf.workflow.notification.url", "http://localhost:8080/wf?jobId=$jobId&amp;status=$status");
+        configs.put("oozie.wf.workflow.notification.url", "http://localhost:8080/wf?jobId=$jobId&amp;status=$status&amp;" +
+                "parentId=$parentId");
         configs.put("oozie.wf.action.notification.url", "http://localhost:8080/action?jobId=$jobId&amp;ationId=$actionId&amp;" +
                 "status=$status");
         configs.put("oozie.coord.action.notification.url", "http://localhost:8080/coord?actionId=$actionId&amp;status=$status");
-        
+
         return configs;
     }
-    
+
     protected OozieClient getClient() {
         OozieClient client = new OozieClient(OOZIE_URL);
         client.setDebugMode(1);
