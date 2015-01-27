@@ -19,6 +19,8 @@
 package org.apache.oozie.util;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.oozie.service.ConfigurationService;
+import org.apache.oozie.service.Services;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -46,11 +48,14 @@ import java.util.regex.Pattern;
  */
 public class XConfiguration extends Configuration {
 
+    public static final String CONFIGURATION_SUBSTITUTE_DEPTH = "oozie.configuration.substitute.depth";
+
     /**
      * Create an empty configuration. <p/> Default values are not loaded.
      */
     public XConfiguration() {
         super(false);
+        initSubstituteDepth();
     }
 
     /**
@@ -144,6 +149,13 @@ public class XConfiguration extends Configuration {
 
     private static Pattern varPat = Pattern.compile("\\$\\{[^\\}\\$\u0020]+\\}");
     private static int MAX_SUBST = 20;
+    private static volatile boolean initalized = false;
+    private static void initSubstituteDepth() {
+        if (!initalized && Services.get() != null && Services.get().get(ConfigurationService.class) != null) {
+            MAX_SUBST = ConfigurationService.getInt(CONFIGURATION_SUBSTITUTE_DEPTH);
+            initalized = true;
+        }
+    }
 
     private String substituteVars(String expr) {
         if (expr == null) {
