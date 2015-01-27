@@ -2429,4 +2429,13 @@
         </description>
     </property>
 
+    <!-- XConfiguration -->
+    <property>
+        <name>oozie.configuration.substitute.depth</name>
+        <value>20</value>
+        <description>
+            This value determines the depth of substitution in configurations.
+        </description>
+    </property>
+
 </configuration>
