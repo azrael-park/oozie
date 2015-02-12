@@ -65,7 +65,7 @@ public class WorkflowSchemaService implements Service {
      */
     public void init(Services services) throws ServiceException {
         try {
-            dagSchema = loadSchema(services.getConf());
+            dagSchema = loadSchema(services.get(ConfigurationService.class).getConf());
         }
         catch (SAXException ex) {
             throw new ServiceException(ErrorCode.E0130, ex.getMessage(), ex);

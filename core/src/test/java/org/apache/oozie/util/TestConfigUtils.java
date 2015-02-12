@@ -23,25 +23,26 @@ import org.apache.oozie.test.XTestCase;
 
 public class TestConfigUtils extends XTestCase {
 
+    private Services services;
+
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        new Services().init();
+        services = new Services();
+        services.init();
     }
 
     @Override
     protected void tearDown() throws Exception {
-        if (Services.get() != null) {
-            Services.get().destroy();
-        }
+        services.destroy();
         super.tearDown();
     }
 
     public void testGetOozieURL() throws Exception {
         // Normally these are set by a shell script, but not when run from unit tests, so just put some standard values here
-        Services.get().getConf().set("oozie.http.hostname", "localhost");
-        Services.get().getConf().set("oozie.http.port", "11000");
-        Services.get().getConf().set("oozie.https.port", "11443");
+        getOozieConfiguration(services).set("oozie.http.hostname", "localhost");
+        getOozieConfiguration(services).set("oozie.http.port", "11000");
+        getOozieConfiguration(services).set("oozie.https.port", "11443");
 
         assertEquals("http://localhost:11000/oozie", ConfigUtils.getOozieURL(false));
         assertEquals("https://localhost:11443/oozie", ConfigUtils.getOozieURL(true));

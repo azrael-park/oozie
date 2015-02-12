@@ -57,12 +57,10 @@ public class ActionService implements Service, Instrumentable {
             EndActionExecutor.class, KillActionExecutor.class,  ForkActionExecutor.class, JoinActionExecutor.class };
         registerExecutors(classes);
 
-        classes = (Class<? extends ActionExecutor>[]) ConfigurationService.getClasses
-                (services.getConf(), CONF_ACTION_EXECUTOR_CLASSES);
+        classes = (Class<? extends ActionExecutor>[]) ConfigurationService.getClasses(CONF_ACTION_EXECUTOR_CLASSES);
         registerExecutors(classes);
 
-        classes = (Class<? extends ActionExecutor>[]) ConfigurationService.getClasses
-                (services.getConf(), CONF_ACTION_EXECUTOR_EXT_CLASSES);
+        classes = (Class<? extends ActionExecutor>[]) ConfigurationService.getClasses(CONF_ACTION_EXECUTOR_EXT_CLASSES);
         registerExecutors(classes);
 
         initExecutors();
@@ -72,7 +70,8 @@ public class ActionService implements Service, Instrumentable {
         if (classes != null) {
             for (Class<? extends ActionExecutor> executorClass : classes) {
                 @SuppressWarnings("deprecation")
-                ActionExecutor executor = (ActionExecutor) ReflectionUtils.newInstance(executorClass, services.getConf());
+                ActionExecutor executor = (ActionExecutor) ReflectionUtils.newInstance(executorClass,
+                        services.get(ConfigurationService.class).getConf());
                 executors.put(executor.getType(), executorClass);
             }
         }
@@ -124,7 +123,8 @@ public class ActionService implements Service, Instrumentable {
 
     private void initExecutor(Class<? extends ActionExecutor> klass) {
         @SuppressWarnings("deprecation")
-        ActionExecutor executor = (ActionExecutor) ReflectionUtils.newInstance(klass, services.getConf());
+        ActionExecutor executor = (ActionExecutor) ReflectionUtils.newInstance(klass,
+                services.get(ConfigurationService.class).getConf());
         LOG.debug("Initializing action type [{0}] class [{1}]", executor.getType(), klass);
         ActionExecutor.enableInit();
         executor.initActionType();

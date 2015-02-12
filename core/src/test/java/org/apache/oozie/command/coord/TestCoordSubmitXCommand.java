@@ -34,6 +34,7 @@ import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.test.XDataTestCase;
@@ -94,10 +95,10 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
         CoordinatorJobBean job = checkCoordJobs(jobId);
         assertNotNull(job);
         assertEquals("var-app-name-foo", job.getAppName());
-        assertEquals(job.getTimeout(), Services.get().getConf().getInt(
-                "oozie.service.coord.normal.default.timeout", -2));
-        assertEquals(job.getConcurrency(), Services.get().getConf().getInt(
-                "oozie.service.coord.default.concurrency", 1));
+        assertEquals(job.getTimeout(), ConfigurationService.getInt(
+                "oozie.service.coord.normal.default.timeout"));
+        assertEquals(job.getConcurrency(), ConfigurationService.getInt(
+                "oozie.service.coord.default.concurrency"));
 
     }
 
@@ -1136,7 +1137,7 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      * @throws Exception
      */
     public void testCheckMaximumFrequency() throws Exception {
-        assertTrue(Services.get().getConf().getBoolean("oozie.service.coord.check.maximum.frequency", false));
+        assertTrue(ConfigurationService.getBoolean("oozie.service.coord.check.maximum.frequency"));
         _testCheckMaximumFrequencyHelper("5");
         _testCheckMaximumFrequencyHelper("10");
         _testCheckMaximumFrequencyHelper("${coord:hours(2)}");
@@ -1151,7 +1152,7 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                     + "minutes"));
         }
         try {
-            Services.get().getConf().setBoolean("oozie.service.coord.check.maximum.frequency", false);
+            ConfigurationService.setBoolean("oozie.service.coord.check.maximum.frequency", false);
             _testCheckMaximumFrequencyHelper("5");
             _testCheckMaximumFrequencyHelper("10");
             _testCheckMaximumFrequencyHelper("${coord:hours(2)}");
@@ -1159,7 +1160,7 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
             _testCheckMaximumFrequencyHelper("${coord:months(4)}");
             _testCheckMaximumFrequencyHelper("3");
         } finally {
-            Services.get().getConf().setBoolean("oozie.service.coord.check.maximum.frequency", true);
+            ConfigurationService.setBoolean("oozie.service.coord.check.maximum.frequency", true);
         }
     }
 

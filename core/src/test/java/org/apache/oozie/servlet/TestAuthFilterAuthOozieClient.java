@@ -26,6 +26,7 @@ import org.apache.oozie.cli.OozieCLI;
 import org.apache.oozie.client.AuthOozieClient;
 import org.apache.oozie.client.HeaderTestingVersionServlet;
 import org.apache.oozie.client.XOozieClient;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.ForTestAuthorizationService;
 import org.apache.oozie.service.ForTestWorkflowStoreService;
 import org.apache.oozie.service.Services;
@@ -73,7 +74,7 @@ public class TestAuthFilterAuthOozieClient extends XTestCase {
             services.init();
             if (additionalConf != null) {
                 for (Map.Entry<String, String> prop : additionalConf) {
-                    Services.get().getConf().set(prop.getKey(), prop.getValue());
+                    ConfigurationService.set(prop.getKey(), prop.getValue());
                 }
             }
             Services.get().setService(ForTestAuthorizationService.class);

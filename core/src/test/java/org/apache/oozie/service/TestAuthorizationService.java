@@ -79,7 +79,7 @@ public class TestAuthorizationService extends XDataTestCase {
         setSystemProperty(SchemaService.WF_CONF_EXT_SCHEMAS, "wf-ext-schema.xsd");
 
         services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         if (useAdminUsersFile) {
             Reader adminListReader = IOUtils.getResourceAsReader("adminusers.txt", -1);
             Writer adminListWriter = new FileWriter(new File(getTestCaseConfDir(), "adminusers.txt"));
@@ -93,7 +93,7 @@ public class TestAuthorizationService extends XDataTestCase {
                  "," + DummyGroupsService.class.getName());
         conf.set(AuthorizationService.CONF_DEFAULT_GROUP_AS_ACL, Boolean.toString(useDefaultGroup));
         services.init();
-        services.getConf().setBoolean(AuthorizationService.CONF_SECURITY_ENABLED, true);
+        conf.setBoolean(AuthorizationService.CONF_SECURITY_ENABLED, true);
         services.get(AuthorizationService.class).init(services);
         services.get(ActionService.class).registerAndInitExecutor(ForTestingActionExecutor.class);
     }

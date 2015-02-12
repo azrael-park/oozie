@@ -18,8 +18,10 @@
 
 package org.apache.oozie.servlet;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.service.AuthorizationService;
 
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.ProxyUserService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.ForTestAuthorizationService;
@@ -73,12 +75,13 @@ public abstract class DagServletTestCase extends XFsTestCase {
         this.servletPath = servletPath[0];
         try {
             String proxyUser = getTestUser();
-            services.getConf().set(ProxyUserService.CONF_PREFIX + proxyUser +
+            Configuration configuration = services.get(ConfigurationService.class).getConf();
+            configuration.set(ProxyUserService.CONF_PREFIX + proxyUser +
                                    ProxyUserService.HOSTS, "*");
-            services.getConf().set(ProxyUserService.CONF_PREFIX + proxyUser +
+            configuration.set(ProxyUserService.CONF_PREFIX + proxyUser +
                                    ProxyUserService.GROUPS, "*");
             services.init();
-            services.getConf().setBoolean(AuthorizationService.CONF_SECURITY_ENABLED, securityEnabled);
+            configuration.setBoolean(AuthorizationService.CONF_SECURITY_ENABLED, securityEnabled);
             Services.get().setService(ForTestAuthorizationService.class);
             Services.get().setService(ForTestWorkflowStoreService.class);
             Services.get().setService(MockDagEngineService.class);

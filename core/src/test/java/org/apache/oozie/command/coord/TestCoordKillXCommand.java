@@ -36,6 +36,7 @@ import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor.CoordJobQuery;
 import org.apache.oozie.service.CallableQueueService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.PartitionDependencyManagerService;
 import org.apache.oozie.service.SchemaService;
@@ -56,7 +57,7 @@ public class TestCoordKillXCommand extends XDataTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        setClassesToBeExcluded(services.getConf(), excludedServices);
+        setClassesToBeExcluded(getOozieConfiguration(services), excludedServices);
         services.init();
     }
 
@@ -193,7 +194,7 @@ public class TestCoordKillXCommand extends XDataTestCase {
         Services.get().destroy();
         setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_COORD_STATUS, "true");
         services = new Services();
-        setClassesToBeExcluded(services.getConf(), excludedServices);
+        setClassesToBeExcluded(getOozieConfiguration(services), excludedServices);
         services.init();
 
         JPAService jpaService = Services.get().get(JPAService.class);

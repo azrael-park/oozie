@@ -2052,6 +2052,14 @@
 		</description>
 	</property>
 
+    <property>
+        <name>oozie.coord.actions.log.max.count</name>
+        <value>50</value>
+        <description>
+            Max action number for retrieving coordinator action log.
+        </description>
+    </property>
+
 	<!-- ForkJoin validation -->
 	<property>
 		<name>oozie.validate.ForkJoin</name>
@@ -2211,6 +2219,30 @@
         </description>
     </property>
 
+    <property>
+        <name>oozie.sla.service.SLAService.history.purge.interval</name>
+        <value>86400</value>
+        <description>
+            Interval at which the SLA history purge run, in seconds.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.sla.service.SLAService.oozie.sla.calc.default.lock.timeout</name>
+        <value>5000</value>
+        <description>
+            Default timeout (in milliseconds) for commands for acquiring an exclusive lock on an entity.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.sla.default.maxevents</name>
+        <value>1000</value>
+        <description>
+            Default max event count.
+        </description>
+    </property>
+
     <!-- ZooKeeper configuration -->
     <property>
         <name>oozie.zookeeper.connection.string</name>
@@ -2244,6 +2276,14 @@
         <description>
             If true, Oozie server will shutdown itself on ZK
             connection timeout.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.zookeeper.secure</name>
+        <value>false</value>
+        <description>
+            This value determines to use secure zookeeper or not.
         </description>
     </property>
 
@@ -2473,6 +2513,24 @@
         <description>
             This value determines the number of callable which will be batched together
             to be executed by a single thread.
+        </description>
+    </property>
+
+    <!-- Message Format -->
+    <property>
+        <name>message.format</name>
+        <value>json</value>
+        <description>
+            Defines event message format for serialization.
+            Supported values are: json
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.jms.serialize.json</name>
+        <value>org.apache.oozie.event.messaging.JSONMessageSerializer</value>
+        <description>
+            The implementation for json serialization.
         </description>
     </property>
 

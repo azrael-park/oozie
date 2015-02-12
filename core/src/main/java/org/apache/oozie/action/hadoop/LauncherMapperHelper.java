@@ -47,6 +47,7 @@ import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.Services;
@@ -136,7 +137,7 @@ public class LauncherMapperHelper {
         actionConf.set(LauncherMapper.OOZIE_JOB_ID, jobId);
         actionConf.set(LauncherMapper.OOZIE_ACTION_ID, actionId);
 
-        if (Services.get().getConf().getBoolean("oozie.hadoop-2.0.2-alpha.workaround.for.distributed.cache", false)) {
+        if (ConfigurationService.getBoolean("oozie.hadoop-2.0.2-alpha.workaround.for.distributed.cache")) {
           List<String> purgedEntries = new ArrayList<String>();
           Collection<String> entries = actionConf.getStringCollection("mapreduce.job.cache.files");
           for (String entry : entries) {

@@ -131,7 +131,6 @@ public class StatusUtils {
     public static boolean isV1CoordjobKillable(CoordinatorJobBean coordJob) {
         boolean ret = false;
         if (coordJob != null) {
-            Configuration conf = Services.get().getConf();
             boolean backwardSupportForCoordStatus = ConfigUtils.isBackwardSupportForCoordStatus();
             if (backwardSupportForCoordStatus) {
                 if (coordJob.getAppNamespace() != null

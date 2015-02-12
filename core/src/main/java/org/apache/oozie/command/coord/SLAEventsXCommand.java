@@ -28,6 +28,7 @@ import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.command.XCommand;
 import org.apache.oozie.executor.jpa.SLAEventsGetForFilterJPAExecutor;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Service;
 import org.apache.oozie.service.Services;
@@ -49,7 +50,7 @@ public class SLAEventsXCommand extends XCommand<List<SLAEventBean>> {
     public SLAEventsXCommand(long seqId, int maxNoEvnts, Map<String, List<String>> filter) {
         super("SLAEventsXCommand", "SLAEventsXCommand", 1);
         this.seqId = seqId;
-        int sysMax = Services.get().getConf().getInt(SLA_DEFAULT_MAXEVENTS, 1000);
+        int sysMax = ConfigurationService.getInt(SLA_DEFAULT_MAXEVENTS);
         this.maxNoEvents = maxNoEvnts > sysMax ? sysMax : maxNoEvnts;
         this.filter = filter;
     }

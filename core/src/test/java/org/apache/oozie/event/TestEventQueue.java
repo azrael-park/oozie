@@ -41,7 +41,7 @@ public class TestEventQueue extends XDataTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_EXT_CLASSES,
                 JMSAccessorService.class.getName() + "," + JMSTopicService.class.getName() + ","
                         + EventHandlerService.class.getName() + "," + SLAService.class.getName());

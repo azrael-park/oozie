@@ -25,6 +25,7 @@ import org.apache.oozie.SLAEventBean;
 import org.apache.oozie.client.SLAEvent.SlaAppType;
 import org.apache.oozie.client.SLAEvent.Status;
 import org.apache.oozie.command.CommandException;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.DateUtils;
 import org.jdom.Element;
@@ -163,7 +164,7 @@ public class SLADbXOperations {
         if (services == null) {
             throw new RuntimeException("Services is not initialized");
         }
-        String clientId = services.getConf().get(CLIENT_ID_TAG,
+        String clientId = Services.get().get(ConfigurationService.class).getConf().get(CLIENT_ID_TAG,
                                                  "oozie-default-instance"); // TODO remove default
         if (clientId == null) {
             throw new RuntimeException(

@@ -104,7 +104,7 @@ public class TestSLAEventGeneration extends XDataTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         setClassesToBeExcluded(conf, excludeServices);
         conf.set(Services.CONF_SERVICE_EXT_CLASSES,
                 EventHandlerService.class.getName() + "," + SLAService.class.getName());

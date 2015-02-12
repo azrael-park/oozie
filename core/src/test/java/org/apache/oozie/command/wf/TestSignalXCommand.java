@@ -51,7 +51,7 @@ public class TestSignalXCommand extends XDataTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        services.getConf().setBoolean(LiteWorkflowAppParser.VALIDATE_FORK_JOIN, false);
+        getOozieConfiguration(services).setBoolean(LiteWorkflowAppParser.VALIDATE_FORK_JOIN, false);
         services.init();
 
     }

@@ -58,7 +58,7 @@ public class TestHAShareLibService extends ZKXTestCase {
         container.addFilter("*", HostnameFilter.class);
         container.start();
         Services.get().setService(ShareLibService.class);
-        Services.get().getConf().setBoolean(AuthorizationService.CONF_SECURITY_ENABLED, false);
+        ConfigurationService.setBoolean(AuthorizationService.CONF_SECURITY_ENABLED, false);
 
         Services.get().setService(ZKJobsConcurrencyService.class);
 
@@ -68,7 +68,7 @@ public class TestHAShareLibService extends ZKXTestCase {
         fs = FileSystem.get(has.createJobConf(uri.getAuthority()));
         Date time = new Date(System.currentTimeMillis());
 
-        Path basePath = new Path(Services.get().getConf().get(WorkflowAppService.SYSTEM_LIB_PATH));
+        Path basePath = new Path(ConfigurationService.get(WorkflowAppService.SYSTEM_LIB_PATH));
         Path libpath = new Path(basePath, ShareLibService.SHARE_LIB_PREFIX + ShareLibService.dateFormat.format(time));
         fs.mkdirs(libpath);
 

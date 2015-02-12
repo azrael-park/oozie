@@ -50,7 +50,7 @@ public class GroupsService implements Service {
      */
     @Override
     public void init(Services services) {
-        Configuration sConf = services.getConf();
+        Configuration sConf = services.get(ConfigurationService.class).getConf();
         Configuration gConf = new XConfiguration();
         for (Map.Entry<String, String> entry : sConf) {
             String name = entry.getKey();

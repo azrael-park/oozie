@@ -39,10 +39,10 @@ public class TestHCatURIHandler extends XHCatTestCase {
     public void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        services.getConf().set(URIHandlerService.URI_HANDLERS,
+        getOozieConfiguration(services).set(URIHandlerService.URI_HANDLERS,
                 FSURIHandler.class.getName() + "," + HCatURIHandler.class.getName());
-        services.setService(HCatAccessorService.class);
         services.init();
+        services.setService(HCatAccessorService.class);
         conf = createJobConf();
         uriService = Services.get().get(URIHandlerService.class);
     }

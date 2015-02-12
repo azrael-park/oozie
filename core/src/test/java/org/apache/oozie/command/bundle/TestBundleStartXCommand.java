@@ -35,6 +35,7 @@ import org.apache.oozie.executor.jpa.BundleActionQueryExecutor;
 import org.apache.oozie.executor.jpa.BundleJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.BundleActionQueryExecutor.BundleActionQuery;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.UUIDService;
@@ -247,7 +248,7 @@ public class TestBundleStartXCommand extends XDataTestCase {
         services = new Services();
         String excludeServices[] = { "org.apache.oozie.service.UUIDService",
                 "org.apache.oozie.service.StatusTransitService" };
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         setClassesToBeExcluded(conf, excludeServices);
         conf.set(Services.CONF_SERVICE_CLASSES,
                 conf.get(Services.CONF_SERVICE_CLASSES) + "," + DummyUUIDService.class.getName());

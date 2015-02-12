@@ -22,6 +22,7 @@ import java.util.List;
 import static junit.framework.Assert.assertEquals;
 
 import org.apache.oozie.lock.LockToken;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.ZKLocksService;
 import org.apache.oozie.test.ZKXTestCaseWithSecurity;
@@ -105,7 +106,7 @@ public class TestZKUtilsWithSecurity extends ZKXTestCaseWithSecurity {
 
         zkls = new ZKLocksService();
         try {
-            Services.get().getConf().set("oozie.zookeeper.secure", "true");
+            ConfigurationService.set("oozie.zookeeper.secure", "true");
             // Now that security is enabled, it will trigger the checkAndSetACLs() code to go through and set all of the previously
             // created znodes to have "sasl" ACLs
             zkls.init(Services.get());
@@ -136,7 +137,7 @@ public class TestZKUtilsWithSecurity extends ZKXTestCaseWithSecurity {
         }
         finally {
             zkls.destroy();
-            Services.get().getConf().set("oozie.zookeeper.secure", "false");
+            ConfigurationService.set("oozie.zookeeper.secure", "false");
         }
     }
 
@@ -146,7 +147,7 @@ public class TestZKUtilsWithSecurity extends ZKXTestCaseWithSecurity {
         // it will create a lock znode.
         ZKLocksService zkls = new ZKLocksService();
         try {
-            Services.get().getConf().set("oozie.zookeeper.secure", "true");
+            ConfigurationService.set("oozie.zookeeper.secure", "true");
             // Verify that the znodes don't already exist
             assertNull(getClient().getZookeeperClient().getZooKeeper().exists("/oozie", null));
             assertNull(getClient().checkExists().forPath("/locks"));
@@ -182,7 +183,7 @@ public class TestZKUtilsWithSecurity extends ZKXTestCaseWithSecurity {
         }
         finally {
             zkls.destroy();
-            Services.get().getConf().set("oozie.zookeeper.secure", "false");
+            ConfigurationService.set("oozie.zookeeper.secure", "false");
         }
     }
 }

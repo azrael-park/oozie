@@ -514,7 +514,7 @@ public class TestZKLocksService extends ZKXTestCase {
     }
 
     public void testLockReaper() throws Exception {
-        Services.get().getConf().set(ZKLocksService.REAPING_THRESHOLD, "1");
+        ConfigurationService.set(ZKLocksService.REAPING_THRESHOLD, "1");
         ZKLocksService zkls = new ZKLocksService();
         try {
             zkls.init(Services.get());

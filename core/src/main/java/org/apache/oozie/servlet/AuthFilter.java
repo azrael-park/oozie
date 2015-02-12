@@ -20,6 +20,7 @@ package org.apache.oozie.servlet;
 
 import org.apache.hadoop.security.authentication.server.AuthenticationFilter;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 
 import javax.servlet.FilterChain;
@@ -95,7 +96,7 @@ public class AuthFilter extends AuthenticationFilter {
     @Override
     protected Properties getConfiguration(String configPrefix, FilterConfig filterConfig) {
         Properties props = new Properties();
-        Configuration conf = Services.get().getConf();
+        Configuration conf = Services.get().get(ConfigurationService.class).getConf();
 
         //setting the cookie path to root '/' so it is used for all resources.
         props.setProperty(AuthenticationFilter.COOKIE_PATH, "/");

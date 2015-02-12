@@ -49,9 +49,9 @@ public class TestActionService extends XTestCase {
     @SuppressWarnings("deprecation")
     public void testDuplicateActionExecutors() throws Exception {
         ActionService as = new ActionService();
-        Services.get().getConf().set("oozie.service.ActionService.executor.classes",
+        ConfigurationService.set("oozie.service.ActionService.executor.classes",
                 DummyExecutor1.class.getName() + "," + DummyExecutor2.class.getName());
-        Services.get().getConf().set("oozie.service.ActionService.executor.ext.classes", "");
+        ConfigurationService.set("oozie.service.ActionService.executor.ext.classes", "");
         try {
             as.init(Services.get());
             // There are 5 hard-coded control action types + 1 TEST_ACTION_TYPE
@@ -64,8 +64,8 @@ public class TestActionService extends XTestCase {
         }
 
         as = new ActionService();
-        Services.get().getConf().set("oozie.service.ActionService.executor.classes", DummyExecutor1.class.getName());
-        Services.get().getConf().set("oozie.service.ActionService.executor.ext.classes", DummyExecutor2.class.getName());
+        ConfigurationService.set("oozie.service.ActionService.executor.classes", DummyExecutor1.class.getName());
+        ConfigurationService.set("oozie.service.ActionService.executor.ext.classes", DummyExecutor2.class.getName());
         try {
             as.init(Services.get());
             // There are 5 hard-coded control action types + 1 TEST_ACTION_TYPE
@@ -78,8 +78,8 @@ public class TestActionService extends XTestCase {
         }
 
         as = new ActionService();
-        Services.get().getConf().set("oozie.service.ActionService.executor.classes", "");
-        Services.get().getConf().set("oozie.service.ActionService.executor.ext.classes",
+        ConfigurationService.set("oozie.service.ActionService.executor.classes", "");
+        ConfigurationService.set("oozie.service.ActionService.executor.ext.classes",
                 DummyExecutor1.class.getName() + "," + DummyExecutor2.class.getName());
         try {
             as.init(Services.get());

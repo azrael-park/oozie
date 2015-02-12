@@ -44,6 +44,7 @@ import org.apache.oozie.executor.jpa.CoordJobQueryExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor.WorkflowJobQuery;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.DagXLogInfoService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.XLogStreamingService;
@@ -75,7 +76,6 @@ import java.util.StringTokenizer;
 public class CoordinatorEngine extends BaseEngine {
     private static final XLog LOG = XLog.getLog(CoordinatorEngine.class);
     public final static String COORD_ACTIONS_LOG_MAX_COUNT = "oozie.coord.actions.log.max.count";
-    private final static int COORD_ACTIONS_LOG_MAX_COUNT_DEFAULT = 50;
     private final int maxNumActionsForLog;
 
     public enum FILTER_COMPARATORS {
@@ -99,8 +99,7 @@ public class CoordinatorEngine extends BaseEngine {
      * Create a system Coordinator engine, with no user and no group.
      */
     public CoordinatorEngine() {
-        maxNumActionsForLog = Services.get().getConf()
-                .getInt(COORD_ACTIONS_LOG_MAX_COUNT, COORD_ACTIONS_LOG_MAX_COUNT_DEFAULT);
+        maxNumActionsForLog = ConfigurationService.getInt(COORD_ACTIONS_LOG_MAX_COUNT);
     }
 
     /**

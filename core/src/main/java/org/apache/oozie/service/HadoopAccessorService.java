@@ -96,7 +96,7 @@ public class HadoopAccessorService implements Service {
 
     public void init(Services services) throws ServiceException {
         this.ugiService = services.get(UserGroupInformationService.class);
-        init(services.getConf());
+        init(services.get(ConfigurationService.class).getConf());
     }
 
     //for testing purposes, see XFsTestCase

@@ -35,8 +35,10 @@ import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.curator.x.discovery.details.InstanceSerializer;
 import org.apache.oozie.event.listener.ZKConnectionListener;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.FixedJsonInstanceSerializer;
+import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.ZKUtils;
 import org.apache.hadoop.conf.Configuration;
 
@@ -78,7 +80,7 @@ public abstract class ZKXTestCase extends XDataTestCase {
         if(conf != null && conf.size()>0){
             for (Iterator<Entry<String, String>> itr = (Iterator<Entry<String, String>>) conf.iterator(); itr.hasNext();) {
                 Entry<String, String> entry = itr.next();
-                services.getConf().set(entry.getKey(), entry.getValue());
+                getOozieConfiguration(services).set(entry.getKey(), entry.getValue());
             }
         }
         services.init();
@@ -87,9 +89,9 @@ public abstract class ZKXTestCase extends XDataTestCase {
 
     private void setUpZK() throws Exception {
         zkServer = setupZKServer();
-        Services.get().getConf().set("oozie.zookeeper.connection.string", zkServer.getConnectString());
-        Services.get().getConf().set("oozie.instance.id", ZK_ID);
-        Services.get().getConf().setBoolean(ZKConnectionListener.CONF_SHUTDOWN_ON_TIMEOUT, false);
+        ConfigurationService.set("oozie.zookeeper.connection.string", zkServer.getConnectString());
+        ConfigurationService.set("oozie.instance.id", ZK_ID);
+        ConfigurationService.setBoolean(ZKConnectionListener.CONF_SHUTDOWN_ON_TIMEOUT, false);
         createClient();
         createServiceDiscovery();
     }
@@ -145,8 +147,8 @@ public abstract class ZKXTestCase extends XDataTestCase {
 
     private void createClient() throws Exception {
         RetryPolicy retryPolicy = ZKUtils.getRetryPolicy();
-        String zkConnectionString = Services.get().getConf().get("oozie.zookeeper.connection.string", zkServer.getConnectString());
-        String zkNamespace = Services.get().getConf().get("oozie.zookeeper.namespace", "oozie");
+        String zkConnectionString = ConfigurationService.get("oozie.zookeeper.connection.string");
+        String zkNamespace = ConfigurationService.get("oozie.zookeeper.namespace");
         client = CuratorFrameworkFactory.builder()
                                             .namespace(zkNamespace)
                                             .connectString(zkConnectionString)
@@ -211,8 +213,8 @@ public abstract class ZKXTestCase extends XDataTestCase {
         private void createClient() throws Exception {
             // Connect to the ZooKeeper server
             RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
-            String zkConnectionString = Services.get().getConf().get("oozie.zookeeper.connection.string", "localhost:2181");
-            String zkNamespace = Services.get().getConf().get("oozie.zookeeper.namespace", "Oozie");
+            String zkConnectionString = ConfigurationService.get("oozie.zookeeper.connection.string");
+            String zkNamespace = ConfigurationService.get("oozie.zookeeper.namespace");
             client = CuratorFrameworkFactory.builder()
                                                 .namespace(zkNamespace)
                                                 .connectString(zkConnectionString)

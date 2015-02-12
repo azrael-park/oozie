@@ -31,9 +31,8 @@ public class TestProxyUserService extends XTestCase {
 
     public void testService() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
-        conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
-                                                                                    ProxyUserService.class.getName())));
+        getOozieConfiguration(services).set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",",
+                Arrays.asList(GroupsService.class.getName(), ProxyUserService.class.getName())));
         services.init();
         try {
             ProxyUserService proxyUser = services.get(ProxyUserService.class);
@@ -46,7 +45,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testWrongConfigGroups() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         conf.set("oozie.service.ProxyUserService.proxyuser.foo.hosts", "*");
@@ -66,7 +65,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testWrongHost() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         conf.set("oozie.service.ProxyUserService.proxyuser.foo.hosts", "otherhost");
@@ -87,7 +86,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testWrongConfigHosts() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         conf.set("oozie.service.ProxyUserService.proxyuser.foo.groups", "*");
@@ -107,7 +106,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testValidateAnyHostAnyUser() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         conf.set("oozie.service.ProxyUserService.proxyuser.foo.hosts", "*");
@@ -125,7 +124,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testInvalidProxyUser() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         conf.set("oozie.service.ProxyUserService.proxyuser.foo.hosts", "*");
@@ -149,7 +148,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testValidateHost() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         conf.set("oozie.service.ProxyUserService.proxyuser.foo.hosts", "localhost");
@@ -167,9 +166,9 @@ public class TestProxyUserService extends XTestCase {
 
     private String getGroup() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
-        conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName())));
-        conf.set("server.services", StringUtils.join(",", Arrays.asList(GroupsService.class.getName())));
+        getOozieConfiguration(services).set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",",
+                Arrays.asList(GroupsService.class.getName())));
+        getOozieConfiguration(services).set("server.services", StringUtils.join(",", Arrays.asList(GroupsService.class.getName())));
         services.init();
         GroupsService groups = services.get(GroupsService.class);
         List<String> g = groups.getGroups(System.getProperty("user.name"));
@@ -179,7 +178,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testValidateGroup() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         conf.set("oozie.service.ProxyUserService.proxyuser.foo.hosts", "*");
@@ -198,7 +197,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testUnknownHost() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         conf.set("oozie.service.ProxyUserService.proxyuser.foo.hosts", "localhost");
@@ -223,7 +222,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testInvalidHost() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         conf.set("oozie.service.ProxyUserService.proxyuser.foo.hosts", "localhost");
@@ -248,7 +247,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testInvalidGroup() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         conf.set("oozie.service.ProxyUserService.proxyuser.foo.hosts", "localhost");
@@ -273,7 +272,7 @@ public class TestProxyUserService extends XTestCase {
 
     public void testNullProxyUser() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
                                                                                     ProxyUserService.class.getName())));
         services.init();
@@ -297,9 +296,8 @@ public class TestProxyUserService extends XTestCase {
 
     public void testNullHost() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
-        conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(),
-                                                                                    ProxyUserService.class.getName())));
+        getOozieConfiguration(services).set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",",
+                Arrays.asList(GroupsService.class.getName(), ProxyUserService.class.getName())));
         services.init();
         try {
             ProxyUserService proxyUser = services.get(ProxyUserService.class);

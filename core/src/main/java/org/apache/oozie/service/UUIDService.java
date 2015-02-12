@@ -53,7 +53,7 @@ public class UUIDService implements Service {
      */
     @Override
     public void init(Services services) throws ServiceException {
-        String genType = ConfigurationService.get(services.getConf(), CONF_GENERATOR).trim();
+        String genType = ConfigurationService.get(CONF_GENERATOR).trim();
         if (genType.equals("counter")) {
             counter = new AtomicLong();
             resetStartTime();

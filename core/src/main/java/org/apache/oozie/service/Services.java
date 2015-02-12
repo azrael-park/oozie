@@ -195,7 +195,7 @@ public class Services {
      * @deprecated Use {@link ConfigurationService#get(String)} to retrieve property from oozie configurations.
      */
     @Deprecated
-    public Configuration getConf() {
+    Configuration getConf() {
         return conf;
     }
 

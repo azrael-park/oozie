@@ -18,6 +18,7 @@
 
 package org.apache.oozie.service;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XLog;
@@ -74,11 +75,12 @@ public class ProxyUserService implements Service {
     @Override
     public void init(Services services) throws ServiceException {
         this.services = services;
-        for (Map.Entry<String, String> entry : services.getConf()) {
+        Configuration configuration = services.get(ConfigurationService.class).getConf();
+        for (Map.Entry<String, String> entry : configuration) {
             String key = entry.getKey();
             if (key.startsWith(CONF_PREFIX) && key.endsWith(GROUPS)) {
                 String proxyUser = key.substring(0, key.lastIndexOf(GROUPS));
-                if (services.getConf().get(proxyUser + HOSTS) == null) {
+                if (configuration.get(proxyUser + HOSTS) == null) {
                     throw new ServiceException(ErrorCode.E0551, CONF_PREFIX + proxyUser + HOSTS);
                 }
                 proxyUser = proxyUser.substring(CONF_PREFIX.length());
@@ -92,7 +94,7 @@ public class ProxyUserService implements Service {
             }
             if (key.startsWith(CONF_PREFIX) && key.endsWith(HOSTS)) {
                 String proxyUser = key.substring(0, key.lastIndexOf(HOSTS));
-                if (services.getConf().get(proxyUser + GROUPS) == null) {
+                if (configuration.get(proxyUser + GROUPS) == null) {
                     throw new ServiceException(ErrorCode.E0551, CONF_PREFIX + proxyUser + GROUPS);
                 }
                 proxyUser = proxyUser.substring(CONF_PREFIX.length());

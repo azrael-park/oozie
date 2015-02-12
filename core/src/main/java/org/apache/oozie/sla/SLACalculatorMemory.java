@@ -111,7 +111,7 @@ public class SLACalculatorMemory implements SLACalculator {
         // schedule runnable by default 1 day
         Services.get()
                 .get(SchedulerService.class)
-                .schedule(purgeThread, 86400, Services.get().getConf().getInt(SLAService.CONF_SLA_HISTORY_PURGE_INTERVAL, 86400),
+                .schedule(purgeThread, 86400, ConfigurationService.getInt(SLAService.CONF_SLA_HISTORY_PURGE_INTERVAL),
                         SchedulerService.Unit.SEC);
     }
 
@@ -289,8 +289,7 @@ public class SLACalculatorMemory implements SLACalculator {
                                     .get(MemoryLocksService.class)
                                     .getWriteLock(
                                             SLACalcStatus.SLA_ENTITYKEY_PREFIX + jobId,
-                                            Services.get().getConf()
-                                                    .getLong(SLAService.CONF_SLA_CALC_LOCK_TIMEOUT, 5 * 1000));
+                                            ConfigurationService.getLong(SLAService.CONF_SLA_CALC_LOCK_TIMEOUT));
                             if (lock == null) {
                                 update = false;
                             }

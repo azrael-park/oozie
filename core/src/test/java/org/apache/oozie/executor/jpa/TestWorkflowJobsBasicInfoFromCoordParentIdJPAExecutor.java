@@ -42,7 +42,7 @@ public class TestWorkflowJobsBasicInfoFromCoordParentIdJPAExecutor extends XData
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        setClassesToBeExcluded(services.getConf(), excludedServices);
+        setClassesToBeExcluded(getOozieConfiguration(services), excludedServices);
         services.init();
     }
 

@@ -122,17 +122,18 @@ public class ELService implements Service {
         //Get the list of group names from configuration file
         // defined in the property tag: oozie.service.ELSerice.groups
         //String []groupList = services.getConf().get(CONF_GROUPS, "").trim().split(",");
-        String[] groupList = ConfigurationService.getStrings(services.getConf(), CONF_GROUPS);
+        String[] groupList = ConfigurationService.getStrings(CONF_GROUPS);
         //For each group, collect the required functions and constants
         // and store it into HashMap
+        Configuration configuration = services.get(ConfigurationService.class).getConf();
         for (String group : groupList) {
             List<ELConstant> tmpConstants = new ArrayList<ELConstant>();
-            tmpConstants.addAll(extractConstants(services.getConf(), CONF_CONSTANTS + group));
-            tmpConstants.addAll(extractConstants(services.getConf(), CONF_EXT_CONSTANTS + group));
+            tmpConstants.addAll(extractConstants(configuration, CONF_CONSTANTS + group));
+            tmpConstants.addAll(extractConstants(configuration, CONF_EXT_CONSTANTS + group));
             constants.put(group, tmpConstants);
             List<ELFunction> tmpFunctions = new ArrayList<ELFunction>();
-            tmpFunctions.addAll(extractFunctions(services.getConf(), CONF_FUNCTIONS + group));
-            tmpFunctions.addAll(extractFunctions(services.getConf(), CONF_EXT_FUNCTIONS + group));
+            tmpFunctions.addAll(extractFunctions(configuration, CONF_FUNCTIONS + group));
+            tmpFunctions.addAll(extractFunctions(configuration, CONF_EXT_FUNCTIONS + group));
             functions.put(group, tmpFunctions);
         }
     }

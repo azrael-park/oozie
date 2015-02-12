@@ -449,9 +449,9 @@ public class TestRecoveryService extends XDataTestCase {
     public void testCoordActionRecoveryServiceForWaitingRegisterPartition() throws Exception {
         services.destroy();
         services = super.setupServicesForHCatalog();
-        services.getConf().set(URIHandlerService.URI_HANDLERS,
+        getOozieConfiguration(services).set(URIHandlerService.URI_HANDLERS,
                 FSURIHandler.class.getName() + "," + HCatURIHandler.class.getName());
-        services.getConf().setLong(RecoveryService.CONF_PUSH_DEPENDENCY_INTERVAL, 1);
+        getOozieConfiguration(services).setLong(RecoveryService.CONF_PUSH_DEPENDENCY_INTERVAL, 1);
         services.init();
 
         String db = "default";

@@ -206,11 +206,12 @@ public class CoordMaterializeTriggerService implements Service {
     @Override
     public void init(Services services) throws ServiceException {
         // default is 3600sec (1hr)
-        int materializationWindow = ConfigurationService.getInt(services.getConf(), CONF_MATERIALIZATION_WINDOW);
+        int materializationWindow = ConfigurationService.getInt(CONF_MATERIALIZATION_WINDOW);
         // default is 300sec (5min)
-        int lookupInterval = ConfigurationService.getInt(services.getConf(), CONF_LOOKUP_INTERVAL);
+        int lookupInterval = ConfigurationService.getInt(CONF_LOOKUP_INTERVAL);
         // default is 300sec (5min)
-        int schedulingInterval = Services.get().getConf().getInt(CONF_SCHEDULING_INTERVAL, lookupInterval);
+        int schedulingInterval = Services.get().get(ConfigurationService.class).getConf().getInt(CONF_SCHEDULING_INTERVAL,
+                lookupInterval);
 
         Runnable lookupTriggerJobsRunnable = new CoordMaterializeTriggerRunnable(materializationWindow, lookupInterval);
 

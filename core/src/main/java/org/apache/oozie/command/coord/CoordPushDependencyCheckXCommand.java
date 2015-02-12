@@ -178,7 +178,7 @@ public class CoordPushDependencyCheckXCommand extends CoordinatorXCommand<Void> 
                     // the action being updated regularly by CoordActionInputCheckXCommand
                     callableQueueService.queue(new CoordPushDependencyCheckXCommand(coordAction.getId(),
                             registerForNotification, removeAvailDependencies),
-                            Services.get().getConf().getInt(RecoveryService.CONF_COORD_OLDER_THAN, 600) * 1000);
+                            ConfigurationService.getInt(RecoveryService.CONF_COORD_OLDER_THAN) * 1000);
                 }
                 throw new CommandException(ErrorCode.E1021, e.getMessage(), e);
             }

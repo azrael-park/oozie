@@ -32,6 +32,7 @@ import org.apache.oozie.client.event.SLAEvent.SLAStatus;
 import org.apache.oozie.client.event.jms.JMSHeaderConstants;
 import org.apache.oozie.client.event.jms.JMSMessagingUtils;
 import org.apache.oozie.client.event.message.SLAMessage;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.JMSAccessorService;
 import org.apache.oozie.service.JMSTopicService;
 import org.apache.oozie.service.Services;
@@ -53,7 +54,7 @@ public class TestJMSSLAEventListener extends XTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        conf = services.getConf();
+        conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_EXT_CLASSES,
                 JMSAccessorService.class.getName() + "," + JMSTopicService.class.getName());
         conf.set(JMSJobEventListener.JMS_CONNECTION_PROPERTIES, "java.naming.factory.initial#" + ActiveMQConnFactory
@@ -70,8 +71,7 @@ public class TestJMSSLAEventListener extends XTestCase {
     }
 
     private ConnectionContext getConnectionContext() {
-        Configuration conf = services.getConf();
-        String jmsProps = conf.get(JMSJobEventListener.JMS_CONNECTION_PROPERTIES);
+        String jmsProps = ConfigurationService.get(JMSJobEventListener.JMS_CONNECTION_PROPERTIES);
         JMSConnectionInfo connInfo = new JMSConnectionInfo(jmsProps);
         JMSAccessorService jmsService = Services.get().get(JMSAccessorService.class);
         ConnectionContext jmsContext = jmsService.createConnectionContext(connInfo);

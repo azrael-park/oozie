@@ -222,9 +222,9 @@ public class ActionCheckerService implements Service {
     @Override
     public void init(Services services) {
         Runnable actionCheckRunnable = new ActionCheckRunnable(ConfigurationService.getInt
-                (services.getConf(), CONF_ACTION_CHECK_DELAY));
+                (CONF_ACTION_CHECK_DELAY));
         services.get(SchedulerService.class).schedule(actionCheckRunnable, 10,
-                ConfigurationService.getInt(services.getConf(), CONF_ACTION_CHECK_INTERVAL),
+                ConfigurationService.getInt(CONF_ACTION_CHECK_INTERVAL),
                 SchedulerService.Unit.SEC);
     }
 

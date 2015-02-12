@@ -408,7 +408,7 @@ public class RecoveryService implements Service {
                 callables = new ArrayList<XCallable<?>>();
             }
             callables.add(callable);
-            if (callables.size() == Services.get().getConf().getInt(CONF_CALLABLE_BATCH_SIZE, 10)) {
+            if (callables.size() == ConfigurationService.getInt(CONF_CALLABLE_BATCH_SIZE)) {
                 boolean ret = Services.get().get(CallableQueueService.class).queueSerial(callables);
                 if (ret == false) {
                     XLog.getLog(getClass()).warn(
@@ -454,7 +454,7 @@ public class RecoveryService implements Service {
      */
     @Override
     public void init(Services services) {
-        Configuration conf = services.getConf();
+        Configuration conf = services.get(ConfigurationService.class).getConf();
         Runnable recoveryRunnable = new RecoveryRunnable(
                 ConfigurationService.getInt(conf, CONF_WF_ACTIONS_OLDER_THAN),
                 ConfigurationService.getInt(conf, CONF_COORD_OLDER_THAN),

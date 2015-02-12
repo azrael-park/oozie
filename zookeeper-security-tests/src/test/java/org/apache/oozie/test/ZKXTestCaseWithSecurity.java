@@ -23,6 +23,7 @@ import javax.security.auth.login.Configuration;
 
 import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.minikdc.MiniKdc;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.JaasConfiguration;
@@ -52,19 +53,20 @@ public abstract class ZKXTestCaseWithSecurity extends ZKXTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         // Set the keytab location and principal to the miniKDC values
-        originalKeytabLoc = Services.get().getConf().get(HadoopAccessorService.KERBEROS_KEYTAB);
-        originalPrincipal = Services.get().getConf().get(HadoopAccessorService.KERBEROS_PRINCIPAL);
-        Services.get().getConf().set(HadoopAccessorService.KERBEROS_KEYTAB, keytabFile.getAbsolutePath());
-        Services.get().getConf().set(HadoopAccessorService.KERBEROS_PRINCIPAL, getPrincipal());
+        originalKeytabLoc = ConfigurationService.get(HadoopAccessorService.KERBEROS_KEYTAB);
+        originalPrincipal = ConfigurationService.get(HadoopAccessorService.KERBEROS_PRINCIPAL);
+        ConfigurationService.set(HadoopAccessorService.KERBEROS_KEYTAB,
+                keytabFile.getAbsolutePath());
+        ConfigurationService.set(HadoopAccessorService.KERBEROS_PRINCIPAL, getPrincipal());
     }
 
     @Override
     protected void tearDown() throws Exception {
         // Restore these values
-        Services.get().getConf().set(HadoopAccessorService.KERBEROS_KEYTAB, originalKeytabLoc);
-        Services.get().getConf().set(HadoopAccessorService.KERBEROS_PRINCIPAL, originalPrincipal);
+        ConfigurationService.set(HadoopAccessorService.KERBEROS_KEYTAB, originalKeytabLoc);
+        ConfigurationService.set(HadoopAccessorService.KERBEROS_PRINCIPAL, originalPrincipal);
         // Just in case the test forgets to set this back
-        Services.get().getConf().set("oozie.zookeeper.secure", "false");
+        ConfigurationService.set("oozie.zookeeper.secure", "false");
         super.tearDown();
         if (kdc != null) {
             kdc.stop();

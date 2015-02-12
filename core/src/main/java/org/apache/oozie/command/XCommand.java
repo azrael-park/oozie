@@ -399,7 +399,7 @@ public abstract class XCommand<T> implements XCallable<T> {
      * @return the lock time out in milliseconds.
      */
     protected long getLockTimeOut() {
-        return Services.get().getConf().getLong(DEFAULT_LOCK_TIMEOUT, 5 * 1000);
+        return ConfigurationService.getLong(DEFAULT_LOCK_TIMEOUT);
     }
 
     /**

@@ -435,13 +435,11 @@ public class CallableQueueService implements Service, Instrumentable {
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void init(Services services) {
-        Configuration conf = services.getConf();
+        queueSize = ConfigurationService.getInt(CONF_QUEUE_SIZE);
+        int threads = ConfigurationService.getInt(CONF_THREADS);
+        boolean callableNextEligible = ConfigurationService.getBoolean(CONF_CALLABLE_NEXT_ELIGIBLE);
 
-        queueSize = ConfigurationService.getInt(conf, CONF_QUEUE_SIZE);
-        int threads = ConfigurationService.getInt(conf, CONF_THREADS);
-        boolean callableNextEligible = ConfigurationService.getBoolean(conf, CONF_CALLABLE_NEXT_ELIGIBLE);
-
-        for (String type : ConfigurationService.getStrings(conf, CONF_CALLABLE_INTERRUPT_TYPES)) {
+        for (String type : ConfigurationService.getStrings(CONF_CALLABLE_INTERRUPT_TYPES)) {
             log.debug("Adding interrupt type [{0}]", type);
             INTERRUPT_TYPES.add(type);
         }
@@ -480,7 +478,7 @@ public class CallableQueueService implements Service, Instrumentable {
             };
         }
 
-        interruptMapMaxSize = ConfigurationService.getInt(conf, CONF_CALLABLE_INTERRUPT_MAP_MAX_SIZE);
+        interruptMapMaxSize = ConfigurationService.getInt(CONF_CALLABLE_INTERRUPT_MAP_MAX_SIZE);
 
         // IMPORTANT: The ThreadPoolExecutor does not always the execute
         // commands out of the queue, there are
@@ -513,7 +511,7 @@ public class CallableQueueService implements Service, Instrumentable {
             });
         }
 
-        maxCallableConcurrency = ConfigurationService.getInt(conf, CONF_CALLABLE_CONCURRENCY);
+        maxCallableConcurrency = ConfigurationService.getInt(CONF_CALLABLE_CONCURRENCY);
     }
 
     /**

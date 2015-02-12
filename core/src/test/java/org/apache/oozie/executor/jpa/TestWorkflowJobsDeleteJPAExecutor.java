@@ -20,8 +20,6 @@ package org.apache.oozie.executor.jpa;
 
 import java.util.ArrayList;
 import java.util.List;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.fail;
 
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.FaultInjection;
@@ -45,7 +43,7 @@ public class TestWorkflowJobsDeleteJPAExecutor extends XDataTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        setClassesToBeExcluded(services.getConf(), excludedServices);
+        setClassesToBeExcluded(getOozieConfiguration(services), excludedServices);
         services.init();
     }
 

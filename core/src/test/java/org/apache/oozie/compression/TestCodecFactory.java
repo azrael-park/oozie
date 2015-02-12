@@ -43,7 +43,7 @@ public class TestCodecFactory extends XTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        services.getConf().set(CodecFactory.COMPRESSION_OUTPUT_CODEC, GzipCompressionCodec.CODEC_NAME);
+        getOozieConfiguration(services).set(CodecFactory.COMPRESSION_OUTPUT_CODEC, GzipCompressionCodec.CODEC_NAME);
         services.init();
     }
 
@@ -88,7 +88,7 @@ public class TestCodecFactory extends XTestCase {
         daos.writeUTF(GzipCompressionCodec.CODEC_NAME);
         daos.close();
         assertEquals(new String(baos.toByteArray()), new String(CodecFactory.getHeaderBytes()));
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(CodecFactory.COMPRESSION_OUTPUT_CODEC, "none");
         CodecFactory.initialize(conf);
         assertTrue(!CodecFactory.isCompressionEnabled());

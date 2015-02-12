@@ -24,6 +24,7 @@ import java.util.Date;
 import org.apache.oozie.AppType;
 import org.apache.oozie.client.event.SLAEvent;
 import org.apache.oozie.lock.LockToken;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.JobsConcurrencyService;
 import org.apache.oozie.service.MemoryLocksService;
 import org.apache.oozie.service.Services;
@@ -330,7 +331,7 @@ public class SLACalcStatus extends SLAEvent {
     }
 
     public long getLockTimeOut() {
-        return Services.get().getConf().getLong(SLAService.CONF_SLA_CALC_LOCK_TIMEOUT, 5 * 1000);
+        return ConfigurationService.getLong(SLAService.CONF_SLA_CALC_LOCK_TIMEOUT);
     }
 
 }

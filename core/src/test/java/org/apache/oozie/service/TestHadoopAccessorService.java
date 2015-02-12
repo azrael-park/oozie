@@ -149,7 +149,7 @@ public class TestHadoopAccessorService extends XTestCase {
     }
 
     public void testCheckSupportedFilesystem() throws Exception {
-        Configuration hConf = Services.get().getConf();
+        Configuration hConf = Services.get().get(ConfigurationService.class).getConf();
 
         // Only allow hdfs and foo schemes
         HadoopAccessorService has = new HadoopAccessorService();
