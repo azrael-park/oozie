@@ -34,7 +34,7 @@ public class TestFSPrepareActions extends XFsTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         Services services = new Services();
-        services.getConf().set(HadoopAccessorService.SUPPORTED_FILESYSTEMS, "hdfs");
+        getOozieConfiguration(services).set(HadoopAccessorService.SUPPORTED_FILESYSTEMS, "hdfs");
         services.init();
     }
 

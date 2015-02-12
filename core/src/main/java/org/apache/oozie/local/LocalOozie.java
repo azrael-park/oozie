@@ -24,6 +24,7 @@ import org.apache.oozie.LocalOozieClient;
 import org.apache.oozie.LocalOozieClientCoord;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.service.CallbackService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.CoordinatorEngineService;
 import org.apache.oozie.service.DagEngineService;
 import org.apache.oozie.service.Services;
@@ -80,7 +81,7 @@ public class LocalOozie {
         container.addServletEndpoint("/callback", CallbackServlet.class);
         container.start();
         String callbackUrl = container.getServletURL("/callback");
-        Services.get().getConf().set(CallbackService.CONF_BASE_URL, callbackUrl);
+        Services.get().get(ConfigurationService.class).getConf().set(CallbackService.CONF_BASE_URL, callbackUrl);
         XLog.getLog(LocalOozie.class).info("LocalOozie started callback set to [{0}]", callbackUrl);
     }
 

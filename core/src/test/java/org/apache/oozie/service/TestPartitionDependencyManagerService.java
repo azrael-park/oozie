@@ -50,7 +50,7 @@ public class TestPartitionDependencyManagerService extends XDataTestCase {
         super.setUp();
         services = super.setupServicesForHCatalog();
         // disable regular cache purge
-        services.getConf().setInt(PartitionDependencyManagerService.CACHE_PURGE_INTERVAL, 1000000);
+        getOozieConfiguration(services).setInt(PartitionDependencyManagerService.CACHE_PURGE_INTERVAL, 1000000);
         services.init();
     }
 

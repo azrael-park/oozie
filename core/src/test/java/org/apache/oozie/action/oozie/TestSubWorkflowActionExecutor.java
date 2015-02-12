@@ -29,6 +29,7 @@ import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.wf.SuspendXCommand;
 import org.apache.oozie.local.LocalOozie;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.WorkflowAppService;
 import org.apache.oozie.service.XLogService;
@@ -439,7 +440,7 @@ public class TestSubWorkflowActionExecutor extends ActionExecutorTestCase {
             setSystemProperty(XLogService.LOG4J_FILE, "oozie-log4j.properties");
             LocalOozie.start();
             // Set the max depth to 3
-            Services.get().getConf().setInt("oozie.action.subworkflow.max.depth", 3);
+            ConfigurationService.setInt("oozie.action.subworkflow.max.depth", 3);
             final OozieClient wfClient = LocalOozie.getClient();
             Properties conf = wfClient.createConfiguration();
             conf.setProperty(OozieClient.APP_PATH, subWorkflowAppPath.toString());

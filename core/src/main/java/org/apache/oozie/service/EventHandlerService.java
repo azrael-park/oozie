@@ -71,7 +71,7 @@ public class EventHandlerService implements Service {
     @Override
     public void init(Services services) throws ServiceException {
         try {
-            Configuration conf = services.getConf();
+            Configuration conf = services.get(ConfigurationService.class).getConf();
             LOG = XLog.getLog(getClass());
             Class<? extends EventQueue> queueImpl = (Class<? extends EventQueue>) ConfigurationService.getClass
                     (conf, CONF_EVENT_QUEUE);

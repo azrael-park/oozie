@@ -32,10 +32,10 @@ public class TestPartitionDependencyManagerEhcache extends TestPartitionDependen
     private void setupServices(String cacheName) throws ServiceException {
         Services.get().destroy();
         services = super.setupServicesForHCatalog();
-        services.getConf().set(PartitionDependencyManagerService.CACHE_MANAGER_IMPL,
+        getOozieConfiguration(services).set(PartitionDependencyManagerService.CACHE_MANAGER_IMPL,
                 EhcacheHCatDependencyCache.class.getName());
         if (cacheName != null) {
-            services.getConf().set(EhcacheHCatDependencyCache.CONF_CACHE_NAME, cacheName);
+            getOozieConfiguration(services).set(EhcacheHCatDependencyCache.CONF_CACHE_NAME, cacheName);
         }
         services.init();
     }

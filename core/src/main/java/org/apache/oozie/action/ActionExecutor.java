@@ -322,7 +322,7 @@ public abstract class ActionExecutor {
      * @return Oozie configuration.
      */
     public Configuration getOozieConf() {
-        return Services.get().getConf();
+        return Services.get().get(ConfigurationService.class).getConf();
     }
 
     /**

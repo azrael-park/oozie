@@ -115,9 +115,9 @@ public class ShareLibService implements Service, Instrumentable {
     @Override
     public void init(Services services) throws ServiceException {
         this.services = services;
-        sharelibMappingFile = ConfigurationService.get(services.getConf(), SHARELIB_MAPPING_FILE);
-        isShipLauncherEnabled = ConfigurationService.getBoolean(services.getConf(), SHIP_LAUNCHER_JAR);
-        boolean failOnfailure = ConfigurationService.getBoolean(services.getConf(), FAIL_FAST_ON_STARTUP);
+        sharelibMappingFile = ConfigurationService.get(SHARELIB_MAPPING_FILE);
+        isShipLauncherEnabled = ConfigurationService.getBoolean(SHIP_LAUNCHER_JAR);
+        boolean failOnfailure = ConfigurationService.getBoolean(FAIL_FAST_ON_STARTUP);
         Path launcherlibPath = getLauncherlibPath();
         HadoopAccessorService has = Services.get().get(HadoopAccessorService.class);
         URI uri = launcherlibPath.toUri();
@@ -160,7 +160,7 @@ public class ShareLibService implements Service, Instrumentable {
             }
         };
         services.get(SchedulerService.class).schedule(purgeLibsRunnable, 10,
-                ConfigurationService.getInt(services.getConf(), PURGE_INTERVAL) * 60 * 60 * 24,
+                ConfigurationService.getInt(PURGE_INTERVAL) * 60 * 60 * 24,
                 SchedulerService.Unit.SEC);
     }
 

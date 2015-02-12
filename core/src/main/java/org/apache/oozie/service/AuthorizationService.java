@@ -104,12 +104,12 @@ public class AuthorizationService implements Service {
      */
     public void init(Services services) throws ServiceException {
         authorizationEnabled =
-            ConfigUtils.getWithDeprecatedCheck(services.getConf(), CONF_AUTHORIZATION_ENABLED,
+            ConfigUtils.getWithDeprecatedCheck(services.get(ConfigurationService.class).getConf(), CONF_AUTHORIZATION_ENABLED,
                                                CONF_SECURITY_ENABLED, false);
         if (authorizationEnabled) {
             log.info("Oozie running with authorization enabled");
             useDefaultGroupAsAcl = ConfigurationService.getBoolean(CONF_DEFAULT_GROUP_AS_ACL);
-            String[] str = getTrimmedStrings(Services.get().getConf().get(CONF_ADMIN_GROUPS));
+            String[] str = getTrimmedStrings(ConfigurationService.get(CONF_ADMIN_GROUPS));
             if (str.length > 0) {
                 log.info("Admin users will be checked against the defined admin groups");
                 adminGroups = new HashSet<String>();

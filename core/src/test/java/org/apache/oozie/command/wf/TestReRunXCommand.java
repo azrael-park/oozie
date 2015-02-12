@@ -37,6 +37,7 @@ import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.command.coord.CoordActionStartXCommand;
 import org.apache.oozie.executor.jpa.CoordActionGetJPAExecutor;
 import org.apache.oozie.service.ActionService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.SchemaService;
 import org.apache.oozie.service.Services;
@@ -126,7 +127,7 @@ public class TestReRunXCommand extends XDataTestCase {
     public void testRerunFork() throws Exception {
         // We need the shell schema and action for this test
         Services.get().setService(ActionService.class);
-        Services.get().getConf().set(SchemaService.WF_CONF_EXT_SCHEMAS, "shell-action-0.3.xsd");
+        ConfigurationService.set(SchemaService.WF_CONF_EXT_SCHEMAS, "shell-action-0.3.xsd");
         Services.get().setService(SchemaService.class);
 
         Reader reader = IOUtils.getResourceAsReader("rerun-wf-fork.xml", -1);
@@ -422,14 +423,14 @@ public class TestReRunXCommand extends XDataTestCase {
         });
         Properties newConf = wfClient.createConfiguration();
         newConf.setProperty(OozieClient.RERUN_FAIL_NODES, "true");
-        Services.get().getConf().setBoolean(ReRunXCommand.DISABLE_CHILD_RERUN, true);
+        ConfigurationService.setBoolean(ReRunXCommand.DISABLE_CHILD_RERUN, true);
         try {
             wfClient.reRun(wfId, newConf);
         } catch (OozieClientException ex){
             assertEquals(ErrorCode.E0755.toString(), ex.getErrorCode());
         }
 
-        Services.get().getConf().setBoolean(ReRunXCommand.DISABLE_CHILD_RERUN, false);
+        ConfigurationService.setBoolean(ReRunXCommand.DISABLE_CHILD_RERUN, false);
         wfClient.reRun(wfId, newConf);
         waitFor(15 * 1000, new Predicate() {
             public boolean evaluate() throws Exception {

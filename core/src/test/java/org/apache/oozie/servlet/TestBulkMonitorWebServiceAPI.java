@@ -116,10 +116,10 @@ public class TestBulkMonitorWebServiceAPI extends XDataTestCase {
         this.servletPath = servletPath[0];
         try {
             String proxyUser = getTestUser();
-            services.getConf().set(ProxyUserService.CONF_PREFIX + proxyUser + ProxyUserService.HOSTS, "*");
-            services.getConf().set(ProxyUserService.CONF_PREFIX + proxyUser + ProxyUserService.GROUPS, "*");
+            getOozieConfiguration(services).set(ProxyUserService.CONF_PREFIX + proxyUser + ProxyUserService.HOSTS, "*");
+            getOozieConfiguration(services).set(ProxyUserService.CONF_PREFIX + proxyUser + ProxyUserService.GROUPS, "*");
             services.init();
-            services.getConf().setBoolean(AuthorizationService.CONF_SECURITY_ENABLED, securityEnabled);
+            getOozieConfiguration(services).setBoolean(AuthorizationService.CONF_SECURITY_ENABLED, securityEnabled);
             Services.get().setService(ForTestAuthorizationService.class);
             Services.get().setService(BundleEngineService.class);
             container = new EmbeddedServletContainer("oozie");

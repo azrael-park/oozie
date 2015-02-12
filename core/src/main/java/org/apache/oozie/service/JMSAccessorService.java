@@ -57,7 +57,6 @@ public class JMSAccessorService implements Service {
     public static final String CONF_RETRY_MAX_ATTEMPTS = CONF_PREFIX + "retry.max.attempts";
     private static XLog LOG;
 
-    private Configuration conf;
     private int sessionOpts;
     private int retryInitialDelay;
     private int retryMultiplier;
@@ -83,7 +82,7 @@ public class JMSAccessorService implements Service {
     @Override
     public void init(Services services) throws ServiceException {
         LOG = XLog.getLog(getClass());
-        conf = services.getConf();
+        Configuration conf = services.get(ConfigurationService.class).getConf();
         sessionOpts = conf.getInt(SESSION_OPTS, Session.AUTO_ACKNOWLEDGE);
         retryInitialDelay = conf.getInt(CONF_RETRY_INITIAL_DELAY, 60); // initial delay in seconds
         retryMultiplier = conf.getInt(CONF_RETRY_MULTIPLIER, 2);
@@ -299,7 +298,7 @@ public class JMSAccessorService implements Service {
     }
 
     private ConnectionContext getConnectionContextImpl() {
-        Class<?> defaultClazz = ConfigurationService.getClass(conf, JMS_CONNECTION_CONTEXT_IMPL);
+        Class<?> defaultClazz = ConfigurationService.getClass(JMS_CONNECTION_CONTEXT_IMPL);
         ConnectionContext connCtx = null;
         if (defaultClazz == DefaultConnectionContext.class) {
             connCtx = new DefaultConnectionContext();

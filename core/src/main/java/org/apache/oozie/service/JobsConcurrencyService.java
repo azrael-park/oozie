@@ -45,7 +45,7 @@ public class JobsConcurrencyService implements Service, Instrumentable {
     @Override
     public void init(Services services) throws ServiceException {
         urls = new HashMap<String, String>();
-        urls.put(services.getConf().get(ZKUtils.OOZIE_INSTANCE_ID), ConfigUtils.getOozieEffectiveUrl());
+        urls.put(ConfigurationService.get(ZKUtils.OOZIE_INSTANCE_ID), ConfigUtils.getOozieEffectiveUrl());
     }
 
     /**

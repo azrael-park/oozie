@@ -38,6 +38,7 @@ import org.apache.oozie.executor.jpa.CoordActionQueryExecutor.CoordActionQuery;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor.CoordJobQuery;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.SchemaService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.StatusTransitService;
@@ -57,8 +58,8 @@ public class CoordStatusTransitXCommand extends StatusTransitXCommand {
     private final Map<CoordinatorAction.Status, Integer> coordActionStatus = new HashMap<CoordinatorAction.Status, Integer>();
     boolean isPending = false;
 
-    final boolean backwardSupportForCoordStatus = Services.get().getConf()
-            .getBoolean(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_COORD_STATUS, false);
+    final boolean backwardSupportForCoordStatus = ConfigurationService
+            .getBoolean(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_COORD_STATUS);
 
     public CoordStatusTransitXCommand(String jobId) {
         super("coord_status_transit", "coord_status_transit", 0);

@@ -71,8 +71,8 @@ public class JvmPauseMonitorService implements Service {
 
     @Override
     public void init(Services services) throws ServiceException {
-        warnThresholdMs = ConfigurationService.getLong(services.getConf(), WARN_THRESHOLD_KEY);
-        infoThresholdMs = ConfigurationService.getLong(services.getConf(), INFO_THRESHOLD_KEY);
+        warnThresholdMs = ConfigurationService.getLong(WARN_THRESHOLD_KEY);
+        infoThresholdMs = ConfigurationService.getLong(INFO_THRESHOLD_KEY);
 
         instrumentation = services.get(InstrumentationService.class).get();
 

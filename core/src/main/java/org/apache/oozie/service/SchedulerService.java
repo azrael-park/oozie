@@ -49,7 +49,7 @@ public class SchedulerService implements Service {
      */
     @Override
     public void init(Services services) {
-        scheduler = new ScheduledThreadPoolExecutor(getSchedulableThreads(services.getConf()));
+        scheduler = new ScheduledThreadPoolExecutor(getSchedulableThreads(services.get(ConfigurationService.class).getConf()));
     }
 
     /**

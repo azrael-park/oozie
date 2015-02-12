@@ -51,7 +51,6 @@ public class HCatAccessorService implements Service {
 
     private static XLog LOG;
     private static String DELIMITER = "#";
-    private Configuration conf;
     private JMSAccessorService jmsService;
     private List<MappingRule> mappingRules;
     private JMSConnectionInfo defaultJMSConnInfo;
@@ -72,7 +71,6 @@ public class HCatAccessorService implements Service {
     @Override
     public void init(Services services) throws ServiceException {
         LOG = XLog.getLog(getClass());
-        conf = services.getConf();
         this.jmsService = services.get(JMSAccessorService.class);
         initializeMappingRules();
         this.nonJMSPublishers = new HashSet<String>();
@@ -87,7 +85,7 @@ public class HCatAccessorService implements Service {
     }
 
     private void loadHCatConf(Services services) throws IOException {
-        String path = conf.get(HCAT_CONFIGURATION);
+        String path = ConfigurationService.get(HCAT_CONFIGURATION);
         if (path != null) {
             if (path.startsWith("hdfs")) {
                 Path p = new Path(path);
@@ -140,7 +138,7 @@ public class HCatAccessorService implements Service {
     }
 
     private void initializeMappingRules() {
-        String[] connections = ConfigurationService.getStrings(conf, JMS_CONNECTIONS_PROPERTIES);
+        String[] connections = ConfigurationService.getStrings(JMS_CONNECTIONS_PROPERTIES);
         if (connections != null) {
             mappingRules = new ArrayList<MappingRule>(connections.length);
             for (String connection : connections) {

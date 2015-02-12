@@ -28,7 +28,8 @@ public class TestMetricsInstrumentationService extends XTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         Services services = new Services();
-        services.getConf().set(Services.CONF_SERVICE_EXT_CLASSES, "org.apache.oozie.service.MetricsInstrumentationService");
+        getOozieConfiguration(services).set(Services.CONF_SERVICE_EXT_CLASSES,
+                "org.apache.oozie.service.MetricsInstrumentationService");
         services.init();
     }
 

@@ -47,9 +47,9 @@ public class TestHAPartitionDependencyManagerService extends ZKXTestCase {
         super.setUp();
         services = super.setupServicesForHCatalog(Services.get());
         // disable recovery service
-        services.getConf().setInt(RecoveryService.CONF_SERVICE_INTERVAL, 1000000);
+        getOozieConfiguration(services).setInt(RecoveryService.CONF_SERVICE_INTERVAL, 1000000);
         // disable regular cache purge
-        services.getConf().setInt(PartitionDependencyManagerService.CACHE_PURGE_INTERVAL, 1000000);
+        getOozieConfiguration(services).setInt(PartitionDependencyManagerService.CACHE_PURGE_INTERVAL, 1000000);
         server = super.getHCatalogServer().getMetastoreAuthority();
         services.init();
     }
@@ -231,7 +231,7 @@ public class TestHAPartitionDependencyManagerService extends ZKXTestCase {
         BatchQueryExecutor.getInstance().executeBatchInsertUpdateDelete(insertList, null, null);
 
         // run cache purge
-        Services.get().getConf().setInt(PartitionDependencyManagerService.CACHE_PURGE_TTL, 0);
+        ConfigurationService.setInt(PartitionDependencyManagerService.CACHE_PURGE_TTL, 0);
         pdms.runCachePurgeWorker();
 
         // only coord Action 1 still in dependency cache

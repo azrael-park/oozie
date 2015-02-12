@@ -53,7 +53,7 @@ public class URIHandlerService implements Service {
     @Override
     public void init(Services services) throws ServiceException {
         try {
-            init(services.getConf());
+            init(services.get(ConfigurationService.class).getConf());
         }
         catch (Exception e) {
             throw new ServiceException(ErrorCode.E0902, e);

@@ -24,6 +24,7 @@ import org.apache.oozie.ErrorCode;
 import org.apache.oozie.StringBlob;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.OozieClient;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.Pair;
@@ -73,8 +74,7 @@ public class CoordJobGetActionsSubsetJPAExecutor implements JPAExecutor<List<Coo
     public List<CoordinatorActionBean> execute(EntityManager em) throws JPAExecutorException {
         List<CoordinatorActionBean> actionList = new ArrayList<CoordinatorActionBean>();
         try {
-            if (!Services.get().getConf()
-                    .getBoolean(CoordActionGetForInfoJPAExecutor.COORD_GET_ALL_COLS_FOR_ACTION, false)) {
+            if (!ConfigurationService.getBoolean(CoordActionGetForInfoJPAExecutor.COORD_GET_ALL_COLS_FOR_ACTION)) {
                 Query q = em.createNamedQuery("GET_ACTIONS_FOR_COORD_JOB_ORDER_BY_NOMINAL_TIME");
                 q = setQueryParameters(q, em);
                 List<Object[]> actions = q.getResultList();

@@ -39,6 +39,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.rest.RestConstants;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.DagXLogInfoService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.XLogStreamingService;
@@ -215,7 +216,7 @@ public class TestCoordinatorEngineStreamLog extends XFsTestCase {
         assertEquals(list.get(5).getLastModifiedTime().toString(), service.endTime.toString());
 
         // Test 11, testing -scope option with Max Count
-        Services.get().getConf().setInt(CoordinatorEngine.COORD_ACTIONS_LOG_MAX_COUNT, 1);
+        ConfigurationService.setInt(CoordinatorEngine.COORD_ACTIONS_LOG_MAX_COUNT, 1);
         ce = createCoordinatorEngine();
         try {
             ce.streamLog(jobId, "1-3", RestConstants.JOB_LOG_ACTION, new StringWriter(), new HashMap<String, String[]>());
@@ -236,7 +237,7 @@ public class TestCoordinatorEngineStreamLog extends XFsTestCase {
 
     private String runJobsImpl(final CoordinatorEngine ce, int count) throws Exception {
         try {
-            Services.get().getConf().setBoolean("oozie.service.coord.check.maximum.frequency", false);
+            ConfigurationService.setBoolean("oozie.service.coord.check.maximum.frequency", false);
             services.setService(DummyXLogStreamingService.class);
             // need to re-define the parameters that are cleared upon the service
             // reset:
@@ -296,7 +297,7 @@ public class TestCoordinatorEngineStreamLog extends XFsTestCase {
             }
             return jobId;
         } finally {
-            Services.get().getConf().setBoolean("oozie.service.coord.check.maximum.frequency", true);
+            ConfigurationService.setBoolean("oozie.service.coord.check.maximum.frequency", true);
         }
     }
 

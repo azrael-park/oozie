@@ -24,7 +24,7 @@ public class TestHAPartitionDependencyManagerEhCache extends TestHAPartitionDepe
 
     protected void setUp() throws Exception {
         super.setUp();
-        services.getConf().set(PartitionDependencyManagerService.CACHE_MANAGER_IMPL,
+        getOozieConfiguration(services).set(PartitionDependencyManagerService.CACHE_MANAGER_IMPL,
                 EhcacheHCatDependencyCache.class.getName());
         services.setService(ZKJobsConcurrencyService.class);
         PartitionDependencyManagerService pdms = services.get(PartitionDependencyManagerService.class);

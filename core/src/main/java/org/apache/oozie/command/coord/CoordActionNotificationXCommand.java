@@ -27,6 +27,7 @@ import org.apache.oozie.ErrorCode;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.NotificationXCommand;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.ParamChecker;
@@ -67,7 +68,7 @@ public class CoordActionNotificationXCommand extends NotificationXCommand {
             url = url.replaceAll(ACTION_ID_PATTERN, actionBean.getId());
             url = url.replaceAll(STATUS_PATTERN, actionBean.getStatus().toString());
             proxyConf = conf.get(OozieClient.COORD_ACTION_NOTIFICATION_PROXY,
-                    Services.get().getConf().get(NOTIFICATION_PROXY_KEY));
+                    ConfigurationService.get(NOTIFICATION_PROXY_KEY));
             LOG.debug("Proxy :" + proxyConf);
 
         }

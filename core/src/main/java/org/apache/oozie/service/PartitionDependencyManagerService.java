@@ -65,7 +65,7 @@ public class PartitionDependencyManagerService implements Service {
 
     @Override
     public void init(Services services) throws ServiceException {
-        init(services.getConf());
+        init(services.get(ConfigurationService.class).getConf());
     }
 
     private void init(Configuration conf) throws ServiceException {
@@ -81,7 +81,7 @@ public class PartitionDependencyManagerService implements Service {
             // schedule runnable by default every 10 min
             Services.get()
                     .get(SchedulerService.class)
-                    .schedule(purgeThread, 10, Services.get().getConf().getInt(CACHE_PURGE_INTERVAL, 600),
+                    .schedule(purgeThread, 10, conf.getInt(CACHE_PURGE_INTERVAL, 600),
                             SchedulerService.Unit.SEC);
             registeredCoordActionMap = new ConcurrentHashMap<String, Long>();
         }
@@ -99,7 +99,7 @@ public class PartitionDependencyManagerService implements Service {
                 return;
             }
             try {
-                purgeMissingDependency(Services.get().getConf().getInt(CACHE_PURGE_TTL, 1800));
+                purgeMissingDependency(Services.get().get(ConfigurationService.class).getConf().getInt(CACHE_PURGE_TTL, 1800));
             }
             catch (Throwable error) {
                 XLog.getLog(PartitionDependencyManagerService.class).debug("Throwable in CachePurgeWorker thread run : ", error);

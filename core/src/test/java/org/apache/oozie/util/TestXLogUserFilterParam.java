@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.oozie.client.rest.RestConstants;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.XLogService;
 import org.apache.oozie.service.XLogStreamingService;
@@ -194,7 +195,7 @@ public class TestXLogUserFilterParam extends XTestCase {
         setSystemProperty(XLogService.LOG4J_FILE, log4jFile.getName());
 
         new Services().init();
-        Services.get().getConf().setInt(XLogFilter.MAX_SCAN_DURATION, 10);
+        ConfigurationService.setInt(XLogFilter.MAX_SCAN_DURATION, 10);
         Map<String, String[]> paramMap = new HashMap<String, String[]>();
         paramMap.put(RestConstants.LOG_FILTER_OPTION, new String[] {});
         XLogFilter filter = new XLogFilter(new XLogUserFilterParam(paramMap));
@@ -226,7 +227,7 @@ public class TestXLogUserFilterParam extends XTestCase {
         setSystemProperty(XLogService.LOG4J_FILE, log4jFile.getName());
 
         new Services().init();
-        Services.get().getConf().setInt(XLogFilter.MAX_SCAN_DURATION, 10);
+        ConfigurationService.setInt(XLogFilter.MAX_SCAN_DURATION, 10);
         Map<String, String[]> paramMap = new HashMap<String, String[]>();
         String param = XLogUserFilterParam.RECENT_LOG_OFFSET + "=9";
 

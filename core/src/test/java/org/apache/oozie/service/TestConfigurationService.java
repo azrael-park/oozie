@@ -19,16 +19,22 @@
 package org.apache.oozie.service;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.oozie.CoordinatorEngine;
 import org.apache.oozie.action.hadoop.CredentialsProvider;
 import org.apache.oozie.action.hadoop.DistcpActionExecutor;
 import org.apache.oozie.action.hadoop.JavaActionExecutor;
 import org.apache.oozie.action.hadoop.LauncherMapper;
+import org.apache.oozie.command.NotificationXCommand;
+import org.apache.oozie.command.XCommand;
 import org.apache.oozie.command.coord.CoordActionInputCheckXCommand;
 import org.apache.oozie.command.coord.CoordSubmitXCommand;
+import org.apache.oozie.command.coord.SLAEventsXCommand;
 import org.apache.oozie.command.wf.JobXCommand;
 import org.apache.oozie.compression.CodecFactory;
 import org.apache.oozie.event.listener.ZKConnectionListener;
+import org.apache.oozie.event.messaging.MessageFactory;
 import org.apache.oozie.executor.jpa.CoordActionGetForInfoJPAExecutor;
+import org.apache.oozie.jms.JMSJobEventListener;
 import org.apache.oozie.servlet.AuthFilter;
 import org.apache.oozie.servlet.V1JobServlet;
 import org.apache.oozie.sla.service.SLAService;
@@ -36,6 +42,7 @@ import org.apache.oozie.test.XTestCase;
 import org.apache.oozie.util.ConfigUtils;
 import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.XLogFilter;
+import org.apache.oozie.util.ZKUtils;
 import org.apache.oozie.workflow.lite.LiteWorkflowAppParser;
 
 import java.io.File;
@@ -166,7 +173,7 @@ public class TestConfigurationService extends XTestCase {
         testConf.set("test.nonexist", "another-conf");
         assertEquals(ConfigUtils.STRING_DEFAULT, ConfigurationService.get("test.nonexist"));
         assertEquals("another-conf", ConfigurationService.get(testConf, "test.nonexist"));
-        Services.get().getConf().set("test.nonexist", "oozie-conf");
+        ConfigurationService.set("test.nonexist", "oozie-conf");
         assertEquals("oozie-conf", ConfigurationService.get("test.nonexist"));
         assertEquals("another-conf", ConfigurationService.get(testConf, "test.nonexist"));
         testConf.clear();
@@ -271,6 +278,25 @@ public class TestConfigurationService extends XTestCase {
 
         assertEquals(7, ConfigurationService.getInt(ShareLibService.LAUNCHERJAR_LIB_RETENTION));
         assertEquals(5000, ConfigurationService.getInt(SLAService.CONF_CAPACITY));
+        assertEquals(5000, ConfigurationService.getInt(SLAService.CONF_SLA_CALC_LOCK_TIMEOUT));
+        assertEquals(86400, ConfigurationService.getInt(SLAService.CONF_SLA_HISTORY_PURGE_INTERVAL));
+        assertEquals(30, ConfigurationService.getInt(SLAService.CONF_SLA_CHECK_INTERVAL));
+        assertEquals(50, ConfigurationService.getInt(CoordinatorEngine.COORD_ACTIONS_LOG_MAX_COUNT));
+
+
+
+        assertEquals(5000, ConfigurationService.getLong(XCommand.DEFAULT_LOCK_TIMEOUT));
+        assertEquals(false, ConfigurationService.getBoolean(ZKUtils.ZK_SECURE));
+        assertEquals("simple", ConfigurationService.get("oozie.authentication.type"));
+        assertEquals("org.apache.oozie.event.messaging.JSONMessageSerializer",
+                (ConfigurationService.getClass(MessageFactory.OOZIE_MESSAGE_SERIALIZE + MessageFactory.OOZIE_MESSAGE_FORMAT).getName()));
+        assertEquals(600, ConfigurationService.getInt(RecoveryService.CONF_COORD_OLDER_THAN));
+        assertEquals(10, ConfigurationService.getInt(RecoveryService.CONF_CALLABLE_BATCH_SIZE));
+        assertEquals("", ConfigurationService.get(NotificationXCommand.NOTIFICATION_PROXY_KEY));
+        assertEquals("java.naming.factory.initial#org.apache.activemq.jndi.ActiveMQInitialContextFactory;java.naming.provider.url#tcp://localhost:61616;connectionFactoryNames#ConnectionFactory", ConfigurationService.get(JMSJobEventListener.JMS_CONNECTION_PROPERTIES));
+        assertEquals(1000, ConfigurationService.getInt(SLAEventsXCommand.SLA_DEFAULT_MAXEVENTS));
+        assertEquals("counter", ConfigurationService.get(UUIDService.CONF_GENERATOR));
+        assertEquals(60, ConfigurationService.getInt(StatusTransitService.CONF_STATUSTRANSIT_INTERVAL));
 
         cl.destroy();
     }

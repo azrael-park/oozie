@@ -58,7 +58,7 @@ public class SLAService implements Service {
     @Override
     public void init(Services services) throws ServiceException {
         try {
-            Configuration conf = services.getConf();
+            Configuration conf = services.get(ConfigurationService.class).getConf();
             Class<? extends SLACalculator> calcClazz = (Class<? extends SLACalculator>) ConfigurationService.getClass(
                     conf, CONF_CALCULATOR_IMPL);
             calcImpl = calcClazz == null ? new SLACalculatorMemory() : (SLACalculator) calcClazz.newInstance();

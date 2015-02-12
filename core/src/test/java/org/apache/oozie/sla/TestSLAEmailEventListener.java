@@ -58,7 +58,7 @@ public class TestSLAEmailEventListener extends XTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        conf = services.getConf();
+        conf = getOozieConfiguration(services);
         conf.set(EmailActionExecutor.EMAIL_SMTP_HOST, "localhost");
         conf.set(EmailActionExecutor.EMAIL_SMTP_PORT, String.valueOf(SMTP_TEST_PORT));
         conf.set(EmailActionExecutor.EMAIL_SMTP_AUTH, "false");

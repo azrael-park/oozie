@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.oozie.cli.CLIParser;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.WorkflowAppService;
@@ -140,9 +141,9 @@ public class OozieSharelibCLI {
             Path srcPath = new Path(srcFile.toString());
 
             Services services = new Services();
-            services.getConf().set(Services.CONF_SERVICE_CLASSES,
-                "org.apache.oozie.service.LiteWorkflowAppService, org.apache.oozie.service.HadoopAccessorService");
-            services.getConf().set(Services.CONF_SERVICE_EXT_CLASSES, "");
+            services.get(ConfigurationService.class).getConf().set(Services.CONF_SERVICE_CLASSES,
+                    "org.apache.oozie.service.LiteWorkflowAppService, org.apache.oozie.service.HadoopAccessorService");
+            services.get(ConfigurationService.class).getConf().set(Services.CONF_SERVICE_EXT_CLASSES, "");
             services.init();
             WorkflowAppService lwas = services.get(WorkflowAppService.class);
             HadoopAccessorService has = services.get(HadoopAccessorService.class);

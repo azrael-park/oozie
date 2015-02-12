@@ -321,9 +321,9 @@ public abstract class XTestCase extends TestCase {
 
         // load test Oozie site
         String oozieTestDB = System.getProperty("oozie.test.db", "hsqldb");
-        String defaultOozieSize =
+        String defaultOozieSite =
             new File(OOZIE_SRC_DIR, "core/src/test/resources/" + oozieTestDB + "-oozie-site.xml").getAbsolutePath();
-        String customOozieSite = System.getProperty("oozie.test.config.file", defaultOozieSize);
+        String customOozieSite = System.getProperty("oozie.test.config.file", defaultOozieSite);
         File source = new File(customOozieSite);
         if(!source.isAbsolute()) {
             source = new File(OOZIE_SRC_DIR, customOozieSite);
@@ -521,6 +521,15 @@ public abstract class XTestCase extends TestCase {
      */
     protected static String getTestGroup2() {
         return System.getProperty(TEST_GROUP_PROP, "testg2");
+    }
+
+    /**
+     * Return the configuration through {@link ConfigurationService}
+     * @param services the services
+     * @return  the oozie configuration
+     */
+    protected Configuration getOozieConfiguration(Services services) {
+        return services.get(ConfigurationService.class).getConf();
     }
 
     /**
@@ -781,7 +790,7 @@ public abstract class XTestCase extends TestCase {
             // we don't want to interfere
             try {
                 Services services = new Services();
-                services.getConf().set(Services.CONF_SERVICE_CLASSES, MINIMAL_SERVICES_FOR_DB_CLEANUP);
+                getOozieConfiguration(services).set(Services.CONF_SERVICE_CLASSES, MINIMAL_SERVICES_FOR_DB_CLEANUP);
                 services.init();
                 cleanUpDBTablesInternal();
             }
@@ -1151,7 +1160,7 @@ public abstract class XTestCase extends TestCase {
     }
 
     private void setupServicesForHCataLogImpl(Services services) {
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_EXT_CLASSES,
                 JMSAccessorService.class.getName() + "," +
                 PartitionDependencyManagerService.class.getName() + "," +

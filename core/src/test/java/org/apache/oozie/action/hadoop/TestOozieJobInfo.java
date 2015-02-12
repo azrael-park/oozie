@@ -89,7 +89,7 @@ public class TestOozieJobInfo extends XDataTestCase {
 
     public void testInfoWithBundle() throws Exception {
 
-        Services.get().getConf().setBoolean(OozieJobInfo.CONF_JOB_INFO, true);
+        getOozieConfiguration(services).setBoolean(OozieJobInfo.CONF_JOB_INFO, true);
         OozieJobInfo.setJobInfo(true);
         BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.PREP, false);
         final JPAService jpaService = Services.get().get(JPAService.class);

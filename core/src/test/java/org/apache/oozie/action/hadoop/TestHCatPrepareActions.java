@@ -34,7 +34,7 @@ public class TestHCatPrepareActions extends XHCatTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         Services services = new Services();
-        services.getConf().set(URIHandlerService.URI_HANDLERS,
+        getOozieConfiguration(services).set(URIHandlerService.URI_HANDLERS,
                 FSURIHandler.class.getName() + "," + HCatURIHandler.class.getName());
         services.init();
     }

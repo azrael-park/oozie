@@ -234,7 +234,7 @@ public class PauseTransitService implements Service {
     public void init(Services services) {
         Runnable bundlePauseStartRunnable = new PauseTransitRunnable();
         services.get(SchedulerService.class).schedule(bundlePauseStartRunnable, 10,
-                ConfigurationService.getInt(services.getConf(), CONF_BUNDLE_PAUSE_START_INTERVAL),
+                ConfigurationService.getInt(CONF_BUNDLE_PAUSE_START_INTERVAL),
                 SchedulerService.Unit.SEC);
     }
 

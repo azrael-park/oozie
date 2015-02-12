@@ -97,13 +97,13 @@ public class JMSTopicService implements Service {
     @Override
     public void init(Services services) throws ServiceException {
         LOG = XLog.getLog(getClass());
-        conf = services.getConf();
+        conf = services.get(ConfigurationService.class).getConf();
         parseTopicConfiguration();
         topicPrefix = conf.get(TOPIC_PREFIX, "");
     }
 
     private void parseTopicConfiguration() throws ServiceException {
-        String topicName = ConfigurationService.get(conf, TOPIC_NAME);
+        String topicName = ConfigurationService.get(TOPIC_NAME);
         if (topicName == null) {
             throw new ServiceException(ErrorCode.E0100, getClass().getName(), "JMS topic cannot be null ");
         }

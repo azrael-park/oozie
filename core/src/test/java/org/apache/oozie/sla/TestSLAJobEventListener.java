@@ -53,7 +53,7 @@ public class TestSLAJobEventListener extends XTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_EXT_CLASSES, "org.apache.oozie.service.EventHandlerService,"
                 + "org.apache.oozie.sla.service.SLAService");
         conf.setClass(EventHandlerService.CONF_LISTENERS, SLAJobEventListener.class, JobEventListener.class);
@@ -79,7 +79,7 @@ public class TestSLAJobEventListener extends XTestCase {
     public void testOnJobEvent() throws Exception {
         SLAService slas = services.get(SLAService.class);
         SLAJobEventListener listener = new SLAJobEventListener();
-        listener.init(services.getConf());
+        listener.init(getOozieConfiguration(services));
         // add dummy registration events to the SLAService map
         SLARegistrationBean job = _createSLARegBean("wf1", AppType.WORKFLOW_JOB);
         job.setExpectedStart(DateUtils.parseDateUTC("2012-07-22T00:00Z"));

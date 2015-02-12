@@ -48,7 +48,7 @@ public class TestEventHandlerService extends XDataTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_EXT_CLASSES, "org.apache.oozie.service.EventHandlerService");
         conf.setClass(EventHandlerService.CONF_LISTENERS, DummyJobEventListener.class, JobEventListener.class);
         services.init();
@@ -72,7 +72,7 @@ public class TestEventHandlerService extends XDataTestCase {
         Services services = Services.get();
         services.destroy();
         services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_EXT_CLASSES, "");
         services.init();
         assertFalse(EventHandlerService.isEnabled());

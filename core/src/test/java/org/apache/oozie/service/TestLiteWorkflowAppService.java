@@ -603,7 +603,7 @@ public class TestLiteWorkflowAppService extends XTestCase {
             String[] expectedLibs) throws Exception {
         Services services = new Services();
         try {
-            services.getConf().set("oozie.subworkflow.classpath.inheritance", inherit);
+            getOozieConfiguration(services).set("oozie.subworkflow.classpath.inheritance", inherit);
             services.init();
             Reader reader = IOUtils.getResourceAsReader("wf-schema-valid.xml", -1);
             String childWFDir = createTestCaseSubDir("child-wf-" + unique);

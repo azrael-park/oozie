@@ -25,6 +25,7 @@ import org.apache.oozie.client.event.message.WorkflowJobMessage;
 import org.apache.oozie.client.event.message.SLAMessage;
 import org.apache.oozie.event.CoordinatorActionEvent;
 import org.apache.oozie.event.WorkflowJobEvent;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 
 /**
@@ -32,15 +33,11 @@ import org.apache.oozie.service.Services;
  */
 public class MessageFactory {
 
-    public static final String OOZIE_MESSAGE_FORMAT = Services.get().getConf().get("message.format", "json");
+    public static final String OOZIE_MESSAGE_FORMAT = ConfigurationService.get("message.format");
     public static final String OOZIE_MESSAGE_SERIALIZE = "oozie.jms.serialize.";
 
     private static class MessageSerializerHolder {
-        private static String messageSerializerInstance = Services
-                .get()
-                .getConf()
-                .get(OOZIE_MESSAGE_SERIALIZE + OOZIE_MESSAGE_FORMAT,
-                        "org.apache.oozie.event.messaging.JSONMessageSerializer");
+        private static String messageSerializerInstance = ConfigurationService.get(OOZIE_MESSAGE_SERIALIZE + OOZIE_MESSAGE_FORMAT);
         public static final MessageSerializer INSTANCE;
         static {
             try {

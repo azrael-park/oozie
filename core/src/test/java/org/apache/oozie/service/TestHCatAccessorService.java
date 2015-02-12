@@ -51,7 +51,7 @@ public class TestHCatAccessorService extends XHCatTestCase {
     public void testGetJMSConnectionInfoNoDefault() throws Exception {
         services.destroy();
         services = super.setupServicesForHCatalog();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         String server2 = "hcat://${1}.${2}.server.com:8020=java.naming.factory.initial#Dummy.Factory;" +
                 "java.naming.provider.url#tcp://broker.${2}:61616";
         String server3 = "hcat://xyz.corp.dummy.com=java.naming.factory.initial#Dummy.Factory;" +
@@ -77,7 +77,7 @@ public class TestHCatAccessorService extends XHCatTestCase {
     public void testGetJMSConnectionInfo() throws Exception {
         services.destroy();
         services = super.setupServicesForHCatalog();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         String server1 = "default=java.naming.factory.initial#org.apache.activemq.jndi.ActiveMQInitialContextFactory;" +
                 "java.naming.provider.url#vm://localhost?broker.persistent=false";
         String server2 = "hcat://${1}.${2}.server.com:8020=java.naming.factory.initial#Dummy.Factory;" +
@@ -119,7 +119,7 @@ public class TestHCatAccessorService extends XHCatTestCase {
         assertTrue(hcatConfFile.exists());
         services.destroy();
         services = super.setupServicesForHCatalog();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set("oozie.service.HCatAccessorService.hcat.configuration", hcatConfFile.getAbsolutePath());
         services.init();
         Configuration hcatConfLoaded = services.get(HCatAccessorService.class).getHCatConf();
@@ -140,7 +140,7 @@ public class TestHCatAccessorService extends XHCatTestCase {
         assertTrue(getFileSystem().exists(hcatConfPath));
         services.destroy();
         services = super.setupServicesForHCatalog();
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         conf.set("oozie.service.HCatAccessorService.hcat.configuration", hcatConfPath.toUri().toString());
         services.init();
         Configuration hcatConfLoaded = services.get(HCatAccessorService.class).getHCatConf();

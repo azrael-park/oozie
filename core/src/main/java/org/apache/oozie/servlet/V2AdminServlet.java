@@ -31,6 +31,7 @@ import org.apache.oozie.client.rest.JMSConnectionInfoBean;
 import org.apache.oozie.client.rest.JsonBean;
 import org.apache.oozie.jms.JMSConnectionInfo;
 import org.apache.oozie.jms.JMSJobEventListener;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.InstrumentationService;
 import org.apache.oozie.service.JMSTopicService;
 import org.apache.oozie.service.JobsConcurrencyService;
@@ -64,9 +65,8 @@ public class V2AdminServlet extends V1AdminServlet {
     @Override
     protected JsonBean getJMSConnectionInfo(HttpServletRequest request, HttpServletResponse response)
             throws XServletException, IOException {
-        Configuration conf = Services.get().getConf();
         JMSTopicService jmsTopicService = Services.get().get(JMSTopicService.class);
-        String connectionProperties = conf.get(JMSJobEventListener.JMS_CONNECTION_PROPERTIES);
+        String connectionProperties = ConfigurationService.get(JMSJobEventListener.JMS_CONNECTION_PROPERTIES);
         if (connectionProperties == null) {
             throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E1601,
                     "JMS connection property is not defined");

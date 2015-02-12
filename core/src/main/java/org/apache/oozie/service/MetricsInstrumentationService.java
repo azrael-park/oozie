@@ -40,7 +40,7 @@ public class MetricsInstrumentationService extends InstrumentationService {
     @Override
     public void init(Services services) throws ServiceException {
         final MetricsInstrumentation instr = new MetricsInstrumentation();
-        int interval = services.getConf().getInt(CONF_LOGGING_INTERVAL, 60);
+        int interval = ConfigurationService.getInt(CONF_LOGGING_INTERVAL);
         initLogging(services, instr, interval);
         instrumentation = instr;
         isEnabled = true;

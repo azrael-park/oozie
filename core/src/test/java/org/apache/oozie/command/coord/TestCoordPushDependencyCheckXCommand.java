@@ -354,7 +354,7 @@ public class TestCoordPushDependencyCheckXCommand extends XDataTestCase {
 
     @Test
     public void testRequeueOnException() throws Exception {
-        Services.get().getConf().setInt(RecoveryService.CONF_SERVICE_INTERVAL, 6000);
+        getOozieConfiguration(services).setInt(RecoveryService.CONF_SERVICE_INTERVAL, 6000);
         // Test timeout when table containing missing dependencies is dropped in between
         String newHCatDependency1 = "hcat://" + server + "/nodb/notable/dt=20120430;country=brazil";
         String newHCatDependency2 = "hcat://" + server + "/nodb/notable/dt=20120430;country=usa";

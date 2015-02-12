@@ -60,7 +60,7 @@ public class TestJMSJobEventListener extends XTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
-        conf = services.getConf();
+        conf = getOozieConfiguration(services);
         conf.set(Services.CONF_SERVICE_EXT_CLASSES,
                 JMSAccessorService.class.getName() + "," + JMSTopicService.class.getName());
         conf.set(JMSJobEventListener.JMS_CONNECTION_PROPERTIES, "java.naming.factory.initial#" + ActiveMQConnFactory
@@ -323,7 +323,7 @@ public class TestJMSJobEventListener extends XTestCase {
         try {
             services.destroy();
             services = new Services();
-            Configuration conf = services.getConf();
+            Configuration conf = getOozieConfiguration(services);
             conf.set(Services.CONF_SERVICE_EXT_CLASSES, JMSAccessorService.class.getName() + ","
                     + JMSTopicService.class.getName());
             int randomPort = 30000 + random.nextInt(10000);
@@ -568,7 +568,7 @@ public class TestJMSJobEventListener extends XTestCase {
     }
 
     private ConnectionContext getConnectionContext() {
-        Configuration conf = services.getConf();
+        Configuration conf = getOozieConfiguration(services);
         String jmsProps = conf.get(JMSJobEventListener.JMS_CONNECTION_PROPERTIES);
         JMSConnectionInfo connInfo = new JMSConnectionInfo(jmsProps);
         JMSAccessorService jmsService = Services.get().get(JMSAccessorService.class);

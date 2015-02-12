@@ -26,6 +26,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.BuildInfo;
 import org.apache.oozie.cli.CLIParser;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
 
@@ -162,7 +163,7 @@ public class OozieDBCLI {
 
     private Map<String, String> getJdbcConf() throws Exception {
         Services services = new Services();
-        Configuration conf = services.getConf();
+        Configuration conf = services.get(ConfigurationService.class).getConf();
         Map<String, String> jdbcConf = new HashMap<String, String>();
         jdbcConf.put("driver", conf.get(JPAService.CONF_DRIVER));
         String url = conf.get(JPAService.CONF_URL);

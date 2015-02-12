@@ -464,19 +464,21 @@ public class ConfigurationService implements Service, Instrumentable {
 
     @VisibleForTesting
     public static void set(String name, String value) {
-        Configuration conf = Services.get().getConf();
-        conf.set(name, value);
+        getOozieConfiguration().set(name, value);
     }
 
     @VisibleForTesting
     public static void setBoolean(String name, boolean value) {
-        Configuration conf = Services.get().getConf();
-        conf.setBoolean(name, value);
+        getOozieConfiguration().setBoolean(name, value);
+    }
+
+    @VisibleForTesting
+    public static void setInt(String name, int value) {
+        getOozieConfiguration().setInt(name, value);
     }
 
     public static String get(String name) {
-        Configuration conf = Services.get().getConf();
-        return get(conf, name);
+        return get(getOozieConfiguration(), name);
     }
 
     public static String get(Configuration conf, String name) {
@@ -484,8 +486,7 @@ public class ConfigurationService implements Service, Instrumentable {
     }
 
     public static String[] getStrings(String name) {
-        Configuration conf = Services.get().getConf();
-        return getStrings(conf, name);
+        return getStrings(getOozieConfiguration(), name);
     }
 
     public static String[] getStrings(Configuration conf, String name) {
@@ -493,8 +494,7 @@ public class ConfigurationService implements Service, Instrumentable {
     }
 
     public static boolean getBoolean(String name) {
-        Configuration conf = Services.get().getConf();
-        return getBoolean(conf, name);
+        return getBoolean(getOozieConfiguration(), name);
     }
 
     public static boolean getBoolean(Configuration conf, String name) {
@@ -502,8 +502,7 @@ public class ConfigurationService implements Service, Instrumentable {
     }
 
     public static int getInt(String name) {
-        Configuration conf = Services.get().getConf();
-        return getInt(conf, name);
+        return getInt(getOozieConfiguration(), name);
     }
 
     public static int getInt(Configuration conf, String name) {
@@ -511,13 +510,15 @@ public class ConfigurationService implements Service, Instrumentable {
     }
 
     public static float getFloat(String name) {
-        Configuration conf = Services.get().getConf();
+        return getFloat(getOozieConfiguration(), name);
+    }
+
+    public static float getFloat(Configuration conf, String name) {
         return conf.getFloat(name, ConfigUtils.FLOAT_DEFAULT);
     }
 
     public static long getLong(String name) {
-        Configuration conf = Services.get().getConf();
-        return getLong(conf, name);
+        return getLong(getOozieConfiguration(), name);
     }
 
     public static long getLong(Configuration conf, String name) {
@@ -525,8 +526,11 @@ public class ConfigurationService implements Service, Instrumentable {
     }
 
     public static Class<?>[] getClasses(String name) {
-        Configuration conf = Services.get().getConf();
-        return getClasses(conf, name);
+        return getClasses(getOozieConfiguration(), name);
+    }
+
+    public static Class<?> getClass(String name) {
+        return getClass(getOozieConfiguration(), name);
     }
 
     public static Class<?>[] getClasses(Configuration conf, String name) {
@@ -535,6 +539,10 @@ public class ConfigurationService implements Service, Instrumentable {
 
     public static Class<?> getClass(Configuration conf, String name) {
         return conf.getClass(name, Object.class);
+    }
+
+    private static Configuration getOozieConfiguration() {
+        return Services.get().get(ConfigurationService.class).getConf();
     }
 
 }
