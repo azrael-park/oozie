@@ -430,10 +430,12 @@ public class HadoopAccessorService implements Service {
         }
         String jobTracker = conf.get(JavaActionExecutor.HADOOP_JOB_TRACKER);
         validateJobTracker(jobTracker);
+        XLog.getLog(HadoopAccessorService.class).info("---- before create JobClient");
         try {
             UserGroupInformation ugi = getUGI(user);
             JobClient jobClient = ugi.doAs(new PrivilegedExceptionAction<JobClient>() {
                 public JobClient run() throws Exception {
+                    XLog.getLog(HadoopAccessorService.class).info("---- before return JobClient");
                     return new JobClient(conf);
                 }
             });

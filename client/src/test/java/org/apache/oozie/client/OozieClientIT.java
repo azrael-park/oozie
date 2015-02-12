@@ -60,6 +60,9 @@ public class OozieClientIT {
         } catch (Exception e) {
             host = "localhost";
         }
+        if (host.endsWith(".local")) {
+            host = host.substring(0, host.lastIndexOf(".local"));
+        }
         if (hadoopVersion.equals("hadoop-1")) {
             nameNode = "hdfs://" + host + ":9000";
             jobTracker = host + ":9001";

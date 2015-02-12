@@ -1,5 +1,4 @@
-
-set -v;
-SELECT * FROM user_udf limit 10;
+set a=abc;
+SELECT count(*) FROM user_udf limit 10;
 
 
