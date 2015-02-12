@@ -274,6 +274,68 @@ public class OozieClientITV40 extends OozieClientIT{
     }
 
     /**
+     * Test hive2 action.
+     *
+     */
+    @Test
+    public void testHive2OrgV40() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            // ehco
+            String appName = "hive2-oozie-org";
+            String version = "v40";
+            String appPath = baseAppPath + "/" + version + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+            configs.put("version", version);
+            configs.put("oozie.use.system.libpath", "true");
+
+            uploadApps(appPath, appName, version, "hive-query.q");
+
+            String jobID = run(configs);
+            WorkflowAction hiveAction = null;
+            String status = "";
+            try {
+                for (int i = 0; i < 50; i++) {
+                    WorkflowJob wfJob = getClient().getJobInfo(jobID);
+                    LOG.info(wfJob.getId() + " [" + wfJob.getStatus().toString() + "]");
+                    List<WorkflowAction> actionList = wfJob.getActions();
+                    for (WorkflowAction action : actionList) {
+                        if(action.getName().equals("hive-init")){
+                            LOG.info("    " + action.getName() + " [" + action.getStatus().toString() + "]");
+                            LOG.info("    " + "capture >> \n " + action.getData() + "\n");
+                            hiveAction = action;
+                        }
+                    }
+                    status = wfJob.getStatus().toString();
+                    if (wfJob.getStatus().equals(WorkflowJob.Status.SUCCEEDED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.KILLED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.FAILED)) {
+                        break;
+                    }
+                    Thread.sleep(POLLING);
+                }
+            } catch (Exception e) {
+                LOG.info("Fail to monitor : " + jobID, e);
+            }
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowJob.Status.SUCCEEDED.toString(), status);
+
+            Assert.assertNotNull(hiveAction);
+            LOG.info(" ---- JOB LOG ----");
+            LOG.info(getClient().getJobLog(jobID));
+            LOG.info(" ---- JOB LOG end ----\n");
+        } catch (Exception e) {
+            LOG.info("Fail to testHiveOrgV40", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testHiveOrgV40 \n");
+    }
+
+    /**
      * Test very simple FS action .
      *
      */
