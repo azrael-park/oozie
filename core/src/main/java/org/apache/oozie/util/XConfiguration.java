@@ -19,6 +19,8 @@
 package org.apache.oozie.util;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.oozie.service.ConfigurationService;
+import org.apache.oozie.service.Services;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -46,11 +48,14 @@ import java.util.regex.Pattern;
  */
 public class XConfiguration extends Configuration {
 
+    public static final String CONFIGURATION_SUBSTITUTE_DEPTH = "oozie.configuration.substitute.depth";
+
     /**
      * Create an empty configuration. <p/> Default values are not loaded.
      */
     public XConfiguration() {
         super(false);
+        initSubstituteDepth();
     }
 
     /**
@@ -144,6 +149,14 @@ public class XConfiguration extends Configuration {
 
     private static Pattern varPat = Pattern.compile("\\$\\{[^\\}\\$\u0020]+\\}");
     private static int MAX_SUBST = 20;
+    private static volatile boolean initalized = false;
+    private static void initSubstituteDepth() {
+        if (!initalized && Services.get() != null && Services.get().get(ConfigurationService.class) != null) {
+            MAX_SUBST = ConfigurationService.getInt(CONFIGURATION_SUBSTITUTE_DEPTH);
+            XLog.getLog(XConfiguration.class).debug("Substitution depth {0}", MAX_SUBST);
+            initalized = true;
+        }
+    }
 
     private String substituteVars(String expr) {
         if (expr == null) {
@@ -151,7 +164,8 @@ public class XConfiguration extends Configuration {
         }
         Matcher match = varPat.matcher("");
         String eval = expr;
-        for (int s = 0; s < MAX_SUBST; s++) {
+        int s = 0;
+        while (MAX_SUBST == -1 || s < MAX_SUBST ) {
             match.reset(eval);
             if (!match.find()) {
                 return eval;
@@ -169,6 +183,7 @@ public class XConfiguration extends Configuration {
             }
             // substitute
             eval = eval.substring(0, match.start()) + val + eval.substring(match.end());
+            s++;
         }
         throw new IllegalStateException("Variable substitution depth too large: " + MAX_SUBST + " " + expr);
     }
