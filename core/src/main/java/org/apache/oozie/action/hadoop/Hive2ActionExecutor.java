@@ -86,8 +86,9 @@ public class Hive2ActionExecutor extends ScriptLanguageActionExecutor {
         String script = actionXml.getChild("script", ns).getTextTrim();
         String scriptName = new Path(script).getName();
         String beelineScriptContent = context.getProtoActionConf().get(HIVE2_SCRIPT);
-
+        LOG.info("---- scriptName : " + scriptName);
         if (beelineScriptContent == null){
+            LOG.info("---- beelineScriptContent == null");
             addToCache(conf, appPath, script + "#" + scriptName, false);
         }
 
