@@ -32,9 +32,11 @@ import org.apache.oozie.AppType;
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.DagEngine;
+import org.apache.oozie.ForTestingActionExecutor;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.action.ActionExecutor;
+import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.action.control.ControlNodeActionExecutor;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
@@ -79,6 +81,7 @@ import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionQueryExecutor.WorkflowActionQuery;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor.WorkflowJobQuery;
 import org.apache.oozie.service.ActionService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.EventHandlerService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.LiteWorkflowStoreService;
@@ -556,7 +559,51 @@ public class TestEventGeneration extends XDataTestCase {
                 return jpaService.execute(readCmd2).getStatus() == WorkflowJob.Status.KILLED;
             }
         });
-        assertEquals(3, queue.size());
+        assertEquals(4, queue.size());
+        JobEvent coordActionEvent0 = (JobEvent) queue.poll();
+        assertEquals(EventStatus.FAILURE, coordActionEvent0.getEventStatus());
+        assertEquals(action.getId(), coordActionEvent0.getId());
+        assertEquals(AppType.COORDINATOR_ACTION, coordActionEvent0.getAppType());
+        JobEvent wfActionEvent = (JobEvent) queue.poll();
+        assertEquals(EventStatus.FAILURE, wfActionEvent.getEventStatus());
+        assertEquals(waId, wfActionEvent.getId());
+        assertEquals(AppType.WORKFLOW_ACTION, wfActionEvent.getAppType());
+        JobEvent wfJobEvent = (JobEvent) queue.poll();
+        assertEquals(EventStatus.FAILURE, wfJobEvent.getEventStatus());
+        assertEquals(wf.getId(), wfJobEvent.getId());
+        assertEquals(AppType.WORKFLOW_JOB, wfJobEvent.getAppType());
+        JobEvent coordActionEvent = (JobEvent) queue.poll();
+        assertEquals(EventStatus.FAILURE, coordActionEvent.getEventStatus());
+        assertEquals(action.getId(), coordActionEvent.getId());
+        assertEquals(AppType.COORDINATOR_ACTION, coordActionEvent.getAppType());
+    }
+
+    @Test
+    public void testForFailJob() throws Exception {
+        // test coordinator action events (failure case)
+        Date startTime = DateUtils.parseDateOozieTZ("2009-02-01T23:59Z");
+        Date endTime = DateUtils.parseDateOozieTZ("2009-02-02T23:59Z");
+        // test coordinator action events (error.failed from ActionStartX)
+        ehs.getAppTypes().add("workflow_action");
+        CoordinatorJobBean coord = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, false, false, 0);
+        CoordinatorActionBean action = addRecordToCoordActionTable(coord.getId(), 1, CoordinatorAction.Status.RUNNING,
+                "coord-action-sla1.xml", 0);
+        WorkflowJobBean wf = addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING,
+                action.getId());
+        action.setExternalId(wf.getId());
+        CoordActionQueryExecutor.getInstance().executeUpdate(CoordActionQuery.UPDATE_COORD_ACTION, action);
+
+        String waId = _createTestWorkflowAction(wf.getId(), "wf-action", "start.failed");
+
+        services.get(ActionService.class).registerAndInitExecutor(ForTestingActionExecutor.class);
+        new ActionStartXCommand(waId, "test").call();
+
+        Thread.sleep(100);
+        assertEquals(4, queue.size());
+        JobEvent coordActionEvent0 = (JobEvent) queue.poll();
+        assertEquals(EventStatus.FAILURE, coordActionEvent0.getEventStatus());
+        assertEquals(action.getId(), coordActionEvent0.getId());
+        assertEquals(AppType.COORDINATOR_ACTION, coordActionEvent0.getAppType());
         JobEvent wfActionEvent = (JobEvent) queue.poll();
         assertEquals(EventStatus.FAILURE, wfActionEvent.getEventStatus());
         assertEquals(waId, wfActionEvent.getId());
@@ -653,6 +700,34 @@ public class TestEventGeneration extends XDataTestCase {
 
         String actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>"
                 + getNameNodeUri() + "</name-node>" + "<main-class>" + "${dummy}" + "</java>";
+        action.setConf(actionXml);
+        jpaService.execute(new WorkflowActionInsertJPAExecutor(action));
+        return action.getId();
+    }
+
+    private String _createTestWorkflowAction(String wfId, String actionName,
+                                                         String error) throws JPAExecutorException {
+        WorkflowActionBean action = new WorkflowActionBean();
+        action.setName(actionName);
+        action.setId(Services.get().get(UUIDService.class).generateChildId(wfId, actionName));
+        action.setJobId(wfId);
+        action.setType("test");
+        action.setTransition("transition");
+        action.setStatus(WorkflowAction.Status.PREP);
+        action.setStartTime(new Date());
+        action.setEndTime(new Date());
+        action.setLastCheckTime(new Date());
+        action.setCred("null");
+        action.setPendingOnly();
+
+        String actionXml = "<test xmlns=\"uri:test\">\n" +
+                "        <signal-value>${wf:conf('signal-value')}</signal-value>\n" +
+                "        <external-status>${wf:conf('external-status')}</external-status>\n" +
+                "        <error>" + error + "</error>\n" +
+                "        <avoid-set-execution-data>${wf:conf('avoid-set-execution-data')}</avoid-set-execution-data>\n" +
+                "        <avoid-set-end-data>${wf:conf('avoid-set-end-data')}</avoid-set-end-data>\n" +
+                "        <running-mode>${wf:conf('running-mode')}</running-mode>\n" +
+                "    </test>\n";
         action.setConf(actionXml);
         jpaService.execute(new WorkflowActionInsertJPAExecutor(action));
         return action.getId();

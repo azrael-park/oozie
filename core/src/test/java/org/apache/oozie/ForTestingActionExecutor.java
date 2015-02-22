@@ -59,6 +59,9 @@ public class ForTestingActionExecutor extends ActionExecutor {
         if ("start.error".equals(error)) {
             throw new ActionExecutorException(ActionExecutorException.ErrorType.ERROR, TEST_ERROR, "start");
         }
+        if ("start.failed".equals(error)) {
+            throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, TEST_ERROR, "start");
+        }
         String externalStatus = eConf.getChild("external-status", ns).getText().trim();
 
         String runningMode = "sync";
