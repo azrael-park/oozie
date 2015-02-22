@@ -69,26 +69,15 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
     public static final String START_DATA_MISSING = "START_DATA_MISSING";
     public static final String EXEC_DATA_MISSING = "EXEC_DATA_MISSING";
 
-    private String jobId = null;
-    private String actionId = null;
-    private WorkflowJobBean wfJob = null;
-    private WorkflowActionBean wfAction = null;
-    private JPAService jpaService = null;
-    private ActionExecutor executor = null;
     private List<UpdateEntry> updateList = new ArrayList<UpdateEntry>();
     private List<JsonBean> insertList = new ArrayList<JsonBean>();
 
     public ActionStartXCommand(String actionId, String type) {
-        super("action.start", type, 0);
-        this.actionId = actionId;
-        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
+        super(actionId, "action.start", type, 0);
     }
 
     public ActionStartXCommand(WorkflowJobBean job, String actionId, String type) {
-        super("action.start", type, 0);
-        this.actionId = actionId;
-        this.wfJob = job;
-        this.jobId = wfJob.getId();
+        super(job, actionId, "action.start", type, 0);
     }
 
     @Override
@@ -97,34 +86,8 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
     }
 
     @Override
-    protected boolean isLockRequired() {
-        return true;
-    }
-
-    @Override
-    public String getEntityKey() {
-        return this.jobId;
-    }
-
-    @Override
     protected void loadState() throws CommandException {
-        try {
-            jpaService = Services.get().get(JPAService.class);
-            if (jpaService != null) {
-                if (wfJob == null) {
-                    this.wfJob = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId);
-                }
-                this.wfAction = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION, actionId);
-                LogUtils.setLogInfo( wfJob);
-                LogUtils.setLogInfo(wfAction);
-            }
-            else {
-                throw new CommandException(ErrorCode.E0610);
-            }
-        }
-        catch (XException ex) {
-            throw new CommandException(ex);
-        }
+        loadActionBean(WorkflowJobQuery.GET_WORKFLOW, WorkflowActionQuery.GET_ACTION);
     }
 
     @Override
@@ -149,16 +112,13 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
             throw new PreconditionException(ErrorCode.E0816, wfAction.isPending(), wfAction.getStatusStr());
         }
 
-        executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
-        if (executor == null) {
-            throw new CommandException(ErrorCode.E0802, wfAction.getType());
-        }
+        loadActionExecutor();
     }
 
     @Override
     protected Void execute() throws CommandException {
 
-        LOG.debug("STARTED ActionStartXCommand for wf actionId=" + actionId);
+        LOG.debug("STARTED ActionStartXCommand : status[{0}]", wfAction.getStatus());
         Configuration conf = wfJob.getWorkflowInstance().getConf();
 
         int maxRetries = 0;
@@ -280,49 +240,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
             }
         }
         catch (ActionExecutorException ex) {
-            LOG.warn("Error starting action [{0}]. ErrorType [{1}], ErrorCode [{2}], Message [{3}]",
-                    wfAction.getName(), ex.getErrorType(), ex.getErrorCode(), ex.getMessage(), ex);
-            wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
-            switch (ex.getErrorType()) {
-                case TRANSIENT:
-                    if (!handleTransient(context, executor, WorkflowAction.Status.START_RETRY)) {
-                        handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
-                        wfAction.setPendingAge(new Date());
-                        wfAction.setRetries(0);
-                        wfAction.setStartTime(null);
-                    }
-                    break;
-                case NON_TRANSIENT:
-                    handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
-                    break;
-                case ERROR:
-                    handleError(context, executor, WorkflowAction.Status.ERROR.toString(), true,
-                            WorkflowAction.Status.DONE);
-                    break;
-                case FAILED:
-                    try {
-                        failJob(context);
-                        updateParentIfNecessary(wfJob, 3);
-                        new WfEndXCommand(wfJob).call(); // To delete the WF temp dir
-                        SLAEventBean slaEvent1 = SLADbXOperations.createStatusEvent(wfAction.getSlaXml(), wfAction.getId(), Status.FAILED,
-                                SlaAppType.WORKFLOW_ACTION);
-                        if(slaEvent1 != null) {
-                            insertList.add(slaEvent1);
-                        }
-                        SLAEventBean slaEvent2 = SLADbXOperations.createStatusEvent(wfJob.getSlaXml(), wfJob.getId(), Status.FAILED,
-                                SlaAppType.WORKFLOW_JOB);
-                        if(slaEvent2 != null) {
-                            insertList.add(slaEvent2);
-                        }
-                    }
-                    catch (XException x) {
-                        LOG.warn("ActionStartXCommand - case:FAILED ", x.getMessage());
-                    }
-                    break;
-            }
-            updateList.add(new UpdateEntry<WorkflowActionQuery>(WorkflowActionQuery.UPDATE_ACTION_START, wfAction));
-            wfJob.setLastModifiedTime(new Date());
-            updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MODIFIED, wfJob));
+            handleExecutionFail(ex, context);
         }
         finally {
             try {
@@ -367,19 +285,58 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         return;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.XCommand#getKey()
-     */
-    @Override
-    public String getKey(){
-        return getName() + "_" + actionId;
-    }
-
     private void prepareForRetry(WorkflowActionBean wfAction) {
         if (wfAction.getType().equals("map-reduce")) {
             // need to delete child job id of original run
             wfAction.setExternalChildIDs("");
         }
+    }
+
+    @Override
+    protected void handleExecutionFail(ActionExecutorException ex, ActionExecutorContext context) throws CommandException{
+        LOG.warn("Error starting action [{0}]. ErrorType [{1}], ErrorCode [{2}], Message [{3}]",
+                wfAction.getName(), ex.getErrorType(), ex.getErrorCode(), ex.getMessage(), ex);
+        wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
+        switch (ex.getErrorType()) {
+            case TRANSIENT:
+                if (!handleTransient(context, executor, WorkflowAction.Status.START_RETRY)) {
+                    handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
+                    wfAction.setPendingAge(new Date());
+                    wfAction.setRetries(0);
+                    wfAction.setStartTime(null);
+                }
+                break;
+            case NON_TRANSIENT:
+                handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
+                break;
+            case ERROR:
+                handleError(context, executor, WorkflowAction.Status.ERROR.toString(), true,
+                        WorkflowAction.Status.DONE);
+                break;
+            case FAILED:
+                try {
+                    failJob(context);
+                    updateParentIfNecessary(wfJob, 3);
+                    new WfEndXCommand(wfJob).call(); // To delete the WF temp dir
+                    SLAEventBean slaEvent1 = SLADbXOperations.createStatusEvent(wfAction.getSlaXml(), wfAction.getId(), Status.FAILED,
+                            SlaAppType.WORKFLOW_ACTION);
+                    if(slaEvent1 != null) {
+                        insertList.add(slaEvent1);
+                    }
+                    SLAEventBean slaEvent2 = SLADbXOperations.createStatusEvent(wfJob.getSlaXml(), wfJob.getId(), Status.FAILED,
+                            SlaAppType.WORKFLOW_JOB);
+                    if(slaEvent2 != null) {
+                        insertList.add(slaEvent2);
+                    }
+                }
+                catch (XException x) {
+                    LOG.warn("ActionStartXCommand - case:FAILED ", x.getMessage());
+                }
+                break;
+        }
+        updateList.add(new UpdateEntry<WorkflowActionQuery>(WorkflowActionQuery.UPDATE_ACTION_START, wfAction));
+        wfJob.setLastModifiedTime(new Date());
+        updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MODIFIED, wfJob));
     }
 
 }

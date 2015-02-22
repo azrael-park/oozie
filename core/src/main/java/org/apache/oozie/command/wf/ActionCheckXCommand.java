@@ -55,12 +55,7 @@ import org.apache.oozie.util.XLog;
  */
 public class ActionCheckXCommand extends ActionXCommand<Void> {
     public static final String EXEC_DATA_MISSING = "EXEC_DATA_MISSING";
-    private String actionId;
-    private String jobId;
     private int actionCheckDelay;
-    private WorkflowJobBean wfJob = null;
-    private WorkflowActionBean wfAction = null;
-    private ActionExecutor executor = null;
     private List<UpdateEntry> updateList = new ArrayList<UpdateEntry>();
     private boolean generateEvent = false;
 
@@ -69,10 +64,8 @@ public class ActionCheckXCommand extends ActionXCommand<Void> {
     }
 
     public ActionCheckXCommand(String actionId, int priority, int checkDelay) {
-        super("action.check", "action.check", priority);
-        this.actionId = actionId;
+        super(actionId, "action.check", "action.check", priority);
         this.actionCheckDelay = checkDelay;
-        this.jobId = Services.get().get(UUIDService.class).getId(actionId);
     }
 
     public ActionCheckXCommand(String actionId, int checkDelay) {
@@ -86,16 +79,7 @@ public class ActionCheckXCommand extends ActionXCommand<Void> {
 
     @Override
     protected void eagerLoadState() throws CommandException {
-        try {
-            this.wfJob = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW_STATUS, jobId);
-            this.wfAction = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION_ID_TYPE_LASTCHECK,
-                    actionId);
-            LogUtils.setLogInfo(wfJob);
-            LogUtils.setLogInfo(wfAction);
-        }
-        catch (JPAExecutorException ex) {
-            throw new CommandException(ex);
-        }
+        loadActionBean(WorkflowJobQuery.GET_WORKFLOW_STATUS, WorkflowActionQuery.GET_ACTION_ID_TYPE_LASTCHECK);
     }
 
     @Override
@@ -115,34 +99,12 @@ public class ActionCheckXCommand extends ActionXCommand<Void> {
             }
         }
 
-        executor = Services.get().get(ActionService.class).getExecutor(wfAction.getType());
-        if (executor == null) {
-            throw new CommandException(ErrorCode.E0802, wfAction.getType());
-        }
-    }
-
-    @Override
-    protected boolean isLockRequired() {
-        return true;
-    }
-
-    @Override
-    public String getEntityKey() {
-        return this.jobId;
+        loadActionExecutor();
     }
 
     @Override
     protected void loadState() throws CommandException {
-        try {
-            this.wfJob = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW_ACTION_OP, jobId);
-            this.wfAction = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION_CHECK,
-                    actionId);
-        }
-        catch (JPAExecutorException e) {
-            throw new CommandException(e);
-        }
-        LogUtils.setLogInfo(wfJob);
-        LogUtils.setLogInfo(wfAction);
+        loadActionBean(WorkflowJobQuery.GET_WORKFLOW_ACTION_OP, WorkflowActionQuery.GET_ACTION_CHECK);
     }
 
     @Override
@@ -165,7 +127,8 @@ public class ActionCheckXCommand extends ActionXCommand<Void> {
 
     @Override
     protected Void execute() throws CommandException {
-        LOG.debug("STARTED ActionCheckXCommand for wf actionId=" + actionId + " priority =" + getPriority());
+        LOG.debug("STARTED ActionCheckXCommand : status [{0}] external status [{1}] priority [{2}]",
+                wfAction.getStatus(), wfAction.getExternalStatus(), getPriority());
         ActionExecutorContext context = null;
         boolean execSynchronous = false;
         try {
@@ -203,34 +166,7 @@ public class ActionCheckXCommand extends ActionXCommand<Void> {
                     wfJob));
         }
         catch (ActionExecutorException ex) {
-            LOG.warn("Exception while executing check(). Error Code [{0}], Message[{1}]", ex.getErrorCode(), ex
-                    .getMessage(), ex);
-
-            wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
-            switch (ex.getErrorType()) {
-                case FAILED:
-                    failJob(context, wfAction);
-                    generateEvent = true;
-                    break;
-                case ERROR:
-                    handleUserRetry(wfAction);
-                    break;
-                case TRANSIENT:                 // retry N times, then suspend workflow
-                    if (!handleTransient(context, executor, WorkflowAction.Status.RUNNING)) {
-                        handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
-                        generateEvent = true;
-                        wfAction.setPendingAge(new Date());
-                        wfAction.setRetries(0);
-                        wfAction.setStartTime(null);
-                    }
-                    break;
-            }
-            wfAction.setLastCheckTime(new Date());
-            updateList = new ArrayList<UpdateEntry>();
-            updateList.add(new UpdateEntry<WorkflowActionQuery>(WorkflowActionQuery.UPDATE_ACTION_CHECK, wfAction));
-            wfJob.setLastModifiedTime(new Date());
-            updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MODIFIED,
-                    wfJob));
+            handleExecutionFail(ex, context);
         }
         finally {
             try {
@@ -256,8 +192,35 @@ public class ActionCheckXCommand extends ActionXCommand<Void> {
     }
 
     @Override
-    public String getKey() {
-        return getName() + "_" + actionId;
+    protected void handleExecutionFail(ActionExecutorException ex, ActionExecutorContext context) throws CommandException{
+        LOG.warn("Exception while executing check(). Error Code [{0}], Message[{1}]", ex.getErrorCode(), ex
+                .getMessage(), ex);
+
+        wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
+        switch (ex.getErrorType()) {
+            case TRANSIENT:                 // retry N times, then suspend workflow
+                if (!handleTransient(context, executor, WorkflowAction.Status.RUNNING)) {
+                    handleNonTransient(context, executor, WorkflowAction.Status.START_MANUAL);
+                    generateEvent = true;
+                    wfAction.setPendingAge(new Date());
+                    wfAction.setRetries(0);
+                    wfAction.setStartTime(null);
+                }
+                break;
+            case ERROR:
+                handleUserRetry(wfAction);
+                break;
+            case FAILED:
+                failJob(context, wfAction);
+                generateEvent = true;
+                break;
+        }
+        wfAction.setLastCheckTime(new Date());
+        updateList = new ArrayList<UpdateEntry>();
+        updateList.add(new UpdateEntry<WorkflowActionQuery>(WorkflowActionQuery.UPDATE_ACTION_CHECK, wfAction));
+        wfJob.setLastModifiedTime(new Date());
+        updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MODIFIED,
+                wfJob));
     }
 
 }
