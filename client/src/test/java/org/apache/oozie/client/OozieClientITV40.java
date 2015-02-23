@@ -100,6 +100,77 @@ public class OozieClientITV40 extends OozieClientIT{
     }
 
     /**
+     * Test EL error from shell action .
+     *
+     */
+    @Test
+    public void testShellELV40() {
+        try {
+            Properties configs = getDefaultProperties();
+
+            // ehco
+            String appName = "shell-el";
+            String version = "v40";
+            String appPath = baseAppPath + "/" + version + "/" + appName;
+            configs.put(OozieClient.APP_PATH, appPath);
+            configs.put("appName", appName);
+            configs.put("version", version);
+
+            uploadApps(appPath, appName, version, "script-outstream.sh");
+
+            String jobID = run(configs);
+            WorkflowAction shell1 = null;
+            WorkflowAction shell2 = null;
+            String status = "";
+            String capture = "";
+            try {
+                for (int i = 0; i < 50; i++) {
+                    WorkflowJob wfJob = getClient().getJobInfo(jobID);
+                    LOG.info(wfJob.getId() + " [" + wfJob.getStatus().toString() + "]");
+                    List<WorkflowAction> actionList = wfJob.getActions();
+                    for (WorkflowAction action : actionList) {
+                        if(action.getName().equals("shell-1")){
+                            LOG.info("    " + action.getName() + " [" + action.getStatus().toString() + "]");
+                            LOG.info("    " + "capture >> \n " + action.getData() + "\n");
+                            capture = action.getData();
+                            shell1 = action;
+                        } else if (action.getName().equals("shell-2")) {
+                            shell2 = action;
+                        }
+                    }
+                    status = wfJob.getStatus().toString();
+                    if (wfJob.getStatus().equals(WorkflowJob.Status.SUCCEEDED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.KILLED)
+                            || wfJob.getStatus().equals(WorkflowJob.Status.FAILED)) {
+                        break;
+                    }
+                    Thread.sleep(POLLING);
+                }
+            } catch (Exception e) {
+                LOG.info("Fail to monitor : " + jobID, e);
+            }
+
+            LOG.info("DONE JOB >> " + jobID + " [" + status + "]");
+
+            Assert.assertEquals(WorkflowJob.Status.FAILED.toString(), status);
+            Assert.assertNotNull(shell1);
+            Assert.assertEquals(WorkflowAction.Status.FAILED, shell1.getStatus());
+            Assert.assertEquals("EL_ERROR", shell1.getErrorCode());
+
+            Assert.assertNull(shell2);
+
+            LOG.info(" ---- JOB LOG ----");
+            LOG.info(getClient().getJobLog(jobID));
+            LOG.info(" ---- JOB LOG end ----\n");
+        } catch (Exception e) {
+            LOG.info("Fail to testShellELV40", e);
+            Assert.fail();
+        }
+        LOG.info("    >>>> Pass testShellELV40 \n");
+    }
+
+
+    /**
      * Test kill node with error during setting error message.
      *
      */
