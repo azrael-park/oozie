@@ -1985,6 +1985,47 @@ public class OozieCLI {
         if (args.length != 1) {
             throw new OozieCLIException("One file must be specified");
         }
+        XOozieClient wc = createXOozieClient(commandLine);
+        try {
+            int iVersion = extractVerion(wc.getServerBuildVersion());
+            if (iVersion < 420) {  // version is lower than 4.2.0
+                // This is only for backward compatibility. Need to remove after 4.2.0 higher version.
+                System.out.println("Oozie Server version is lower than 4.2.0. Use previous API.");
+                validateCommandV41(commandLine);
+                return;
+            }
+            String result = wc.getValidateXML(args[0].toString());
+            System.out.println(result);
+        } catch (OozieClientException e) {
+            throw new OozieCLIException(e.toString(), e);
+        }
+    }
+
+    /**
+     * Extract version in <tt>Integer</tt>.
+     * @param version
+     * @return version in <tt>Integer</tt>
+     */
+    private int extractVerion(String version) {
+        int iVersion = 0;
+        Matcher matcher = Pattern.compile("(\\d).(\\d).(\\d)").matcher(version);
+        if (matcher.find()) {
+            iVersion = Integer.parseInt(matcher.group(1) + matcher.group(2) + matcher.group(3));
+        }
+        return iVersion;
+    }
+
+    /**
+     * Validate on client-side. This is only for backward compatibility. Need to removed after <tt>4.2.0</tt> higher version.
+     * @param commandLine
+     * @throws OozieCLIException
+     */
+    @Deprecated
+    private void validateCommandV41(CommandLine commandLine) throws OozieCLIException {
+        String[] args = commandLine.getArgs();
+        if (args.length != 1) {
+            throw new OozieCLIException("One file must be specified");
+        }
         File file = new File(args[0]);
         if (file.exists()) {
             try {
