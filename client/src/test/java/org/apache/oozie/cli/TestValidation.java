@@ -34,12 +34,12 @@ public class TestValidation extends TestCase {
     }
 
     public void testValid() throws Exception {
-        String[] args = new String[]{"validate", getPath("valid.xml")};
+        String[] args = new String[]{"validate", "-oozie", "http://localhost:11000/oozie", getPath("valid.xml")};
         assertEquals(0, new OozieCLI().run(args));
     }
 
     public void testInvalid() throws Exception {
-        String[] args = new String[]{"validate", getPath("invalid.xml")};
+        String[] args = new String[]{"validate", "-oozie", "http://localhost:11000/oozie", getPath("invalid.xml")};
         assertEquals(-1, new OozieCLI().run(args));
     }
 }
