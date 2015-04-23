@@ -21,15 +21,18 @@ package org.apache.oozie.store;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
 import org.apache.oozie.client.CoordinatorAction.Status;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.CoordinatorStoreService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.test.XTestCase;
 
+@Deprecated
 public class TestCoordinatorStore extends XTestCase {
     Services services;
     CoordinatorStore store;
@@ -39,6 +42,9 @@ public class TestCoordinatorStore extends XTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         services = new Services();
+        Configuration conf = services.get(ConfigurationService.class).getConf();
+        conf.set(Services.CONF_SERVICE_CLASSES, conf.get(Services.CONF_SERVICE_CLASSES)
+                + "," + CoordinatorStoreService.class.getName() );
         services.init();
         store = Services.get().get(CoordinatorStoreService.class).create();
     }

@@ -56,6 +56,7 @@ import org.apache.openjpa.persistence.jdbc.ResultSetType;
 /**
  * DB Implementation of Coord Store
  */
+@Deprecated
 public class CoordinatorStore extends Store {
     private final XLog log = XLog.getLog(getClass());
 

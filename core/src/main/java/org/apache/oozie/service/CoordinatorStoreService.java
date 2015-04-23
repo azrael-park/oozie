@@ -27,6 +27,7 @@ import org.apache.oozie.ErrorCode;
 /**
  * Base service for persistency of jobs and actions.
  */
+@Deprecated
 public class CoordinatorStoreService implements Service {
 
     public final static String TRANSIENT_VAR_PREFIX = "oozie.coordinator.";
