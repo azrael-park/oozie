@@ -262,6 +262,7 @@ public class HadoopAccessorService implements Service {
             actionConfigDirs = parseConfigDirs(ConfigurationService.getStrings(serviceConf, ACTION_CONFS), "action");
             for (String hostport : actionConfigDirs.keySet()) {
                 actionConfigs.put(hostport, new ConcurrentHashMap<String, XConfiguration>());
+                LOG.info("---- preLoadActionConfig : " + hostport + " =  new HashMap()");
             }
         }
         catch (ServiceException ex) {
@@ -325,7 +326,7 @@ public class HadoopAccessorService implements Service {
                 });
                 for (File f : xmlFiles) {
                     if (f.isFile() && f.canRead()) {
-                        LOG.info("Processing configuration file [{0}]", f.getName());
+                        LOG.info("---- Processing configuration file [{0}]", f.getName());
                         FileInputStream fis = null;
                         try {
                             fis = new FileInputStream(f);
@@ -350,6 +351,8 @@ public class HadoopAccessorService implements Service {
         // Now check for <action.xml>   This way <action.xml> has priority over <action-dir>/*.xml
 
         File actionConfFile = new File(dir, action + ".xml");
+        LOG.info("---- loadActionConf [{0}], type [{1}], actionConfFile [{2}] , exists [{3}]: ",
+                hostPort, action, actionConfFile.getAbsolutePath(), actionConfFile.exists());
         if (actionConfFile.exists()) {
             try {
                 XConfiguration conf = new XConfiguration(new FileInputStream(actionConfFile));
@@ -375,14 +378,17 @@ public class HadoopAccessorService implements Service {
      * @return the default configuration for the action for the specified cluster.
      */
     public XConfiguration createActionDefaultConf(String hostPort, String action) {
+        LOG.info("---- createActionDefaultConf of {0}, {1}", hostPort, action);
         hostPort = (hostPort != null) ? hostPort.toLowerCase() : null;
         Map<String, XConfiguration> hostPortActionConfigs = actionConfigs.get(hostPort);
         if (hostPortActionConfigs == null) {
             hostPortActionConfigs = actionConfigs.get("*");
             hostPort = "*";
+            LOG.info("---- hostPortActionConfigs is null >> set the config of *");
         }
         XConfiguration actionConf = hostPortActionConfigs.get(action);
         if (actionConf == null) {
+            LOG.info("---- actionConf is null. will loadActionConf()}) ");
             // doing lazy loading as we don't know upfront all actions, no need to synchronize
             // as it is a read operation an in case of a race condition loading and inserting
             // into the Map is idempotent and the action-config Map is a ConcurrentHashMap

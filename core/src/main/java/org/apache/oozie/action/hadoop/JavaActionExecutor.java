@@ -213,6 +213,14 @@ public class JavaActionExecutor extends ActionExecutor {
         JobConf conf = null;
         if (loadResources) {
             conf = Services.get().get(HadoopAccessorService.class).createJobConf(jobTracker);
+            LOG.info("---- createJobConf(" + jobTracker +") : " + conf.size());
+            for (Entry<String,String> entry: conf) {
+                if (entry.getKey().equals(HADOOP_USER) || entry.getKey().equals(HADOOP_JOB_TRACKER)
+                    || entry.getKey().equals(HADOOP_JOB_TRACKER_2) || entry.getKey().equals(HADOOP_YARN_RM)
+                    || entry.getKey().equals(HADOOP_NAME_NODE) || entry.getKey().equals("oozie.HadoopAccessorService.created")) {
+                LOG.info("-- " + entry.getKey() + " = " + entry.getValue());
+            }
+        }
         }
         else {
             conf = new JobConf(false);
@@ -223,10 +231,18 @@ public class JavaActionExecutor extends ActionExecutor {
         conf.set(HADOOP_YARN_RM, jobTracker);
         conf.set(HADOOP_NAME_NODE, nameNode);
         conf.set("mapreduce.fileoutputcommitter.marksuccessfuljobs", "true");
+        for (Entry<String,String> entry: conf) {
+            if (entry.getKey().equals(HADOOP_USER) || entry.getKey().equals(HADOOP_JOB_TRACKER)
+                    || entry.getKey().equals(HADOOP_JOB_TRACKER_2) || entry.getKey().equals(HADOOP_YARN_RM)
+                    || entry.getKey().equals(HADOOP_NAME_NODE) || entry.getKey().equals("oozie.HadoopAccessorService.created")) {
+                LOG.info("-- after : " + entry.getKey() + " = " + entry.getValue());
+            }
+        }
         return conf;
     }
 
     protected JobConf loadHadoopDefaultResources(Context context, Element actionXml) {
+        LOG.info("---- loadHadoopDefaultResources");
         return createBaseHadoopConf(context, actionXml);
     }
 
@@ -510,11 +526,15 @@ public class JavaActionExecutor extends ActionExecutor {
             }
             checkForDisallowedProps(jobXmlConf, "job-xml");
             XConfiguration.copy(jobXmlConf, conf);
+            XLog.getLog(JavaActionExecutor.class).info("---- job-xml conf : " + path);
         }
         Element e = element.getChild("configuration", ns);
         if (e != null) {
             String strConf = XmlUtils.prettyPrint(e).toString();
             XConfiguration inlineConf = new XConfiguration(new StringReader(strConf));
+            for (Map.Entry<String,String> entry: inlineConf) {
+                XLog.getLog(JavaActionExecutor.class).info("---- inline conf : " + entry.getKey() + " = " + entry.getValue());
+            }
             checkForDisallowedProps(inlineConf, "inline configuration");
             XConfiguration.copy(inlineConf, conf);
         }
@@ -523,15 +543,23 @@ public class JavaActionExecutor extends ActionExecutor {
     Configuration setupActionConf(Configuration actionConf, Context context, Element actionXml, Path appPath)
             throws ActionExecutorException {
         try {
+            LOG.info("---- setupActionConf ");
             HadoopAccessorService has = Services.get().get(HadoopAccessorService.class);
             XConfiguration actionDefaults = has.createActionDefaultConf(actionConf.get(HADOOP_JOB_TRACKER), getType());
+            LOG.info("---- actionDefaults : " + actionDefaults.size());
+            for (Map.Entry<String,String> entry: actionDefaults) {
+                LOG.info("---- actionDefault : " + entry.getKey() + " = " + entry.getValue());
+            }
             XConfiguration.injectDefaults(actionDefaults, actionConf);
+            LOG.info("---- after inject actionDefault to actionConf(HadoopDefatul) : " + actionConf.size());
             has.checkSupportedFilesystem(appPath.toUri());
 
             // Set the Java Main Class for the Java action to give to the Java launcher
             setJavaMain(actionConf, actionXml);
+            LOG.info("---- after setJavaMain to actionConf : " + actionConf.get(JavaMain.JAVA_MAIN_CLASS));
 
             parseJobXmlAndConfiguration(context, actionXml, appPath, actionConf);
+            LOG.info("---- parseJobXmlInlieConf : " + actionConf.size());
 
             // set cancel.delegation.token in actionConf that child job doesn't cancel delegation token
             actionConf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", false);
