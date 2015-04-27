@@ -1999,6 +1999,7 @@ public class OozieCLI {
             throw new OozieCLIException("One file must be specified");
         }
         try {
+            System.out.println("---- validateCommand : ");
             XOozieClient wc = createXOozieClient(commandLine);
             String result = wc.validateXML(args[0].toString());
             if (result == null) {
@@ -2019,6 +2020,7 @@ public class OozieCLI {
      * @throws OozieCLIException
      */
     @Deprecated
+    @VisibleForTesting
     private void validateCommandV41(CommandLine commandLine) throws OozieCLIException {
         String[] args = commandLine.getArgs();
         if (args.length != 1) {

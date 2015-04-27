@@ -1167,6 +1167,45 @@ public class TestOozieCLI extends DagServletTestCase {
         });
     }
 
+    public void testValidateWorkFlowCommandV41() throws Exception {
+        runTest(new String[]{"/versions"}, new Class[]{HeaderTestingVersionServlet.class}, IS_SECURITY_ENABLED, new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                String validFileName = "test-workflow-app.xml";
+                String invalidFileName = "test-invalid-workflow-app.xml";
+
+                String validContent = "<workflow-app xmlns=\"uri:oozie:workflow:0.1\" name=\"test-wf\">\n" +
+                        "    <start to=\"e\"/>\n" +
+                        "    <end name=\"e\"/>\n" +
+                        "</workflow-app>";
+                String invalidContent = "<workflow-app xmlns=\"uri:oozie:workflow:0.1\" name=\"test-wf\">\n" +
+                        "    <start to=\"e\"/>\n" +
+                        "    <xend name=\"e\"/>\n" +
+                        "</workflow-app>";
+                File validfile = new File(validFileName);
+                File invalidfile = new File(invalidFileName);
+                validfile.delete();
+                invalidfile.delete();
+
+                String oozieUrl = getContextURL();
+
+                IOUtils.copyCharStream(new StringReader(validContent), new  FileWriter(validfile));
+                String [] args = new String[] { "validate", "-oozie", oozieUrl, validfile.getAbsolutePath() };
+                String out = runOozieCLIAndGetStdout(args);
+                System.out.println("---- out valid: " + out);
+                //assertTrue(out.contains("Valid"));
+
+                IOUtils.copyCharStream(new StringReader(invalidContent), new FileWriter(invalidfile));
+                args = new String[] { "validate", "-oozie", oozieUrl, invalidfile.getAbsolutePath() };
+                out = runOozieCLIAndGetStderr(args);
+                System.out.println("---- out in-valid: " + out);
+                //assertTrue(out.contains("XML schema error"));
+
+                return null;
+            }
+        });
+    }
+
    /**
      *
      * oozie -change coord_job_id -value concurrency=10

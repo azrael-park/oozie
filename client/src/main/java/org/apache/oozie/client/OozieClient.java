@@ -2038,6 +2038,7 @@ public class OozieClient {
 
         @Override
         protected String call(HttpURLConnection conn) throws IOException, OozieClientException {
+            System.out.println("---- conn url : " + conn.getURL().toString());
             conn.setRequestProperty("content-type", RestConstants.XML_CONTENT_TYPE);
             if (file.startsWith("/")) {
                 FileInputStream fi = new FileInputStream(new File(file));
