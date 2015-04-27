@@ -35,6 +35,8 @@ import org.apache.oozie.service.AuthorizationService;
 import org.apache.oozie.util.JobUtils;
 import org.apache.oozie.util.JobsFilterUtils;
 import org.apache.oozie.util.XConfiguration;
+import org.apache.oozie.util.XLog;
+import org.datanucleus.store.types.backed.Map;
 import org.json.simple.JSONObject;
 
 public abstract class BaseJobsServlet extends JsonRestServlet {
@@ -99,6 +101,10 @@ public abstract class BaseJobsServlet extends JsonRestServlet {
         BaseJobServlet.checkAuthorizationForApp(conf);
         JobUtils.normalizeAppPath(conf.get(OozieClient.USER_NAME), conf.get(OozieClient.GROUP_NAME), conf);
 
+        XLog.getLog(getClass()).info("---- job properties : \n");
+        for (Map.Entry<String,String> entry: conf) {
+            XLog.getLog(getClass()).info(entry.getKey() + " = " + entry.getValue());
+        }
         JSONObject json = submitJob(request, conf);
         startCron();
         sendJsonResponse(response, HttpServletResponse.SC_CREATED, json);

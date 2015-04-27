@@ -155,7 +155,15 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
                 try {
                     defaultConf = new XConfiguration(fs.open(configDefault));
                     PropertiesUtils.checkDisallowedProperties(defaultConf, DISALLOWED_DEFAULT_PROPERTIES);
+                    XLog.getLog(getClass()).info("---- config-default.xml from AppPath: \n");
+                    for (org.datanucleus.store.types.backed.Map.Entry<String,String> entry: conf) {
+                        XLog.getLog(getClass()).info(entry.getKey() + " = " + entry.getValue());
+                    }
                     XConfiguration.injectDefaults(defaultConf, conf);
+                    XLog.getLog(getClass()).info("---- inject config-default.xml to conf: \n");
+                    for (org.datanucleus.store.types.backed.Map.Entry<String,String> entry: conf) {
+                        XLog.getLog(getClass()).info(entry.getKey() + " = " + entry.getValue());
+                    }
                 }
                 catch (IOException ex) {
                     throw new IOException("default configuration file, " + ex.getMessage(), ex);
@@ -164,6 +172,7 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
 
             WorkflowApp app = wps.parseDef(conf, defaultConf);
             XConfiguration protoActionConf = wps.createProtoActionConf(conf, true);
+            XLog.getLog(getClass()).info("---- protoActionConf \n" + protoActionConf.toXmlString());
             WorkflowLib workflowLib = Services.get().get(WorkflowStoreService.class).getWorkflowLibWithNoDB();
 
             PropertiesUtils.checkDisallowedProperties(conf, DISALLOWED_USER_PROPERTIES);
