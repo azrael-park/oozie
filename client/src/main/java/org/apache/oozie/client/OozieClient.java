@@ -557,7 +557,7 @@ public class OozieClient {
                 URL url = createURL(protocolVersion, collection, resource, params);
                 if (validateCommand(url.toString())) {
                     if (getDebugMode() > 0) {
-                        System.out.println(method + " " + url);
+                        System.out.println(method + " -- " + url);
                     }
                     return call(createRetryableConnection(url, method));
                 }

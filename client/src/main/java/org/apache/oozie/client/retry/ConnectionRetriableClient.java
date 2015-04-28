@@ -41,6 +41,7 @@ public abstract class ConnectionRetriableClient {
 
         while (numTries < retryCount && !stopRetry) {
             try {
+                System.out.println("---- retry : " + url.toString());
                 return doExecute(url, method);
             }
             catch (ConnectException e) {

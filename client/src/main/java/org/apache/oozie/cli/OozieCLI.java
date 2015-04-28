@@ -623,7 +623,6 @@ public class OozieCLI {
         final CLIParser parser = getCLIParser();
         try {
             final CLIParser.Command command = parser.parse(args);
-
             String doAsUser = command.getCommandLine().getOptionValue(DO_AS_OPTION);
 
             if (doAsUser != null) {
@@ -923,7 +922,8 @@ public class OozieCLI {
     protected XOozieClient createXOozieClient(CommandLine commandLine) throws OozieCLIException {
         XOozieClient wc = new AuthOozieClient(getOozieUrl(commandLine), getAuthOption(commandLine));
         addHeader(wc);
-        setDebugMode(wc,commandLine.hasOption(DEBUG_OPTION));
+        //setDebugMode(wc,commandLine.hasOption(DEBUG_OPTION));
+        setDebugMode(wc, true);
         setRetryCount(wc);
         return wc;
     }
@@ -2001,6 +2001,7 @@ public class OozieCLI {
         try {
             System.out.println("---- validateCommand : ");
             XOozieClient wc = createXOozieClient(commandLine);
+            System.out.println("---- createXOozieClient ");
             String result = wc.validateXML(args[0].toString());
             if (result == null) {
                 // TODO This is only for backward compatibility. Need to remove after 4.2.0 higher version.
@@ -2010,6 +2011,7 @@ public class OozieCLI {
             }
             System.out.println(result);
         } catch (OozieClientException e) {
+            System.out.println("---- eException " + e.toString());
             throw new OozieCLIException(e.getMessage(), e);
         }
     }
@@ -2021,7 +2023,7 @@ public class OozieCLI {
      */
     @Deprecated
     @VisibleForTesting
-    private void validateCommandV41(CommandLine commandLine) throws OozieCLIException {
+    void validateCommandV41(CommandLine commandLine) throws OozieCLIException {
         String[] args = commandLine.getArgs();
         if (args.length != 1) {
             throw new OozieCLIException("One file must be specified");

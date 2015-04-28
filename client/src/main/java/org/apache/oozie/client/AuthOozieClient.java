@@ -105,7 +105,7 @@ public class AuthOozieClient extends XOozieClient {
         boolean useAuthFile = System.getProperty(USE_AUTH_TOKEN_CACHE_SYS_PROP, "false").equalsIgnoreCase("true");
         AuthenticatedURL.Token readToken = new AuthenticatedURL.Token();
         AuthenticatedURL.Token currentToken = new AuthenticatedURL.Token();
-
+        System.out.println("---- useAuthFile : " + useAuthFile);
         if (useAuthFile) {
             readToken = readAuthToken();
             if (readToken != null) {
@@ -114,6 +114,7 @@ public class AuthOozieClient extends XOozieClient {
         }
 
         if (currentToken.isSet()) {
+            System.out.println("---- currentToken.isSet");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("OPTIONS");
             AuthenticatedURL.injectToken(conn, currentToken);
@@ -124,11 +125,15 @@ public class AuthOozieClient extends XOozieClient {
         }
 
         if (!currentToken.isSet()) {
+            System.out.println("---- currentToken.isSet NOT : ");
             Authenticator authenticator = getAuthenticator();
             try {
+                System.out.println("---- Autenticated URL : " + url + ", currentToken : " + currentToken);
+                System.out.println("---- Authenticator : " + authenticator.getClass().getName());
                 new AuthenticatedURL(authenticator).openConnection(url, currentToken);
             }
             catch (AuthenticationException ex) {
+                System.out.println("---- error --");
                 AUTH_TOKEN_CACHE_FILE.delete();
                 throw new OozieClientException(OozieClientException.AUTHENTICATION,
                                                "Could not authenticate, " + ex.getMessage(), ex);
